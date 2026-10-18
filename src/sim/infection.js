@@ -1,0 +1,78 @@
+/* 感染、灼烧、血清与回合隔离 */
+(function () {
+  'use strict';
+  const ZG = globalThis.ZG = globalThis.ZG || {};
+
+  function terrainMul(state, h) {
+    const map = state.map;
+    if (!map || !map.terrain) return 1;
+    let mul = 1;
+    for (const t of map.terrain) {
+      if (t.infectionMul === undefined) continue;
+      if (ZG.Geom.pointInCircle(h.x, h.y, t)) mul = Math.min(mul, t.infectionMul);
+    }
+    return mul;
+  }
+
+  function add(state, human, amount) {
+    if (!human || !human.alive) return 0;
+    if (ZG.Combat.isImmuneToInfection(human)) return 0;
+    const mul = terrainMul(state, human);
+    const before = human.infection;
+    human.infection = Math.max(0, Math.min(100, human.infection + amount * mul));
+    return human.infection - before;
+  }
+
+  function dispel(state, human, amount) {
+    if (!human || !human.alive) return 0;
+    const before = human.infection;
+    human.infection = Math.max(0, human.infection - amount);
+    if (before > human.infection) {
+      state.bus.emit(ZG.Events.INFECTION_TREATED, { human, amount: before - human.infection });
+    }
+    return before - human.infection;
+  }
+
+  function tick(state) {
+    const dt = ZG.Const.STEP_SEC;
+
+    for (const h of state.humans.slice()) {
+      if (!h.alive) continue;
+      if (h.inspireT > 0) h.inspireT = Math.max(0, h.inspireT - dt);
+      if (h.infection > 0 && !ZG.Combat.isImmuneToInfection(h)) {
+        const dmg = h.maxHp * 0.0002 * h.infection * dt;
+        h.hp -= dmg;
+        if (h.hp <= 0) {
+          h.hp = 0;
+          ZG.Combat.killHuman(state, h);
+        }
+      }
+    }
+
+    for (const z of state.zombies.slice()) {
+      if (!z.alive) continue;
+      if (z.burnT > 0) {
+        z.burnT -= dt;
+        z.hp -= (z.burnDps || 0) * dt;
+        if (z.hp <= 0) {
+          z.hp = 0;
+          ZG.Combat.killZombie(state, z);
+        }
+      }
+    }
+  }
+
+  function anyMedic(state) {
+    return state.humans.some(h => h.alive && (h.classId === 'medic' || h.heroId === 'plague'));
+  }
+
+  function settlementClamp(state) {
+    const clear = anyMedic(state);
+    for (const h of state.humans) {
+      if (!h.alive) continue;
+      h.infection = clear ? 0 : Math.min(30, h.infection);
+    }
+  }
+
+  ZG.Infection = { add, dispel, tick, settlementClamp, terrainMul, anyMedic };
+})();

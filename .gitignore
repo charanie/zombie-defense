@@ -1,0 +1,6 @@
+node_modules/
+bench/
+.playwright-mcp/
+shots/*.tmp
+*.log
+.DS_Store

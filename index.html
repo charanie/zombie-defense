@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>尸潮防线 · Zombie Defense</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0E1420">
+  <meta name="description" content="尸潮防线：2D 圆形单位、人类 vs 僵尸的无尽防守游戏。布阵、招募、建建筑、升科技，然后开战。">
+  <meta property="og:title" content="尸潮防线">
+  <meta property="og:description" content="点开就能玩，横屏更佳。8 种人类、6 种僵尸、4 名英雄，无尽防守。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="icons/og.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <div id="stage">
+      <canvas id="game-bg" width="1280" height="720"></canvas>
+      <canvas id="game" width="1280" height="720"></canvas>
+      <div id="hud"></div>
+    </div>
+  </div>
+
+  <script src="src/core/constants.js"></script>
+  <script src="src/core/rng.js"></script>
+  <script src="src/core/eventbus.js"></script>
+  <script src="src/core/geom.js"></script>
+  <script src="src/core/state.js"></script>
+  <script src="src/data/balance.js"></script>
+  <script src="src/data/humans.js"></script>
+  <script src="src/data/zombies.js"></script>
+  <script src="src/data/heroes.js"></script>
+  <script src="src/data/buildings.js"></script>
+  <script src="src/data/maps.js"></script>
+  <script src="src/data/waves.js"></script>
+  <script src="src/sim/spatial.js"></script>
+  <script src="src/sim/stats.js"></script>
+  <script src="src/sim/pathing.js"></script>
+  <script src="src/sim/infection.js"></script>
+  <script src="src/sim/combat.js"></script>
+  <script src="src/sim/projectiles.js"></script>
+  <script src="src/sim/economy.js"></script>
+  <script src="src/sim/spawner.js"></script>
+  <script src="src/sim/ai.js"></script>
+  <script src="src/sim/captains.js"></script>
+  <script src="src/sim/heroes.js"></script>
+  <script src="src/sim/sim.js"></script>
+  <script src="src/core/platform.js"></script>
+  <script src="src/view/model.js"></script>
+  <script src="src/view/renderer.js"></script>
+  <script src="src/view/particles.js"></script>
+  <script src="src/view/audio.js"></script>
+  <script src="src/view/hud.js"></script>
+  <script src="src/view/input.js"></script>
+  <script src="src/main.js"></script>
+  <script src="src/test-hooks.js"></script>
+</body>
+</html>

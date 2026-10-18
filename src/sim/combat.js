@@ -1,0 +1,296 @@
+/* 伤害管线、护盾、死亡效果、赏金与转化 */
+(function () {
+  'use strict';
+  const ZG = globalThis.ZG = globalThis.ZG || {};
+  const D = ZG.Const.DAMAGE;
+
+  function isImmuneToInfection(h) {
+    return !!(h.captain || h.hero);
+  }
+
+  function shieldFacing(target, fromX, fromY) {
+    if (fromX === undefined || fromY === undefined) return true;
+    const dx = fromX - target.x, dy = fromY - target.y;
+    if (Math.hypot(dx, dy) <= 40) return false; // 近身绕过
+    const a = Math.atan2(dy, dx);
+    return Math.abs(ZG.Geom.angleDiff(a, target.facing)) <= Math.PI / 3;
+  }
+
+  function resolveShield(target, amount, damageKind, fromX, fromY) {
+    let shieldDamage = 0, hpDamage = 0;
+    if (target.shield > 0 && damageKind !== D.MELEE && shieldFacing(target, fromX, fromY)) {
+      let reduction;
+      if (target.kind === 'human') reduction = 0.4;
+      else reduction = target.typeId === 'shield' ? 0.7 : 0;
+      if (damageKind === D.FIRE || damageKind === D.EXPLOSION) reduction *= 0.5;
+      const eff = amount * (1 - reduction);
+      shieldDamage = Math.min(target.shield, eff);
+      target.shield -= shieldDamage;
+      hpDamage = eff - shieldDamage;
+      if (target.shield <= 0) {
+        target.shield = 0;
+        if (target.kind === 'zombie' && target.typeId === 'shield') {
+          target.permSlow = Math.max(target.permSlow || 0, 0.2);
+          target.shieldBroken = true;
+        }
+        if (target.kind === 'human') target.shieldBroken = true;
+      }
+    } else {
+      hpDamage = amount;
+    }
+    return { shieldDamage, hpDamage };
+  }
+
+  function applyDamage(state, opts) {
+    const target = opts.target;
+    if (!target || !target.alive) return { shieldDamage: 0, hpDamage: 0, killed: false };
+    if (target.kind === 'human' && (opts.friendly || opts.sourceIsHuman)) {
+      return { shieldDamage: 0, hpDamage: 0, killed: false };
+    }
+    if (target.kind === 'building') {
+      return applyBuildingDamage(state, target, opts.amount);
+    }
+
+    const amount = Math.max(0, opts.amount || 0);
+    const damageKind = opts.damageKind || D.RANGED;
+    const r = resolveShield(target, amount, damageKind, opts.fromX, opts.fromY);
+    target.hp -= r.hpDamage;
+    target.flashT = 0.08;
+    if (r.hpDamage > 0) {
+      state.bus.emit('fx:hit', {
+        x: target.x, y: target.y, amount: r.hpDamage,
+        kind: target.kind, damageKind, shield: r.shieldDamage > 0
+      });
+    }
+
+    if (target.hp <= 0 && target.alive) {
+      target.hp = 0;
+      if (target.kind === 'zombie') killZombie(state, target);
+      else killHuman(state, target);
+      return { shieldDamage: r.shieldDamage, hpDamage: r.hpDamage, killed: true };
+    }
+    return { shieldDamage: r.shieldDamage, hpDamage: r.hpDamage, killed: false };
+  }
+
+  function applyBuildingDamage(state, b, amount) {
+    if (!b.alive) return { shieldDamage: 0, hpDamage: 0, killed: false };
+    b.hp -= amount;
+    if (b.hp <= 0) {
+      b.hp = 0;
+      b.alive = false;
+      const i = state.buildings.indexOf(b);
+      if (i >= 0) state.buildings.splice(i, 1);
+      const slot = state.slots.find(s => s.id === b.slotId);
+      if (slot && slot.buildingId === b.id) {
+        slot.buildingId = null;
+        slot.rubble = true;
+      }
+      state.stats.buildingsLost = (state.stats.buildingsLost || 0) + 1;
+      state.bus.emit(ZG.Events.BUILDING_DESTROYED, { building: b });
+      if (state.pathing) {
+        state.pathing = ZG.Pathing.build(state);
+      }
+      return { shieldDamage: 0, hpDamage: amount, killed: true };
+    }
+    return { shieldDamage: 0, hpDamage: amount, killed: false };
+  }
+
+  function killZombie(state, z) {
+    if (!z.alive) return;
+    z.alive = false;
+    const i = state.zombies.indexOf(z);
+    if (i >= 0) state.zombies.splice(i, 1);
+    state.battle.killCount++;
+    state.stats.totalKills++;
+    const t = z.typeId;
+    state.stats.zombieKillsByType[t] = (state.stats.zombieKillsByType[t] || 0) + 1;
+
+    // 母体死亡效果
+    if (t === 'mother') {
+      const data = ZG.Data.zombies.mother;
+      const n = 3 + Math.floor(state.rng.spawn.next() * 3);
+      let spawned = 0;
+      const cap = data.babies.waveCap;
+      for (let k = 0; k < n; k++) {
+        if ((state.battle.babyCount || 0) >= cap) break;
+        const a = state.rng.spawn.next() * Math.PI * 2;
+        const rr = 10 + state.rng.spawn.next() * 24;
+        const bz = ZG.State.spawnZombie(state, 'baby', z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+        bz.wave = z.wave;
+        state.battle.babyCount = (state.battle.babyCount || 0) + 1;
+        spawned++;
+      }
+      // 死亡爆炸：人类 80 / 建筑 200，半径 120
+      const R = data.deathExplosion.radius;
+      for (const h of state.humans.slice()) {
+        if (!h.alive) continue;
+        if (ZG.Geom.dist2(h.x, h.y, z.x, z.y) <= (R + h.radius) * (R + h.radius)) {
+          applyDamage(state, { target: h, amount: data.deathExplosion.human, damageKind: D.EXPLOSION, fromX: z.x, fromY: z.y });
+        }
+      }
+      for (const b of state.buildings.slice()) {
+        if (!b.alive) continue;
+        if (ZG.Geom.dist2(b.x, b.y, z.x, z.y) <= (R + b.radius) * (R + b.radius)) {
+          applyBuildingDamage(state, b, data.deathExplosion.building);
+        }
+      }
+      state.bus.emit('fx:explosion', { x: z.x, y: z.y, radius: R, color: '#8E24AA', kind: 'mother' });
+    }
+
+    if (t === 'boss') {
+      state.stats.bossKills = (state.stats.bossKills || 0) + 1;
+      state.battle.bossId = null;
+      state.bus.emit('fx:explosion', { x: z.x, y: z.y, radius: 140, color: '#FF7043', kind: 'boss' });
+      if (ZG.Heroes) ZG.Heroes.grant(state);
+    }
+
+    // 赏金
+    if (z.bountyBase > 0) {
+      let amount;
+      if (z.isBoss) amount = Math.floor(z.bountyBase);
+      else {
+        const econ = state.tech.econ || 0;
+        amount = ZG.Balance.bounty(z.bountyBase, state.round, econ);
+      }
+      if (amount > 0) {
+        state.money += amount;
+        state.stats.totalEarned += amount;
+        state.battle.killIncome = (state.battle.killIncome || 0) + amount;
+        state.bus.emit('fx:coin', { x: z.x, y: z.y, amount });
+        state.bus.emit(ZG.Events.MONEY_CHANGED, { money: state.money, delta: amount });
+      }
+    }
+
+    state.bus.emit(ZG.Events.ZOMBIE_DIED, { zombie: z });
+  }
+
+  function captainExplosion(state, h) {
+    const radius = 90;
+    for (const z of state.zombies.slice()) {
+      if (!z.alive) continue;
+      if (ZG.Geom.dist2(z.x, z.y, h.x, h.y) <= (radius + z.radius) * (radius + z.radius)) {
+        const pct = Math.min(0.15 * z.maxHp, 800);
+        applyDamage(state, { target: z, amount: 120 + pct, damageKind: D.EXPLOSION, fromX: h.x, fromY: h.y });
+      }
+    }
+    state.bus.emit('fx:explosion', { x: h.x, y: h.y, radius: 90, color: '#FFC107', kind: 'captain' });
+  }
+
+  function killHuman(state, h) {
+    if (!h.alive) return;
+    h.alive = false;
+
+    if (h.captain) {
+      captainExplosion(state, h);
+    }
+
+    if (h.hero) {
+      h.wounded = true;
+      h.woundedUntilRound = state.round + 1;
+      const i = state.humans.indexOf(h);
+      if (i >= 0) state.humans.splice(i, 1);
+      state.woundedHeroes.push(h);
+      state.bus.emit(ZG.Events.HERO_WOUNDED, { human: h });
+      state.bus.emit(ZG.Events.HUMAN_DIED, { human: h });
+      return;
+    }
+
+    if (h.captain) {
+      // 队长不转化，只爆炸
+      const i = state.humans.indexOf(h);
+      if (i >= 0) state.humans.splice(i, 1);
+      state.bus.emit(ZG.Events.HUMAN_DIED, { human: h });
+      return;
+    }
+
+    // 普通人类 / 平民 / 转化兵 -> 当回合普通丧尸 50% HP
+    const walkerHp = ZG.Balance.zombieHp(ZG.Data.zombies.walker.hp, state.round) * 0.5;
+    const tuned = ZG.State.spawnZombie(state, 'walker', h.x, h.y, {
+      maxHp: walkerHp, hp: walkerHp, bounty: 0, turnedFromHuman: true
+    });
+    tuned.wave = state.battle.waveId || null;
+
+    const i = state.humans.indexOf(h);
+    if (i >= 0) state.humans.splice(i, 1);
+    state.bus.emit(ZG.Events.HUMAN_DIED, { human: h });
+  }
+
+  function attack(state, attacker, target) {
+    if (!attacker || !target || !attacker.alive || !target.alive) return;
+    if (attacker.kind === 'human') {
+      const st = ZG.Stats.human(state, attacker);
+      const fromX = attacker.x, fromY = attacker.y;
+      applyDamage(state, {
+        target, amount: st.damage, damageKind: attacker.attack.damageKind,
+        fromX, fromY, sourceIsHuman: true
+      });
+    } else if (attacker.kind === 'zombie') {
+      zombieHit(state, attacker, target);
+    }
+  }
+
+  function zombieHit(state, z, target) {
+    if (!target.alive) return;
+    const st = ZG.Stats.zombie(state, z);
+    if (target.kind === 'building') {
+      const mul = z.typeId === 'giant' ? ZG.Data.zombies.giant.buildingMultiplier : 1;
+      applyBuildingDamage(state, target, st.damage * mul);
+      return;
+    }
+    applyDamage(state, {
+      target, amount: st.damage, damageKind: D.MELEE, fromX: z.x, fromY: z.y
+    });
+    // 感染
+    if (target.kind === 'human' && target.alive && !isImmuneToInfection(target) && z.infection && z.infection.chance > 0) {
+      if (state.rng.jitter.chance(z.infection.chance)) {
+        ZG.Infection.add(state, target, z.infection.amount);
+      }
+    }
+  }
+
+  function heal(state, target, amount) {
+    if (!target || !target.alive) return 0;
+    const before = target.hp;
+    target.hp = Math.min(target.maxHp, target.hp + amount);
+    return target.hp - before;
+  }
+
+  function earn(state, amount, reason) {
+    const v = Math.max(0, Math.round(amount));
+    if (!v) return;
+    state.money += v;
+    state.stats.totalEarned += v;
+    state.bus.emit(ZG.Events.MONEY_CHANGED, { money: state.money, delta: v, reason });
+  }
+
+  function tryConvert(state, z, roll) {
+    if (!z || !z.alive || z.isBoss) return false;
+    const r = roll === undefined ? state.rng.jitter.next() : roll;
+    if (r >= 0.15) return false;
+    if ((state.battle.convertedThisRound || 0) >= ZG.Const.CONVERT_PER_ROUND) return false;
+    const totalConverted = state.humans.filter(h => h.alive && h.converted).length;
+    if (totalConverted >= ZG.Const.MAX_CONVERTED) return false;
+    convertZombie(state, z);
+    return true;
+  }
+
+  function convertZombie(state, z) {
+    if (!z || !z.alive || z.isBoss) return null;
+    z.alive = false;
+    const i = state.zombies.indexOf(z);
+    if (i >= 0) state.zombies.splice(i, 1);
+    const h = ZG.State.spawnHuman(state, 'pistol', z.x, z.y, {
+      converted: true,
+      expireRound: state.round + 2
+    });
+    state.battle.convertedThisRound = (state.battle.convertedThisRound || 0) + 1;
+    state.bus.emit('fx:convert', { x: z.x, y: z.y });
+    return h;
+  }
+
+  ZG.Combat = {
+    applyDamage, applyBuildingDamage, killZombie, killHuman, attack, zombieHit,
+    heal, earn, resolveShield, tryConvert, convertZombie, captainExplosion,
+    isImmuneToInfection
+  };
+})();
