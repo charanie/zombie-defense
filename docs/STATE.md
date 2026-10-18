@@ -5,7 +5,8 @@
 ## 当前状态
 
 - **版本**：v1.0.0，M1–M4 核心内容已完成，游戏可完整游玩。
-- **阶段**：完成开发，待部署与真机 QA。
+- **阶段**：开发完成，**已部署到 GitHub Pages**；待真机 QA。
+- **在线地址**：<https://charanie.github.io/zombie-defense/>
 - **可运行**：双击 `index.html`；或 `python -m http.server 8765` 后访问 `http://127.0.0.1:8765/`。
 - **测试**：`npm test` → 93 项全部通过。
 - **性能**：Node 基准 300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 0.95`；浏览器单帧模拟 1.7ms、渲染+HUD 4.65ms。
@@ -32,10 +33,10 @@
 
 ## 下一步（建议顺序）
 
-1. **部署**：在 `games/zombie-defense` 内 `git init` → 提交 → 推送到 `git@github.com:charanie/zombie-defense.git`（本机 `github.com:443` 被阻断，必须 SSH）→ Pages 分支 `main` / root。
-2. **真机 QA**：iPhone Safari、Android Chrome、微信内置浏览器、QQ 浏览器；重点看横屏、触摸放置、安全区、帧率。
-3. **平衡复测**：用真人试玩 R1–20；若 R20 太简单，优先微调精英比例而不是 HP 底数。
-4. 可选：Electron/Tauri 桌面壳、二维码/分享图、更多地图与成就。
+1. **真机 QA**：iPhone Safari、Android Chrome、微信内置浏览器、QQ 浏览器；重点看横屏、触摸放置、安全区、帧率。
+2. **平衡复测**：用真人试玩 R1–20；若 R20 太简单，优先微调精英比例而不是 HP 底数。
+3. **分享**：生成指向线上地址的二维码；发朋友试玩。
+4. 可选：Electron/Tauri 桌面壳、更多地图与成就。
 
 ## 已知限制
 

@@ -56,6 +56,8 @@
 - [x] 断网刷新仍进入游戏。
 - [x] manifest 字段（name/display/orientation/icons）正确。
 - [x] `file://` 下不请求 manifest，无 CORS 报错。
+- [x] GitHub Pages 上线：<https://charanie.github.io/zombie-defense/> 返回 200，线上菜单/战斗可玩。
+- [x] 线上 Service Worker activated，manifest 注入成功，console 0 error。
 - [ ] 安装到主屏（需 HTTPS + 真机/Chromium 手动确认）。
 - [ ] 新版本更新提示（需换缓存版本号后验证）。
 

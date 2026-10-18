@@ -7,6 +7,8 @@
 - **8 人类 / 6 僵尸 + 幼体 + BOSS / 4 英雄 / 6 建筑 / 3 地图 / 4 条科技线**。
 - **PWA**：可安装到主屏、离线可玩（需 HTTPS）。
 
+**在线游玩：<https://charanie.github.io/zombie-defense/>**
+
 ![菜单](shots/menu.png)
 
 ## 运行
@@ -99,7 +101,7 @@ zombie-defense/
 
 ## 发布
 
-目标地址（尚未推送）：<https://charanie.github.io/zombie-defense/>
+已部署：<https://charanie.github.io/zombie-defense/>（GitHub Pages，`main` / root）
 
 ```bash
 git init
