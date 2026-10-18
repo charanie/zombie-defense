@@ -48,6 +48,16 @@
 
     for (const h of state.humans) {
       if (!h.alive) continue;
+      // 回到玩家布置的站位，清除上一场战斗的追击/寻医状态
+      h.x = h.homeX;
+      h.y = h.homeY;
+      h.aiState = 'guard';
+      h.careTargetId = 0;
+      h.careKind = null;
+      h.moveX = 0;
+      h.moveY = 0;
+      h.dodgeT = 0;
+      h.dodgeCd = 0;
       h.cd = 0;
       h.reloadT = 0;
       if (h.attack && h.attack.ammo) h.ammo = h.attack.ammo;

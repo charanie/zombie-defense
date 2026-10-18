@@ -8,7 +8,7 @@
     officer: {
       id: 'officer', name: '长官', hp: 1200, pop: 0, radius: 10,
       color: C.officer, symbol: '令', blurb: '后排输出 + 每回合导弹支援',
-      hero: true,
+      hero: true, moveSpeed: 62, vision: 380, huntRadius: 400,
       attack: {
         kind: 'ranged', damage: 18, interval: 0.35, range: 300,
         damageKind: 'ranged', projectile: 'bullet', pellets: 2, spread: 0.04
@@ -20,7 +20,7 @@
     samurai: {
       id: 'samurai', name: '武士', hp: 1100, pop: 0, radius: 11,
       color: C.samurai, symbol: '武', blurb: '近战爆发 + 剑气穿透',
-      hero: true, moveSpeed: 70,
+      hero: true, moveSpeed: 70, vision: 300, huntRadius: 340,
       attack: {
         kind: 'melee', damage: 126, interval: 0.7, range: 45,
         damageKind: 'melee', rangeBonusRadius: true
@@ -32,7 +32,7 @@
     gatling: {
       id: 'gatling', name: '加特林士兵', hp: 1600, pop: 0, radius: 14,
       color: C.gatling, symbol: '加', blurb: '高血量持续输出 + 攻速光环',
-      hero: true,
+      hero: true, moveSpeed: 54, vision: 340, huntRadius: 360,
       attack: {
         kind: 'ranged', damage: 22, interval: 0.1, range: 260,
         damageKind: 'ranged', projectile: 'bullet', pellets: 1, spread: 0.03, warmup: 1
@@ -44,7 +44,7 @@
     plague: {
       id: 'plague', name: '疫医', hp: 800, pop: 0, radius: 8,
       color: C.plague, symbol: '疫', blurb: '治疗 + 感染控制 + 转化丧尸',
-      hero: true,
+      hero: true, moveSpeed: 84, vision: 260, huntRadius: 300,
       attack: {
         kind: 'vial', damage: 29, interval: 1 / 1.2, range: 230,
         damageKind: 'explosion', projectile: 'vial', splash: 50, speed: 380

@@ -1,5 +1,5 @@
 /* 尸潮防线 Service Worker — Cache First */
-const CACHE = 'zd-v1.0.0';
+const CACHE = 'zd-v1.1.0';
 
 const SHELL = [
   './',

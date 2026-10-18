@@ -61,10 +61,31 @@
     return p;
   }
 
+  const AI_LABELS = {
+    guard: '警戒',
+    advance: '自主追击',
+    hold: '守住阵线',
+    engage: '交火',
+    return: '回防',
+    assist: '前往救治',
+    flee: '躲避威胁',
+    dodge: '闪避冲刺'
+  };
+
+  function aiLabel(h) {
+    if (h.aiState === 'heal') {
+      const moving = Math.abs(h.moveX || 0) + Math.abs(h.moveY || 0) > 0.001;
+      if (!moving) return '治疗中';
+      return h.careKind === 'hospital' ? '前往医疗站' : '前往治疗兵';
+    }
+    return AI_LABELS[h.aiState] || AI_LABELS.guard;
+  }
+
   function humanInfo(state, id) {
     const h = state.humans.find(u => u.id === id);
     if (!h) return null;
     const st = ZG.Stats.human(state, h);
+    const ai = aiLabel(h);
     return {
       id: h.id,
       name: h.name + (h.captain ? '（队长）' : '') + (h.hero ? '（英雄）' : ''),
@@ -77,7 +98,11 @@
       dps: st.dps,
       range: st.range,
       level: h.captain ? '队长' : (h.hero ? '英雄' : '普通'),
-      state: h.converted ? '疫医转化兵' : (h.wounded ? '重伤' : '作战'),
+      state: h.converted ? '疫医转化兵 · ' + ai : (h.wounded ? '重伤' : ai),
+      aiState: h.aiState,
+      careKind: h.careKind,
+      moveSpeed: h.moveSpeed,
+      huntRadius: h.huntRadius,
       infected: h.infection > 0,
       x: h.x, y: h.y
     };

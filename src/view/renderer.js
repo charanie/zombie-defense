@@ -348,11 +348,93 @@
     ctx.restore();
   }
 
+  function careTargetOf(state, h) {
+    if (!h.careTargetId) return null;
+    if (h.careKind === 'hospital') {
+      return state.buildings.find(b => b.id === h.careTargetId && b.alive) || null;
+    }
+    if (h.careKind === 'medic') {
+      return state.humans.find(u => u.id === h.careTargetId && u.alive) || null;
+    }
+    return null;
+  }
+
+  function drawAiMarker(ctx, h, r) {
+    const mx = h.moveX || 0, my = h.moveY || 0;
+    const moving = Math.abs(mx) + Math.abs(my) > 0.001;
+
+    // 闪避：身后速度线
+    if (h.dodgeT > 0 && moving) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 1.5;
+      const len = Math.hypot(mx, my) || 1;
+      const ux = mx / len, uy = my / len;
+      const px = -uy, py = ux;
+      for (let i = -1; i <= 1; i++) {
+        const ox = px * i * 3.2, oy = py * i * 3.2;
+        ctx.beginPath();
+        ctx.moveTo(h.x - ux * (r + 3) + ox, h.y - uy * (r + 3) + oy);
+        ctx.lineTo(h.x - ux * (r + 12) + ox, h.y - uy * (r + 12) + oy);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 移动方向小箭头
+    if (moving && h.aiState !== 'dodge') {
+      const a = Math.atan2(my, mx);
+      const tx = h.x + Math.cos(a) * (r + 9);
+      const ty = h.y + Math.sin(a) * (r + 9);
+      ctx.save();
+      ctx.strokeStyle = h.aiState === 'return'
+        ? 'rgba(144, 164, 174, 0.60)'
+        : (h.aiState === 'flee' ? 'rgba(255, 213, 79, 0.70)' : 'rgba(230, 237, 247, 0.55)');
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(tx - Math.cos(a - 0.55) * 5, ty - Math.sin(a - 0.55) * 5);
+      ctx.lineTo(tx, ty);
+      ctx.lineTo(tx - Math.cos(a + 0.55) * 5, ty - Math.sin(a + 0.55) * 5);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 寻医：右上角绿色十字徽标
+    if (h.careTargetId) {
+      const bx = h.x + r + 7, by = h.y - r - 2;
+      ctx.save();
+      ctx.fillStyle = 'rgba(10, 16, 26, 0.78)';
+      ctx.beginPath();
+      ctx.arc(bx, by, 5.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(102, 187, 106, 0.9)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(bx - 2.6, by); ctx.lineTo(bx + 2.6, by);
+      ctx.moveTo(bx, by - 2.6); ctx.lineTo(bx, by + 2.6);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   function drawHuman(ctx, h, state) {
     const color = (ZG.Data.humans[h.classId] || ZG.Data.heroes[h.heroId] || {}).color || C.human.pistol;
     const r = Math.max(10, h.radius * 1.45);
 
-    // 队长金环 / 英雄外环
+    // 寻医路线：绿色虚线指向医疗站 / 治疗兵
+    const care = careTargetOf(state, h);
+    if (care) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(102, 187, 106, 0.28)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(h.x, h.y);
+      ctx.lineTo(care.x, care.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     if (h.captain) {
       ctx.save();
       ctx.strokeStyle = C.captain;
@@ -443,6 +525,8 @@
       drawBar(ctx, h.x, h.y - r - 9, 24, 3.5, h.hp / h.maxHp,
         h.hp / h.maxHp < 0.3 ? C.danger : C.heal);
     }
+
+    drawAiMarker(ctx, h, r);
 
     // 选中
     if (state.ui.selectedHumanId === h.id) {
