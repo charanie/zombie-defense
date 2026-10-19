@@ -49,6 +49,25 @@
     return { shieldDamage, hpDamage };
   }
 
+  // 盾尸拦截：找出射线路径上最近的、正面且盾值未破的盾尸
+  function interceptRay(state, x1, y1, x2, y2, opts) {
+    const o = opts || {};
+    const pad = o.pad === undefined ? 6 : o.pad;
+    const half = (o.halfAngleDeg === undefined ? 60 : o.halfAngleDeg) * Math.PI / 180;
+    let best = null, bestT = 1;
+    for (const z of state.zombies) {
+      if (!z.alive || z.typeId !== 'shield' || z.shield <= 0) continue;
+      if (o.excludeId && z.id === o.excludeId) continue;
+      const t = ZG.Geom.segmentCircleT(x1, y1, x2, y2, z.x, z.y,
+        (z.radius || 10) + pad);
+      if (t === null || t <= 0 || t >= bestT) continue;
+      const toShooter = Math.atan2(y1 - z.y, x1 - z.x);
+      if (Math.abs(ZG.Geom.angleDiff(toShooter, z.facing)) > half) continue;
+      best = z; bestT = t;
+    }
+    return best;
+  }
+
   // 爆尸爆炸：盾兵盾值 >0 且面朝爆心时，背后扇形内的队友只受 50%
   function shieldGuardMul(state, h, ex, ey) {
     if (!h || h.classId === 'shield') return 1;
@@ -312,7 +331,7 @@
 
   ZG.Combat = {
     applyDamage, applyBuildingDamage, killZombie, killHuman, attack, zombieHit,
-    heal, earn, resolveShield, shieldGuardMul, tryConvert, convertZombie, captainExplosion,
+    heal, earn, resolveShield, interceptRay, shieldGuardMul, tryConvert, convertZombie, captainExplosion,
     isImmuneToInfection
   };
 })();

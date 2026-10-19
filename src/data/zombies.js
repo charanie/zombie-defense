@@ -22,6 +22,8 @@
       id: 'shield', name: '盾尸', hp: 200, shield: 200, speed: 30, damage: 10, bounty: 18,
       radius: 10, unlock: 4, color: C.shield, symbol: '◗', attackInterval: 1.2,
       shieldReduction: 0.7, shieldAngle: 120, breakSlow: 0.2,
+      vanguard: true, vanguardSpeedMul: 1.15, vanguardLeadGap: 50,
+      intercept: true, interceptFacingHalfAngle: 60,
       infection: { chance: 0.35, amount: 25 },
       special: '正面 120° 护盾；破盾减速 20%'
     },

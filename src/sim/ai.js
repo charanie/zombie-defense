@@ -424,7 +424,10 @@
           if (!target.alive) break;
           const spread = a.spread || 0;
           const ang = h.facing + (spread ? (state.rng.jitter.next() - 0.5) * spread : 0);
-          const hit = spread ? pickAlongRay(state, h, ang, st.range) || target : target;
+          let hit = spread ? pickAlongRay(state, h, ang, st.range) || target : target;
+          const inter = ZG.Combat.interceptRay(state, h.x, h.y, hit.x, hit.y,
+            { excludeId: hit.id });
+          if (inter) hit = inter;
           ZG.Combat.applyDamage(state, {
             target: hit, amount: st.damage, damageKind: a.damageKind,
             fromX: h.x, fromY: h.y, sourceIsHuman: true
@@ -442,15 +445,18 @@
         for (let i = 0; i < n; i++) {
           const z = targets.length ? targets[i % targets.length] : target;
           if (!z || !z.alive) continue;
-          const d = ZG.Geom.dist(h.x, h.y, z.x, z.y);
+          const inter = ZG.Combat.interceptRay(state, h.x, h.y, z.x, z.y,
+            { excludeId: z.id });
+          const hit = inter || z;
+          const d = ZG.Geom.dist(h.x, h.y, hit.x, hit.y);
           const dmg = d > a.falloffStart ? st.damage * a.falloffMul : st.damage;
           ZG.Combat.applyDamage(state, {
-            target: z, amount: dmg, damageKind: a.damageKind,
+            target: hit, amount: dmg, damageKind: a.damageKind,
             fromX: h.x, fromY: h.y, sourceIsHuman: true
           });
           ZG.Projectiles.tracer(state, h.x, h.y,
-            z.x + (state.rng.jitter.next() - 0.5) * 18,
-            z.y + (state.rng.jitter.next() - 0.5) * 18, '#FFCC80');
+            hit.x + (state.rng.jitter.next() - 0.5) * 18,
+            hit.y + (state.rng.jitter.next() - 0.5) * 18, '#FFCC80');
         }
         return true;
       }
@@ -476,20 +482,26 @@
       }
       case 'rocket': {
         const dmg = st.damage * ((target.isSiege || target.isBoss) ? (a.siegeBonus || 1) : 1);
+        const interceptor = ZG.Combat.interceptRay(state, h.x, h.y, target.x, target.y,
+          { excludeId: target.id, pad: 6 });
+        const aim = interceptor || target;
         ZG.Projectiles.spawn(state, {
-          typeId: 'rocket', x: h.x, y: h.y, tx: target.x, ty: target.y,
+          typeId: 'rocket', x: h.x, y: h.y, tx: aim.x, ty: aim.y,
           speed: a.speed || 420, splash: a.splash || 60, damage: dmg,
           damageKind: D.EXPLOSION,
-          ownerId: h.id, color: '#CE93D8'
+          ownerId: h.id, color: '#CE93D8', targetId: aim.id
         });
         return true;
       }
       case 'vial': {
+        const interceptor = ZG.Combat.interceptRay(state, h.x, h.y, target.x, target.y,
+          { excludeId: target.id, pad: 6 });
+        const aim = interceptor || target;
         ZG.Projectiles.spawn(state, {
-          typeId: 'vial', x: h.x, y: h.y, tx: target.x, ty: target.y,
+          typeId: 'vial', x: h.x, y: h.y, tx: aim.x, ty: aim.y,
           speed: a.speed || 380, splash: a.splash || 50, damage: st.damage,
           damageKind: D.EXPLOSION, ownerId: h.id, color: '#B39DDB',
-          targetId: target.id
+          targetId: aim.id
         });
         return true;
       }
@@ -903,10 +915,37 @@
 
   /* ---------------- 僵尸 ---------------- */
 
+  function usesFlowField(z) {
+    return !(z.typeId === 'runner' || z.typeId === 'boomer' || z.typeId === 'shield');
+  }
+
+  function nearestHumanMatching(state, x, y, maxR, filter) {
+    let best = null, bestD = maxR * maxR;
+    for (const h of state.humans) {
+      if (!h.alive || !filter(h)) continue;
+      const d = ZG.Geom.dist2(x, y, h.x, h.y);
+      if (d < bestD || (d === bestD && best && h.id < best.id)) { bestD = d; best = h; }
+    }
+    return best;
+  }
+
   function pickZombieTarget(state, z) {
     if (z.typeId === 'boomer' || z.isBoss) {
       const p = densestHumanPoint(state);
       return { kind: 'point', x: p.x, y: p.y, count: p.count, target: null };
+    }
+
+    // 盾尸：始终扑向人类，主动顶到最前
+    if (z.typeId === 'shield') {
+      const h = nearestHuman(state, z.x, z.y, 4000);
+      if (h) return { kind: 'human', target: h };
+    }
+
+    // 狂尸：260px 内优先非盾人类，绕过盾线
+    if (z.typeId === 'runner') {
+      const nonShield = nearestHumanMatching(state, z.x, z.y, 260,
+        u => u.classId !== 'shield');
+      if (nonShield) return { kind: 'human', target: nonShield };
     }
 
     const tank = nearestShield(state, z, 90);
@@ -1024,6 +1063,20 @@
   function stepZombies(state) {
     const dt = STEP;
 
+    // 盾尸 vanguard：预计算每只僵尸到最近人类的距离，避免循环内重复全扫
+    let humanDistOf = null;
+    let minHumanDist = Infinity;
+    if (state.zombies.some(z => z.alive && z.typeId === 'shield')) {
+      humanDistOf = new Map();
+      for (const z of state.zombies) {
+        if (!z.alive) continue;
+        const h = nearestHuman(state, z.x, z.y, 4000);
+        const d = h ? ZG.Geom.dist(z.x, z.y, h.x, h.y) : Infinity;
+        humanDistOf.set(z.id, d);
+        if (d < minHumanDist) minHumanDist = d;
+      }
+    }
+
     for (const z of state.zombies.slice()) {
       if (!z.alive) continue;
       if (z.cd > 0) z.cd -= dt;
@@ -1035,6 +1088,17 @@
       const st = ZG.Stats.zombie(state, z);
       let speed = st.speed;
       let attacking = false;
+
+      // 盾尸主动顶前：还没成为最接近人类的僵尸时加速
+      if (z.typeId === 'shield' && humanDistOf) {
+        const zd = ZG.Data.zombies.shield;
+        if (zd.vanguard) {
+          const myD = humanDistOf.get(z.id);
+          if (isFinite(myD) && myD > minHumanDist + zd.vanguardLeadGap) {
+            speed *= zd.vanguardSpeedMul;
+          }
+        }
+      }
 
       // 狂尸冲刺
       if (z.typeId === 'runner') {
@@ -1137,7 +1201,7 @@
       } else {
         // 远处沿流场，近处直追
         let nx = tx, ny = ty;
-        if (dist > 340 && tgt.kind !== 'building') {
+        if (usesFlowField(z) && dist > 340 && tgt.kind !== 'building') {
           const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y);
           nx = z.x + dir.x * 100;
           ny = z.y + dir.y * 100;
@@ -1205,11 +1269,14 @@
             e => e.kind === 'zombie' && e.alive);
           if (z) {
             const tech = ZG.Balance.techMul('fire', state.tech.fire);
+            const inter = ZG.Combat.interceptRay(state, b.x, b.y, z.x, z.y,
+              { excludeId: z.id });
+            const hit = inter || z;
             ZG.Combat.applyDamage(state, {
-              target: z, amount: data.attack.damage * tech,
+              target: hit, amount: data.attack.damage * tech,
               damageKind: D.RANGED, fromX: b.x, fromY: b.y, sourceIsHuman: true
             });
-            ZG.Projectiles.tracer(state, b.x, b.y, z.x, z.y, '#B0BEC5');
+            ZG.Projectiles.tracer(state, b.x, b.y, hit.x, hit.y, '#B0BEC5');
             b.cd = data.attack.interval;
           }
         }
@@ -1250,7 +1317,7 @@
 
   ZG.AI = {
     step, stepHumans, stepZombies, stepBuildings,
-    pickHumanTarget, pickZombieTarget,
+    pickHumanTarget, pickZombieTarget, usesFlowField,
     densestHumanPoint, densestZombieCluster, nearestHuman
   };
 })();
