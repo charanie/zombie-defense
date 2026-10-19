@@ -431,13 +431,15 @@
       '<tr><td>1 / 2 / 3</td><td>1x / 2x / 3x 速度</td></tr>' +
       '<tr><td>Tab</td><td>切换招募 / 建筑 / 科技</td></tr>' +
       '<tr><td>M</td><td>静音</td></tr>' +
-      '<tr><td>H</td><td>图鉴 / 帮助</td></tr></table>' +
+      '<tr><td>H</td><td>图鉴 / 帮助</td></tr>' +
+      '<tr><td>R</td><td>围墙横 / 竖切换</td></tr></table>' +
       '<h4>规则摘要</h4><p class="dim">战前布阵、开战全自动。每 3 回合晋升队长，每 7 回合 BOSS 出现并赠送英雄。' +
       '人类死亡会变成丧尸；感染到 100 会持续掉血。回合结算回血 30%，感染压到 30。</p>' +
-      '<h4>人类自主 AI</h4><p class="dim">开战后人类会自行移动：视野内出现僵尸就离开部署区追击，' +
-      '追击距离受各自的活动半径限制；没有目标时回到原位。HP 低于 60% 或感染达到 30 时，' +
-      '会主动前往医疗站或治疗兵；治疗兵也会迎向伤员。狂尸冲刺迎面而来时，非盾单位会侧移闪避，' +
-      '盾兵则据守硬吃。头顶的状态箭头与绿色十字表示当前行动。</p>';
+      '<h4>人类自主 AI</h4><p class="dim">开战后人类以盾兵为核心结阵：盾兵在前，远程/治疗在后；' +
+      '没有敌人时会主动向最近的待出生边缘搜索；闪避/寻医结束后回到阵位，不回原始放置点。' +
+      'HP 低于 60% 或感染达到 30 时会主动寻医，治疗兵也会迎向伤员。' +
+      '狂尸冲刺迎面而来时，非盾单位会侧移闪避，盾兵则据守硬吃。' +
+      '建造时按 R 键切换围墙横/竖；每种建筑有数量上限。</p>';
     codexTab.onclick = () => {
       codexTab.classList.add('active'); helpTab.classList.remove('active');
       content.innerHTML = codexHtml.join('');
@@ -479,7 +481,7 @@
     importBtn.onclick = () => { H.cb.onImportSave && H.cb.onImportSave(); };
     const shareBtn = el('button', 'btn', '分享游戏');
     shareBtn.onclick = () => { H.cb.onShare && H.cb.onShare(); };
-    const fsBtn = el('button', 'btn', '全屏');
+    const fsBtn = el('button', 'btn', '全屏 / 横屏');
     fsBtn.onclick = () => { H.cb.onFullscreen && H.cb.onFullscreen(); };
     srow.append(replay, exportBtn, importBtn, shareBtn, fsBtn);
     sbox.append(st, close2, srow);
@@ -501,9 +503,15 @@
   }
 
   function buildOrientation() {
-    const o = el('div', 'orientation');
-    o.innerHTML = '<div class="orient-box"><div class="orient-icon">⟳</div><div>请横屏游玩</div><div class="dim">旋转设备以获得完整战场视野</div></div>';
-    H.root.appendChild(o);
+    const hint = el('div', 'orientation-hint hidden');
+    const text = el('span', '', '建议横屏 · 获得更完整视野');
+    const fs = el('button', 'btn', '全屏横屏');
+    fs.onclick = () => { H.cb.onFullscreen && H.cb.onFullscreen(); };
+    const close = el('button', 'btn btn-close', '×');
+    close.onclick = () => { H.cb.onDismissOrientation && H.cb.onDismissOrientation(); };
+    hint.append(text, fs, close);
+    H.refs.orientation = hint;
+    H.root.appendChild(hint);
   }
 
   /* ---------------- 渲染 ---------------- */
@@ -512,6 +520,13 @@
     if (!state) return;
     H.state = state;
     const ui = state.ui;
+
+    if (H.refs.orientation) {
+      const portrait = window.innerHeight > window.innerWidth;
+      const show = ZG.Platform.isMobile && portrait &&
+        !state.settings.orientationHintDismissed;
+      H.refs.orientation.classList.toggle('hidden', !show);
+    }
 
     // 菜单
     if (H.refs.menu) H.refs.menu.classList.toggle('hidden', !ui.showMenu);
@@ -761,8 +776,13 @@
     tip.textContent = text;
     tip.classList.remove('hidden');
     const stage = document.getElementById('stage').getBoundingClientRect();
-    tip.style.left = Math.min(stage.width - 250, (hover.x / ZG.Const.W) * stage.width + 14) + 'px';
-    tip.style.top = Math.max(6, (hover.y / ZG.Const.H) * stage.height - 20) + 'px';
+    const cv = document.getElementById('game');
+    const cr = cv ? cv.getBoundingClientRect() : stage;
+    const wr = ZG.Renderer.worldRect();
+    const left = (cr.left - stage.left) + wr.offsetX + hover.x * wr.scale + 14;
+    const top = (cr.top - stage.top) + wr.offsetY + hover.y * wr.scale - 20;
+    tip.style.left = Math.min(stage.width - 250, left) + 'px';
+    tip.style.top = Math.max(6, top) + 'px';
   }
 
   function renderLog(state) {

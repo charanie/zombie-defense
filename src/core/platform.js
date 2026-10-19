@@ -161,8 +161,33 @@
 
   const quality = qualityFor(isMobile ? 'mobile' : 'desktop');
 
+  function orientationPlan(o) {
+    const p = o || {};
+    if (!p.portrait) return 'landscape';
+    if (p.isMobile && p.supportsLock && p.fullscreenEnabled) return 'lock';
+    return 'portrait';
+  }
+
+  function requestLandscape() {
+    if (typeof document === 'undefined') return Promise.resolve({ ok: false, reason: 'no-dom' });
+    const el = document.documentElement;
+    if (!el || !el.requestFullscreen) return Promise.resolve({ ok: false, reason: 'no-fullscreen' });
+    return el.requestFullscreen().then(() => {
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          return screen.orientation.lock('landscape')
+            .then(() => ({ ok: true }))
+            .catch(() => ({ ok: false, reason: 'lock' }));
+        }
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, reason: 'lock' };
+      }
+    }).catch(() => ({ ok: false, reason: 'fullscreen' }));
+  }
+
   ZG.Platform = Object.assign(singleton, {
-    create, qualityFor,
+    create, qualityFor, orientationPlan, requestLandscape,
     isMobile, isWeChat, isStandalone,
     isDesktop: !isMobile,
     quality,

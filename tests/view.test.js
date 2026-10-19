@@ -82,3 +82,36 @@ test('音效名表与静音状态', () => {
   assert.equal(A.isMuted(), true);
   A.play('pistol');
 });
+
+test('世界等比居中', () => {
+  const a = ZG.Renderer.fitWorldRect(1280, 720);
+  assert.equal(a.scale, 1); assert.equal(a.offsetX, 0); assert.equal(a.offsetY, 0);
+  const b = ZG.Renderer.fitWorldRect(2000, 720);
+  assert.equal(b.scale, 1); assert.equal(b.offsetX, 360); assert.equal(b.offsetY, 0);
+  const c = ZG.Renderer.fitWorldRect(844, 216);
+  assert.ok(Math.abs(c.scale - 0.3) < 1e-9);
+  assert.ok(Math.abs(c.offsetX - 230) < 1e-9);
+});
+
+test('手机横屏策略', () => {
+  assert.equal(ZG.Platform.orientationPlan({
+    isMobile: true, portrait: true, supportsLock: true, fullscreenEnabled: true
+  }), 'lock');
+  assert.equal(ZG.Platform.orientationPlan({
+    isMobile: true, portrait: true, supportsLock: false, fullscreenEnabled: true
+  }), 'portrait');
+  assert.equal(ZG.Platform.orientationPlan({
+    isMobile: true, portrait: false, supportsLock: true, fullscreenEnabled: true
+  }), 'landscape');
+  assert.equal(ZG.Platform.orientationPlan({
+    isMobile: false, portrait: true, supportsLock: false, fullscreenEnabled: true
+  }), 'portrait');
+});
+
+test('建筑卡显示上限', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+  s.money = 99999;
+  for (let i = 0; i < 3; i++) ZG.Economy.build(s, 'turret', 100 + i * 90, 200);
+  const c = ZG.Model.buildingCard(s, 'turret');
+  assert.equal(c.count, 3); assert.equal(c.limit, 3); assert.equal(c.reason, 'limit');
+});

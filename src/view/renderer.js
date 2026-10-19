@@ -7,10 +7,30 @@
 
   const R = {
     canvas: null, bg: null, ctx: null, bgctx: null,
-    dpr: 1, scale: 1, cssW: 0, cssH: 0,
+    dpr: 1, scale: 1, offX: 0, offY: 0, cssW: 0, cssH: 0,
+    worldScale: 1, worldOffX: 0, worldOffY: 0,
     bgSig: '',
     ready: false
   };
+
+  function fitWorldRect(cssW, cssH) {
+    const scale = Math.min(cssW / W, cssH / H);
+    return {
+      scale,
+      offsetX: (cssW - W * scale) / 2,
+      offsetY: (cssH - H * scale) / 2,
+      worldW: W * scale,
+      worldH: H * scale
+    };
+  }
+
+  function worldRect() {
+    return {
+      scale: R.worldScale || 1,
+      offsetX: R.worldOffX || 0,
+      offsetY: R.worldOffY || 0
+    };
+  }
 
   function init(canvas, bgCanvas, state) {
     R.canvas = canvas;
@@ -25,25 +45,22 @@
   function layoutStage() {
     const stage = document.getElementById('stage');
     if (!stage) return null;
-    const vw = window.innerWidth || 1280;
-    const vh = window.innerHeight || 720;
+    const vw = stage.clientWidth || window.innerWidth || 1280;
+    const vh = stage.clientHeight || window.innerHeight || 720;
+    const topEl = document.querySelector('.hud-top');
+    const topH = topEl ? topEl.getBoundingClientRect().height : (vw < 900 ? 40 : 46);
+    const portrait = vh > vw;
     const coarse = (ZG.Platform && ZG.Platform.isMobile) || vw < 900 ||
       (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);
-    // 底部面板独立占位，不遮挡战场
     let panelH;
-    if (coarse) panelH = Math.max(112, Math.min(150, vh * 0.30));
+    if (coarse && portrait) panelH = Math.max(170, Math.min(250, vh * 0.30));
+    else if (coarse) panelH = Math.max(120, Math.min(190, vh * 0.22));
     else panelH = Math.max(150, Math.min(210, vh * 0.207));
-    let canvasW = Math.min(vw, ((vh - panelH) * 16) / 9);
-    let canvasH = (canvasW * 9) / 16;
-    if (canvasH < 200) {
-      canvasH = Math.max(160, vh - panelH);
-      canvasW = (canvasH * 16) / 9;
-    }
-    stage.style.width = Math.round(canvasW) + 'px';
-    stage.style.height = Math.round(canvasH + panelH) + 'px';
-    stage.style.setProperty('--canvas-h', Math.round(canvasH) + 'px');
+    const canvasH = Math.max(160, vh - topH - panelH);
+    stage.style.setProperty('--top-h', Math.round(topH) + 'px');
     stage.style.setProperty('--panel-h', Math.round(panelH) + 'px');
-    return { canvasW, canvasH, panelH };
+    stage.style.setProperty('--canvas-h', Math.round(canvasH) + 'px');
+    return { cssW: vw, cssH: canvasH, topH, panelH, portrait };
   }
 
   function resize() {
@@ -52,8 +69,8 @@
     if (!geo) return;
     const cap = (ZG.Platform && ZG.Platform.quality && ZG.Platform.quality.dprCap) || 2;
     const dpr = Math.min(window.devicePixelRatio || 1, cap);
-    const bw = Math.max(1, Math.round(geo.canvasW * dpr));
-    const bh = Math.max(1, Math.round(geo.canvasH * dpr));
+    const bw = Math.max(1, Math.round(geo.cssW * dpr));
+    const bh = Math.max(1, Math.round(geo.cssH * dpr));
     for (const cv of [R.canvas, R.bg]) {
       if (!cv) continue;
       if (cv.width !== bw || cv.height !== bh) {
@@ -61,15 +78,27 @@
         cv.height = bh;
       }
     }
+    const fit = fitWorldRect(geo.cssW, geo.cssH);
     R.dpr = dpr;
-    R.cssW = geo.canvasW;
-    R.cssH = geo.canvasH;
-    R.scale = bw / W;
+    R.cssW = geo.cssW;
+    R.cssH = geo.cssH;
+    R.worldScale = fit.scale;
+    R.worldOffX = fit.offsetX;
+    R.worldOffY = fit.offsetY;
+    R.scale = fit.scale * dpr;
+    R.offX = fit.offsetX * dpr;
+    R.offY = fit.offsetY * dpr;
     R.bgSig = '';
   }
 
   function setTransform(ctx) {
-    ctx.setTransform(R.scale, 0, 0, R.scale, 0, 0);
+    ctx.setTransform(R.scale, 0, 0, R.scale, R.offX, R.offY);
+  }
+
+  function clearCanvas(ctx) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    setTransform(ctx);
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -99,8 +128,7 @@
     const ctx = R.bgctx;
     const map = state.map;
     if (!ctx || !map) return;
-    setTransform(ctx);
-    ctx.clearRect(0, 0, W, H);
+    clearCanvas(ctx);
 
     const theme = map.theme || {};
     ctx.fillStyle = theme.ground || C.ground;
@@ -834,8 +862,7 @@
       R.bgSig = sig;
     }
 
-    setTransform(ctx);
-    ctx.clearRect(0, 0, W, H);
+    clearCanvas(ctx);
 
     const off = state.settings.shake === false ? { x: 0, y: 0 } : ZG.Particles.getOffset();
     ctx.save();
@@ -854,5 +881,8 @@
     ctx.restore();
   }
 
-  ZG.Renderer = { init, resize, draw, drawBackground, mapSignature };
+  ZG.Renderer = {
+    init, resize, draw, drawBackground, mapSignature,
+    fitWorldRect, worldRect
+  };
 })();

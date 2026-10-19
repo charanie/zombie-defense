@@ -50,7 +50,10 @@
         mapHover: null, showCodex: false, showHelp: false, showSettings: false,
         tutorialStep: -1
       },
-      settings: { damageNumbers: true, shake: true, muted: false, tutorialSeen: false },
+      settings: {
+        damageNumbers: true, shake: true, muted: false, tutorialSeen: false,
+        orientationHintDismissed: false
+      },
       log: [],
       uid: 1,
       bus: ZG.EventBus.create(),

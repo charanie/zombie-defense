@@ -1,7 +1,7 @@
 {
   "name": "尸潮防线",
   "short_name": "尸潮防线",
-  "description": "2D 圆形单位、人类 vs 僵尸的无尽防守游戏。",
+  "description": "人类小队自主结阵、僵尸四面来袭的无尽防守游戏。",
   "lang": "zh-CN",
   "start_url": "./",
   "scope": "./",

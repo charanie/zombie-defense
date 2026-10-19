@@ -5,24 +5,26 @@
 
   function toWorld(canvas, ev) {
     const r = canvas.getBoundingClientRect();
-    return {
-      x: ((ev.clientX - r.left) / r.width) * ZG.Const.W,
-      y: ((ev.clientY - r.top) / r.height) * ZG.Const.H
-    };
+    const wr = ZG.Renderer.worldRect();
+    const x = (ev.clientX - r.left - wr.offsetX) / wr.scale;
+    const y = (ev.clientY - r.top - wr.offsetY) / wr.scale;
+    if (x < 0 || y < 0 || x > ZG.Const.W || y > ZG.Const.H) return null;
+    return { x, y };
   }
 
-  function pickEntity(state, p) {
+  function pickEntity(state, p, extra) {
     let best = null, bestD = 1e9;
+    const pad = extra || 0;
     for (const h of state.humans) {
       if (!h.alive) continue;
       const d = ZG.Geom.dist2(p.x, p.y, h.x, h.y);
-      const r = h.radius + 6;
+      const r = h.radius + 6 + pad;
       if (d <= r * r && d < bestD) { bestD = d; best = { kind: 'human', id: h.id, entity: h }; }
     }
     for (const z of state.zombies) {
       if (!z.alive) continue;
       const d = ZG.Geom.dist2(p.x, p.y, z.x, z.y);
-      const r = z.radius + 6;
+      const r = z.radius + 6 + pad;
       if (d <= r * r && d < bestD) { bestD = d; best = { kind: 'zombie', id: z.id, entity: z }; }
     }
     for (const b of state.buildings) {
@@ -31,10 +33,10 @@
       if (b.shape === 'rect') {
         const br = ZG.Geom.rectOfBuilding(b);
         d = ZG.Geom.distPointToRect(p.x, p.y, br.x, br.y, br.w, br.h);
-        r = 4;
+        r = 4 + pad;
       } else {
         d = ZG.Geom.dist(p.x, p.y, b.x, b.y);
-        r = (b.radius || 24) + 4;
+        r = (b.radius || 24) + 4 + pad;
       }
       if (d <= r && d < bestD) { bestD = d; best = { kind: 'building', id: b.id, entity: b }; }
     }
@@ -62,6 +64,7 @@
       if (!s || s.ui.showMenu) return;
       const p = toWorld(canvas, ev);
       s.ui.mouse = p;
+      if (!p) { s.ui.hover = null; return; }
 
       const drag = s.ui.drag;
       if (drag) {
@@ -73,7 +76,7 @@
         return;
       }
 
-      const hit = pickEntity(s, p);
+      const hit = pickEntity(s, p, ev.pointerType === 'touch' ? 10 : 0);
       if (hit) {
         s.ui.hover = { kind: hit.kind, id: hit.id, x: hit.entity.x, y: hit.entity.y };
         canvas.style.cursor = hit.kind === 'human' && s.status === 'prep' ? 'grab' : 'pointer';
@@ -93,6 +96,7 @@
       const s = state();
       if (!s || s.ui.showMenu) return;
       const p = toWorld(canvas, ev);
+      if (!p) return;
       const ui = s.ui;
 
       // 放置人类
@@ -127,7 +131,7 @@
         return;
       }
 
-      const hit = pickEntity(s, p);
+      const hit = pickEntity(s, p, ev.pointerType === 'touch' ? 10 : 0);
 
       if (hit) {
         ui.hover = { kind: hit.kind, id: hit.id, x: hit.entity.x, y: hit.entity.y };

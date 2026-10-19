@@ -364,8 +364,15 @@
     onExportSave: exportSave,
     onImportSave: importSave,
     onFullscreen() {
-      ZG.Platform.requestFullscreen();
+      ZG.Platform.requestLandscape().then(r => {
+        if (!r.ok) ZG.HUD.toast('浏览器不支持自动横屏，已切换竖屏布局', 'info');
+      });
       ZG.Audio.play('click');
+    },
+    onDismissOrientation() {
+      if (!state) return;
+      state.settings.orientationHintDismissed = true;
+      saveSettings();
     },
     onShare() {
       const url = typeof location !== 'undefined' ? location.href : '';
@@ -463,6 +470,7 @@
 
     ZG.Renderer.init(canvas, bg, state);
     ZG.HUD.init(state, callbacks);
+    ZG.Renderer.resize();
     ZG.Input.init(canvas, () => state, callbacks);
     ZG.Audio.setMuted(!!state.settings.muted);
     if (ZG.Particles && ZG.Particles.instance && ZG.Platform.quality.particleCap) {
@@ -477,10 +485,32 @@
     };
 
     window.addEventListener('resize', () => ZG.Renderer.resize());
+    window.addEventListener('orientationchange', () => ZG.Renderer.resize());
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => ZG.Renderer.resize());
+    }
     window.addEventListener('pointerdown', () => {
       ZG.Audio.init();
       ZG.Audio.resume();
     }, { once: false });
+
+    let orientationAsked = false;
+    function maybeRequestOrientation() {
+      if (orientationAsked) return;
+      orientationAsked = true;
+      const plan = ZG.Platform.orientationPlan({
+        isMobile: ZG.Platform.isMobile,
+        portrait: window.innerHeight > window.innerWidth,
+        supportsLock: !!(typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock),
+        fullscreenEnabled: !!(document.documentElement && document.documentElement.requestFullscreen)
+      });
+      if (plan === 'lock') {
+        ZG.Platform.requestLandscape().then(r => {
+          if (!r.ok) ZG.HUD.toast('浏览器不支持自动横屏，已切换竖屏布局', 'info');
+        });
+      }
+    }
+    window.addEventListener('pointerdown', maybeRequestOrientation, { once: true });
 
     if (ZG.Platform.isWeChat) {
       setTimeout(() => {
