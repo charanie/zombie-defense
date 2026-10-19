@@ -39,6 +39,7 @@ function runBot(opts) {
       humans: s.humans.filter(h => h.alive).length,
       pop: ZG.Economy.populationUsed(s),
       zombies: s.zombies.length,
+      buildings: s.buildings.filter(b => b.alive).length,
       status: s.status
     });
     if (s.status === 'over') { over = true; break; }
@@ -62,9 +63,10 @@ function format(r) {
   const lines = [];
   lines.push(`bot map=${r.mapId} seed=${r.seed} rounds=${r.rounds} over=${r.over} ` +
     `bossKills=${r.bossKills} captains=${r.captains} heroes=${r.heroes} kills=${r.kills}`);
-  lines.push('round duration kills money humans pop status');
+  lines.push('round duration kills money humans pop buildings status');
   for (const m of r.metrics) {
-    lines.push([m.round, m.durationSec, m.kills, m.money, m.humans, m.pop, m.status].join('  '));
+    lines.push([m.round, m.durationSec, m.kills, m.money, m.humans, m.pop,
+      m.buildings, m.status].join('  '));
   }
   return lines.join('\n');
 }
@@ -79,7 +81,8 @@ if (require.main === module) {
     mapId: get('map', 'suburban'),
     seed: parseInt(get('seed', '1'), 10),
     maxRounds: parseInt(get('rounds', '20'), 10),
-    testMoney: args.includes('--test-money')
+    testMoney: args.includes('--test-money'),
+    rocketOnly: args.includes('--rocket-only')
   });
   console.log(format(res));
 }

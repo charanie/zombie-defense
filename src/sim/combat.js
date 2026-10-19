@@ -76,8 +76,12 @@
   // 盾尸拦截：找出射线路径上最近的、正面且盾值未破的盾尸
   function interceptRay(state, x1, y1, x2, y2, opts) {
     const o = opts || {};
-    const pad = o.pad === undefined ? 6 : o.pad;
-    const half = (o.halfAngleDeg === undefined ? 60 : o.halfAngleDeg) * Math.PI / 180;
+    const zd = ZG.Data.zombies.shield || {};
+    const pad = o.pad === undefined ? 4 : o.pad;
+    const halfDeg = o.halfAngleDeg === undefined
+      ? (zd.interceptFacingHalfAngle || 60)
+      : o.halfAngleDeg;
+    const half = halfDeg * Math.PI / 180;
     let best = null, bestT = 1;
     for (const z of state.zombies) {
       if (!z.alive || z.typeId !== 'shield' || z.shield <= 0) continue;

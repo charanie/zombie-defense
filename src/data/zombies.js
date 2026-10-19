@@ -23,8 +23,8 @@
       radius: 10, unlock: 4, color: C.shield, symbol: '◗', attackInterval: 1.2,
       shieldAngle: 120, breakSlow: 0.2,
       shieldDamageMul: 0.5, fireShieldMul: 2, fireBodyMul: 1,
-      vanguard: true, vanguardSpeedMul: 1.15, vanguardLeadGap: 50,
-      intercept: true, interceptFacingHalfAngle: 60,
+      vanguard: true, vanguardSpeedMul: 1.05, vanguardLeadGap: 50,
+      intercept: true, interceptFacingHalfAngle: 50,
       infection: { chance: 0.35, amount: 25 },
       special: '正面 120° 护盾；破盾减速 20%'
     },

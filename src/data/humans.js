@@ -45,7 +45,7 @@
       color: C.flame, symbol: '火', blurb: '范围清群 / 穿透 · 贴脸推进',
       moveSpeed: 78, vision: 250, huntRadius: 320,
       attack: {
-        kind: 'flame', damage: 5, interval: 0.125, range: 140,
+        kind: 'flame', damage: 5, interval: 0.125, range: 160,
         damageKind: 'fire', coneDeg: 50, burnDps: 5, burnTime: 3
       },
       counters: '普通群、狂尸群、幼体、盾尸（穿盾）',

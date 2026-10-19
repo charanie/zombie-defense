@@ -88,8 +88,14 @@
   }
 
   function zombiesInRange(state, h, range) {
-    return ZG.Spatial.queryCircle(state.spatial, h.x, h.y, range + 34,
-      e => e.kind === 'zombie' && e.alive).filter(z => edgeDist(h, z) <= range);
+    const list = ZG.Spatial.queryCircle(state.spatial, h.x, h.y,
+      range + h.radius + 24, e => e.kind === 'zombie' && e.alive);
+    const out = [];
+    for (const z of list) {
+      const rr = range + h.radius + (z.radius || 0);
+      if (ZG.Geom.dist2(h.x, h.y, z.x, z.y) <= rr * rr) out.push(z);
+    }
+    return out;
   }
 
   function nearestByEdgeDist(h, list) {
@@ -369,6 +375,21 @@
   function pickHumanTarget(state, h) {
     if (!h.attack || h.classId === 'civilian') return null;
     if (h.classId === 'shield' && !h.shieldBroken) return null;
+
+    // 每 3 个模拟步重新索敌一次，减少大群时的重复空间查询
+    const step = (state.battle && state.battle.stepCount) || 0;
+    if (h.tgtStep !== undefined && step >= h.tgtStep && step - h.tgtStep < 1) {
+      if (!h.tgtId) return null;
+      const cached = state.zombies.find(z => z.id === h.tgtId && z.alive);
+      if (cached && edgeDist(h, cached) <= ZG.Stats.range(state, h)) return cached;
+    }
+    const result = pickHumanTargetUncached(state, h);
+    h.tgtId = result ? result.id : 0;
+    h.tgtStep = step;
+    return result;
+  }
+
+  function pickHumanTargetUncached(state, h) {
     if (h.classId === 'samurai' || h.heroId === 'samurai') {
       const list = zombiesInRange(state, h, 180);
       if (!list.length) return null;
@@ -385,6 +406,9 @@
     if (!list.length) return null;
 
     const kind = h.attack.kind;
+    // BOSS 进入射程时优先集火，避免被杂兵拖死
+    const boss = list.find(z => z.isBoss);
+    if (boss && (kind === 'ranged' || kind === 'rocket')) return boss;
     if (kind === 'rocket') {
       const siege = list.filter(z => z.isSiege || z.isBoss);
       if (siege.length) return nearestByEdgeDist(h, siege);
@@ -855,9 +879,10 @@
         const b = list[j];
         if (!b.alive) continue;
         const dx = b.x - a.x, dy = b.y - a.y;
-        const d = Math.hypot(dx, dy);
+        const d2 = dx * dx + dy * dy;
         const min = a.radius + b.radius + HAI.separationGap;
-        if (d >= min || d < 1e-6) continue;
+        if (d2 >= min * min || d2 < 1e-12) continue;
+        const d = Math.sqrt(d2);
         const push = (min - d) * HAI.separationPush;
         const ux = dx / d, uy = dy / d;
 
@@ -935,14 +960,22 @@
     return !(z.typeId === 'runner' || z.typeId === 'boomer' || z.typeId === 'shield');
   }
 
-  function nearestHumanMatching(state, x, y, maxR, filter) {
-    let best = null, bestD = maxR * maxR;
+  // 一次扫描同时得到：最近人类 / 90 内最近盾兵 / 260 内最近非盾人类
+  function humanScan(state, x, y) {
+    let nearest = null, nd = Infinity;
+    let shield = null, sd = 90 * 90;
+    let nonShield = null, pd = 260 * 260;
     for (const h of state.humans) {
-      if (!h.alive || !filter(h)) continue;
+      if (!h.alive) continue;
       const d = ZG.Geom.dist2(x, y, h.x, h.y);
-      if (d < bestD || (d === bestD && best && h.id < best.id)) { bestD = d; best = h; }
+      if (d < nd || (d === nd && nearest && h.id < nearest.id)) { nd = d; nearest = h; }
+      if (h.classId === 'shield') {
+        if (d < sd || (d === sd && shield && h.id < shield.id)) { sd = d; shield = h; }
+      } else if (d < pd || (d === pd && nonShield && h.id < nonShield.id)) {
+        pd = d; nonShield = h;
+      }
     }
-    return best;
+    return { nearest, shield, nonShield };
   }
 
   function pickZombieTarget(state, z) {
@@ -951,29 +984,26 @@
       return { kind: 'point', x: p.x, y: p.y, count: p.count, target: null };
     }
 
+    const scan = humanScan(state, z.x, z.y);
+
     // 盾尸：始终扑向人类，主动顶到最前
-    if (z.typeId === 'shield') {
-      const h = nearestHuman(state, z.x, z.y, 4000);
-      if (h) return { kind: 'human', target: h };
+    if (z.typeId === 'shield' && scan.nearest) {
+      return { kind: 'human', target: scan.nearest };
     }
 
     // 狂尸：260px 内优先非盾人类，绕过盾线
-    if (z.typeId === 'runner') {
-      const nonShield = nearestHumanMatching(state, z.x, z.y, 260,
-        u => u.classId !== 'shield');
-      if (nonShield) return { kind: 'human', target: nonShield };
+    if (z.typeId === 'runner' && scan.nonShield) {
+      return { kind: 'human', target: scan.nonShield };
     }
 
-    const tank = nearestShield(state, z, 90);
-    if (tank) return { kind: 'human', target: tank };
+    if (scan.shield) return { kind: 'human', target: scan.shield };
 
     if (z.isSiege) {
       const b = nearestBuilding(state, z.x, z.y, 220);
       if (b) return { kind: 'building', target: b };
     }
 
-    const h = nearestHuman(state, z.x, z.y, 4000);
-    if (h) return { kind: 'human', target: h };
+    if (scan.nearest) return { kind: 'human', target: scan.nearest };
 
     const c = ZG.Geom.humanCentroid(state) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
     return { kind: 'point', x: c.x, y: c.y, count: 0, target: null };
@@ -1256,13 +1286,14 @@
       for (const o of near) {
         if (n++ >= 8) break;
         const dx = z.x - o.x, dy = z.y - o.y;
-        const d = Math.hypot(dx, dy) || 0.01;
-        const overlap = z.radius + o.radius - d;
-        if (overlap > 0) {
-          const push = Math.min(overlap * 0.5, 2.2);
-          z.x += (dx / d) * push;
-          z.y += (dy / d) * push;
-        }
+        const d2 = dx * dx + dy * dy;
+        const rr = z.radius + o.radius;
+        if (d2 >= rr * rr) continue;
+        const d = Math.sqrt(d2) || 0.01;
+        const overlap = rr - d;
+        const push = Math.min(overlap * 0.5, 2.2);
+        z.x += (dx / d) * push;
+        z.y += (dy / d) * push;
       }
       const M = ZG.Const.SPAWN_WORLD_MARGIN;
       z.x = Math.max(-M, Math.min(ZG.Const.W + M, z.x));

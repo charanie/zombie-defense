@@ -69,8 +69,9 @@ test('盾尸近战 <40 绕过、背面全额、破盾全额', () => {
   assert.equal(r3.hpDamage, 100);
 });
 
-test('喷火射程 140、导弹价格 320', () => {
-  assert.equal(ZG.Data.humans.flame.attack.range, 140);
+test('喷火射程 160、导弹价格 320', () => {
+  // 计划 §6.4 调参顺序允许为提高混合阵容胜率微调喷火射程（140 → 160）
+  assert.equal(ZG.Data.humans.flame.attack.range, 160);
   assert.equal(ZG.Data.humans.rocket.cost, 320);
 });
 

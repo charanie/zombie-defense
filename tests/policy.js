@@ -112,15 +112,37 @@ function prep(state, opts) {
   const wantMedic = R <= 2 ? 1 : Math.min(4, (state.mapId === 'hospital' ? 2 : 1) + Math.floor(R / 8));
   const wantCiv = Math.min(8, R <= 3 ? 2 : (R <= 6 ? 5 : 8));
   const wantRocket = Math.min(4, Math.floor(R / 4));
-  const wantFlame = R >= 4 ? Math.min(4, 1 + Math.floor((R - 4) / 3)) : 0;
-  const wantMg = Math.min(18, R <= 2 ? 0 : 2 + Math.floor(R / 2));
+  const wantFlame = R >= 4 ? Math.min(8, 1 + Math.floor((R - 4) / 2)) : 0;
+  const wantMg = Math.min(30, R <= 2 ? 0 : 4 + R);
+
+  // 兵力升级：后期用战斗单位替换手枪兵/平民（人口已满、钱多时）
+  if (!o.rocketOnly && R >= 8 && state.money > 600) {
+    let upgrades = Math.min(6, Math.floor((state.money - 600) / 220));
+    for (const u of state.humans.slice()) {
+      if (upgrades <= 0) break;
+      if (!u.alive || u.hero || u.classId !== 'pistol') continue;
+      if (state.humans.filter(v => v.alive).length <= 1) break;
+      if (ZG.Economy.sell(state, u.id).ok) upgrades--;
+    }
+  }
+  if (!o.rocketOnly && R >= 12 && state.money > 800) {
+    let civUp = 4;
+    for (const u of state.humans.slice()) {
+      if (civUp <= 0) break;
+      if (!u.alive || u.classId !== 'civilian') continue;
+      if (state.humans.filter(v => v.alive).length <= 1) break;
+      if (ZG.Economy.sell(state, u.id).ok) civUp--;
+    }
+  }
 
   let guard = 0;
   while (guard++ < 60) {
     const cc = counts(state);
     const combat = cc.shield + cc.medic + cc.mg + cc.rocket + cc.flame + cc.pistol + cc.shotgun;
     let next = null, role = 'back';
-    if (cc.shield < wantShield) { next = 'shield'; role = 'front'; }
+    if (o.rocketOnly) {
+      next = 'rocket'; role = 'back';
+    } else if (cc.shield < wantShield) { next = 'shield'; role = 'front'; }
     else if (cc.medic < wantMedic) { next = 'medic'; role = 'back'; }
     else if (cc.flame < wantFlame && state.money >= ZG.Data.humans.flame.cost) {
       next = 'flame'; role = 'front';
@@ -131,7 +153,7 @@ function prep(state, opts) {
       next = 'rocket'; role = 'back';
     }
     else if (cc.civilian < wantCiv && combat >= 6 && R >= 3) { next = 'civilian'; role = 'back'; }
-    else if (cc.pistol < 8) { next = 'pistol'; role = 'mid'; }
+    else if (cc.pistol < (R <= 5 ? 8 : 4)) { next = 'pistol'; role = 'mid'; }
     else if (combat + cc.civilian < ZG.Balance.populationCap(R) - 2) {
       next = cc.mg <= cc.rocket * 2 ? 'mg' : 'rocket';
       role = next === 'rocket' ? 'back' : 'mid';
