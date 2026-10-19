@@ -30,7 +30,14 @@
 - `node tests/bot.js --rounds 40 --seed 1`：42 回合、5 BOSS、20 队长、4 英雄、6048 击杀。
 - `node tests/bot.js --rounds 40 --seed 1 --rocket-only`：7 回合失败。
 - 确定性：`tests/acceptance.test.js` 的同种子回放与两次 bot 输出一致。
-- 浏览器 QA：**待完成**（桌面 1366×768 / 1920×1080、手机横屏 844×390 / 915×412、竖屏 390×844、超宽屏 2844×1280）。
+- 浏览器 QA（Playwright Chromium，2026-10-19）：
+  - 桌面 1366×768：菜单/选图/招募/建造（围墙横竖）/开始回合/暂停均正常；canvas 1366×563、top 46、bottom 159，三段不重叠；console 0 error。
+  - 手机横屏 844×390（触控模拟）：canvas 844×230、top 40、bottom 120；按钮高度 44px；指针落点准确。
+  - 手机竖屏 390×844（触控模拟）：无阻断遮罩；竖屏提示条显示/可关闭/持久化；设置最后一项可见；指针落点精确（640,400 → 640,400）；无横向滚动。
+  - 超宽屏 2844×1280：世界 scale 1.45、offsetX 494 居中；左右背景填充；无横向滚动。
+  - PWA：Service Worker active，缓存 `zd-v1.2.0`。
+  - 修复：竖屏提示条中文逐字换行 → `white-space: nowrap` + `max-width`。
+  - 未覆盖：真实设备旋转/刘海安全区/微信内置浏览器；`screen.orientation.lock` 在 headless 中无法验证。
 
 ## 下一步（建议顺序）
 

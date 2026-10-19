@@ -685,3 +685,6 @@ html, body {
   .tab-btn { min-height: 40px; }
   .btn-close { min-width: 44px; min-height: 44px; }
 }
+
+.orientation-hint { max-width: calc(100vw - 24px); white-space: nowrap; }
+.orientation-hint span { white-space: nowrap; }
