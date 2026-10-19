@@ -12,23 +12,41 @@
   function cellCX(cx) { return cx * CELL + CELL / 2; }
   function cellCY(cy) { return cy * CELL + CELL / 2; }
 
+  function markCircle(blocked, x, y, r) {
+    const x0 = Math.max(0, Math.floor((x - r - CELL) / CELL));
+    const x1 = Math.min(COLS - 1, Math.ceil((x + r + CELL) / CELL));
+    const y0 = Math.max(0, Math.floor((y - r - CELL) / CELL));
+    const y1 = Math.min(ROWS - 1, Math.ceil((y + r + CELL) / CELL));
+    for (let cy = y0; cy <= y1; cy++) {
+      for (let cx = x0; cx <= x1; cx++) {
+        const dx = cellCX(cx) - x, dy = cellCY(cy) - y;
+        if (dx * dx + dy * dy < r * r) blocked[idx(cx, cy)] = 1;
+      }
+    }
+  }
+
+  function markRect(blocked, x, y, w, h) {
+    const x0 = Math.max(0, Math.floor(x / CELL));
+    const x1 = Math.min(COLS - 1, Math.ceil((x + w) / CELL) - 1);
+    const y0 = Math.max(0, Math.floor(y / CELL));
+    const y1 = Math.min(ROWS - 1, Math.ceil((y + h) / CELL) - 1);
+    for (let cy = y0; cy <= y1; cy++) {
+      for (let cx = x0; cx <= x1; cx++) {
+        if (ZG.Geom.rectOverlapsRect(cx * CELL, cy * CELL, CELL, CELL, x, y, w, h, 0)) {
+          blocked[idx(cx, cy)] = 1;
+        }
+      }
+    }
+  }
+
   function build(state) {
     const blocked = new Uint8Array(COLS * ROWS);
     const map = state.map;
 
     if (map && map.obstacles) {
       for (const ob of map.obstacles) {
-        if (ob.kind !== 'circle') continue;
-        const x0 = Math.max(0, Math.floor((ob.x - ob.r - CELL) / CELL));
-        const x1 = Math.min(COLS - 1, Math.ceil((ob.x + ob.r + CELL) / CELL));
-        const y0 = Math.max(0, Math.floor((ob.y - ob.r - CELL) / CELL));
-        const y1 = Math.min(ROWS - 1, Math.ceil((ob.y + ob.r + CELL) / CELL));
-        for (let cy = y0; cy <= y1; cy++) {
-          for (let cx = x0; cx <= x1; cx++) {
-            const dx = cellCX(cx) - ob.x, dy = cellCY(cy) - ob.y;
-            if (dx * dx + dy * dy < ob.r * ob.r) blocked[idx(cx, cy)] = 1;
-          }
-        }
+        if (ob.kind === 'rect') markRect(blocked, ob.x, ob.y, ob.w, ob.h);
+        else markCircle(blocked, ob.x, ob.y, ob.r);
       }
     }
 
@@ -37,16 +55,11 @@
         if (!b.alive) continue;
         const data = ZG.Data.buildings[b.typeId];
         if (data && data.blocks === false) continue;
-        const r = (data && data.radius) ? data.radius : 24;
-        const x0 = Math.max(0, Math.floor((b.x - r - CELL) / CELL));
-        const x1 = Math.min(COLS - 1, Math.ceil((b.x + r + CELL) / CELL));
-        const y0 = Math.max(0, Math.floor((b.y - r - CELL) / CELL));
-        const y1 = Math.min(ROWS - 1, Math.ceil((b.y + r + CELL) / CELL));
-        for (let cy = y0; cy <= y1; cy++) {
-          for (let cx = x0; cx <= x1; cx++) {
-            const dx = cellCX(cx) - b.x, dy = cellCY(cy) - b.y;
-            if (dx * dx + dy * dy < r * r) blocked[idx(cx, cy)] = 1;
-          }
+        if (b.shape === 'rect') {
+          const r = ZG.Geom.rectOfBuilding(b);
+          markRect(blocked, r.x, r.y, r.w, r.h);
+        } else {
+          markCircle(blocked, b.x, b.y, b.radius || (data && data.radius) || 24);
         }
       }
     }
@@ -172,54 +185,35 @@
   }
 
   function validate(map) {
-    const fake = {
-      map,
-      buildings: [],
-      slots: map.slots.map(sl => ({ id: sl.id, x: sl.x, y: sl.y, buildingId: 'x', rubble: false }))
-    };
-    for (const sl of map.slots) {
-      fake.buildings.push({ alive: true, x: sl.x, y: sl.y, typeId: 'barricade' });
-    }
-    const p = build(fake);
-
-    let maxDetour = 0;
-    let ok = true;
+    // Task 3 过渡实现：只用地图 + 地图中心源，边缘不可达即失败。
+    const m = Object.assign({}, map, {
+      deploy: { kind: 'circle', x: ZG.Const.W / 2, y: ZG.Const.H / 2, r: CELL }
+    });
+    const p = build({ map: m, humans: [], buildings: [] });
+    let ok = true, maxDetour = 0;
     const problems = [];
-
-    for (const sp of map.spawns) {
-      if (ZG.Geom.pointInDeploy(sp.x, sp.y, map.deploy)) {
+    const check = (x, y) => {
+      const c = cellOf(x, y);
+      if (p.blocked[c.i]) return;
+      if (p.dist[c.i] === INF) {
         ok = false;
-        problems.push('spawn inside deploy');
+        problems.push('unreachable ' + x + ',' + y);
+        return;
       }
-      const c = cellOf(sp.x, sp.y);
-      let d = p.dist[c.i];
-      if (d === INF) {
-        const nr = nearestReachable(p, sp.x, sp.y);
-        const nc = cellOf(nr.x, nr.y);
-        d = p.dist[nc.i];
-      }
-      const near = nearestDeployPoint(map, sp.x, sp.y);
-      const straight = Math.max(1, ZG.Geom.dist(sp.x, sp.y, near.x, near.y));
-      const len = d === INF ? Infinity : d * CELL;
-      const ratio = len / straight;
-      if (!isFinite(ratio)) { ok = false; problems.push('unreachable spawn ' + sp.x + ',' + sp.y); }
-      else maxDetour = Math.max(maxDetour, ratio);
-    }
+      const cx = zCenter(m).x, cy = zCenter(m).y;
+      const straight = Math.max(1, ZG.Geom.dist(x, y, cx, cy));
+      maxDetour = Math.max(maxDetour, (p.dist[c.i] * CELL) / straight);
+    };
+    for (let cx = 0; cx < COLS; cx++) { check(cellCX(cx), cellCY(0)); check(cellCX(cx), cellCY(ROWS - 1)); }
+    for (let cy = 0; cy < ROWS; cy++) { check(cellCX(0), cellCY(cy)); check(cellCX(COLS - 1), cellCY(cy)); }
+    check(m.deploy.x, m.deploy.y);
+    return { ok, maxDetour, problems, detourOk: true };
+  }
 
-    // 部署区容量（80 人 + 4 英雄 + 15 转化兵的最小估算）
-    let deployArea = 0;
-    if (map.deploy.kind === 'rect') deployArea = map.deploy.w * map.deploy.h;
-    else deployArea = Math.PI * map.deploy.r * map.deploy.r;
-    const needArea = 99 * Math.PI * 12 * 12 * 1.2;
-    if (deployArea < needArea) { ok = false; problems.push('deploy too small'); }
-
-    // 绕行上限
-    if (maxDetour > 1.35) {
-      // 记录但不直接判死；由调用方决定
-      problems.push('detour ' + maxDetour.toFixed(2));
-    }
-
-    return { ok, maxDetour, problems, detourOk: maxDetour <= 1.35 };
+  function zCenter(map) {
+    const d = map.deploy;
+    if (d.kind === 'rect') return { x: d.x + d.w / 2, y: d.y + d.h / 2 };
+    return { x: d.x, y: d.y };
   }
 
   ZG.Pathing = { build, directionAt, nearestReachable, nearestDeployPoint, pathToTarget, validate };

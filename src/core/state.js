@@ -28,7 +28,6 @@
       buildings: [],
       projectiles: [],
       effects: [],
-      slots: map ? map.slots.map(s => ({ id: s.id, x: s.x, y: s.y, buildingId: null, rubble: false })) : [],
       spawns: map ? map.spawns.slice() : [],
       deploy: map ? map.deploy : null,
       spawner: { batches: [], batchIndex: 0, timer: 0, remaining: 0, warning: 0, bossPending: false, portals: [] },
@@ -44,8 +43,9 @@
       },
       rng: streams,
       ui: {
-        selectedCard: null, selectedHumanId: null, selectedSlotId: null,
+        selectedCard: null, selectedHumanId: null,
         panel: 'recruit', tooltip: null, speed: 1, paused: false, drag: null,
+        wallVertical: false,
         mapHover: null, showCodex: false, showHelp: false, showSettings: false,
         tutorialStep: -1
       },
@@ -234,20 +234,21 @@
     return z;
   }
 
-  function spawnBuilding(state, typeId, slotId) {
+  function spawnBuilding(state, typeId, x, y, opts) {
     const data = ZG.Data.buildings[typeId];
     if (!data) throw new Error('unknown building: ' + typeId);
-    const slot = state.slots.find(s => s.id === slotId);
-    if (!slot) throw new Error('unknown slot: ' + slotId);
+    const o = opts || {};
+    const vertical = !!o.vertical && data.rotatable !== false;
+    const shape = data.shape || 'circle';
+    const w = shape === 'rect' ? (vertical ? data.h : data.w) : (data.radius || 24) * 2;
+    const h = shape === 'rect' ? (vertical ? data.w : data.h) : (data.radius || 24) * 2;
+    const radius = data.radius || Math.max(w, h) / 2;
     const b = {
       id: nextId(state),
       kind: 'building',
       typeId,
       name: data.name,
-      slotId,
-      x: slot.x,
-      y: slot.y,
-      radius: data.radius || 24,
+      x, y, shape, w, h, vertical, radius,
       hp: data.hp,
       maxHp: data.hp,
       alive: true,
@@ -256,7 +257,6 @@
       isRubble: false,
       facing: 0
     };
-    slot.buildingId = b.id;
     state.buildings.push(b);
     state.bus.emit(ZG.Events.BUILDING_BUILT, { building: b });
     return b;
@@ -274,11 +274,6 @@
     } else if (entity.kind === 'building') {
       const i = state.buildings.indexOf(entity);
       if (i >= 0) state.buildings.splice(i, 1);
-      const slot = state.slots.find(s => s.id === entity.slotId);
-      if (slot && slot.buildingId === entity.id) {
-        slot.buildingId = null;
-        slot.rubble = true;
-      }
     }
   }
 
@@ -290,7 +285,8 @@
       .map(h => ({
         id: h.id, c: h.classId, x: round4(h.x), y: round4(h.y),
         hp: round4(h.hp), inf: round4(h.infection), cap: h.captain ? 1 : 0,
-        conv: h.converted ? 1 : 0
+        conv: h.converted ? 1 : 0, sh: round4(h.shield || 0),
+        sb: h.shieldBroken ? 1 : 0
       }))
       .sort((a, b) => a.id - b.id);
     const zombies = state.zombies
@@ -302,7 +298,8 @@
       .sort((a, b) => a.id - b.id);
     const buildings = state.buildings
       .filter(b => b.alive)
-      .map(b => ({ id: b.id, t: b.typeId, hp: round4(b.hp), ch: b.charges }))
+      .map(b => ({ id: b.id, t: b.typeId, hp: round4(b.hp), ch: b.charges,
+        x: round4(b.x), y: round4(b.y), w: b.w || 0, h: b.h || 0, v: b.vertical ? 1 : 0 }))
       .sort((a, b) => a.id - b.id);
     return {
       status: state.status,

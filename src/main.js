@@ -238,14 +238,19 @@
       if (!state || state.status !== 'prep') return;
       state.ui.selectedCard = state.ui.selectedCard === id ? null : id;
       state.ui.selectedBuilding = null;
-      state.ui.selectedSlot = null;
       ZG.Audio.play('click');
     },
     onSelectBuilding(id) {
       if (!state || state.status !== 'prep') return;
       state.ui.selectedBuilding = state.ui.selectedBuilding === id ? null : id;
       state.ui.selectedCard = null;
+      if (id !== 'barricade') state.ui.wallVertical = false;
       ZG.Audio.play('click');
+    },
+    onToggleWall() {
+      if (!state || state.status !== 'prep') return;
+      state.ui.wallVertical = !state.ui.wallVertical;
+      ZG.HUD.toast(state.ui.wallVertical ? '竖墙' : '横墙', 'info');
     },
     onTech(line) {
       if (!state) return;

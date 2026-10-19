@@ -13,7 +13,6 @@
     });
     state.map = ZG.Data.maps[state.mapId];
     state.deploy = state.map.deploy;
-    state.slots = state.map.slots.map(s => ({ id: s.id, x: s.x, y: s.y, buildingId: null, rubble: false }));
     state.spawns = state.map.spawns.slice();
     state.spatial = ZG.Spatial.create();
     state.pathing = ZG.Pathing.build(state);
@@ -222,7 +221,6 @@
     for (const b of state.buildings) {
       if (b.alive && b.typeId === 'mine') b.charges = ZG.Data.buildings.mine.mine.charges;
     }
-    for (const s of state.slots) s.rubble = false;
 
     // 8. 清理尸体
     for (let i = state.humans.length - 1; i >= 0; i--) {
@@ -264,7 +262,7 @@
         r = ZG.Economy.sell(state, cmd.humanId);
         break;
       case 'build':
-        r = ZG.Economy.build(state, cmd.typeId, cmd.slotId);
+        r = ZG.Economy.build(state, cmd.typeId, cmd.x, cmd.y, { vertical: !!cmd.vertical });
         break;
       case 'demolish':
         r = ZG.Economy.demolish(state, cmd.buildingId);

@@ -83,10 +83,12 @@
     ctx.closePath();
   }
 
-  function slotSignature(state) {
+  function mapSignature(state) {
     let s = state.mapId + '|';
-    for (const sl of state.slots) {
-      s += sl.id + ':' + (sl.buildingId || 0) + (sl.rubble ? 'R' : '') + ';';
+    for (const b of state.buildings) {
+      if (!b.alive) continue;
+      s += b.id + ':' + b.typeId + ':' + b.x + ',' + b.y +
+        ',' + b.w + ',' + b.h + ';';
     }
     return s;
   }
@@ -250,33 +252,6 @@
       ctx.fillStyle = 'rgba(239, 160, 160, 0.85)';
       ctx.textAlign = 'center';
       ctx.fillText('出生点', sp.x, sp.y - 26);
-      ctx.restore();
-    }
-
-    // 槽位
-    for (const sl of state.slots) {
-      const has = !!sl.buildingId;
-      if (has) continue;
-      ctx.save();
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = sl.rubble ? 'rgba(239, 83, 80, 0.5)' : 'rgba(144, 164, 174, 0.4)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(sl.x, sl.y, 16, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      if (sl.rubble) {
-        ctx.strokeStyle = 'rgba(239, 83, 80, 0.6)';
-        ctx.beginPath();
-        ctx.moveTo(sl.x - 7, sl.y - 7); ctx.lineTo(sl.x + 7, sl.y + 7);
-        ctx.moveTo(sl.x + 7, sl.y - 7); ctx.lineTo(sl.x - 7, sl.y + 7);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = 'rgba(144, 164, 174, 0.45)';
-        ctx.font = '11px "Microsoft YaHei", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('槽', sl.x, sl.y + 4);
-      }
       ctx.restore();
     }
 
@@ -624,20 +599,37 @@
   function drawBuilding(ctx, b, state) {
     const data = ZG.Data.buildings[b.typeId];
     if (!data) return;
-    if (b.typeId === 'barricade') {
+    if (b.shape === 'rect') {
+      const w = b.w || data.w || 64;
+      const h = b.h || data.h || 24;
+      const vertical = (w < h);
       ctx.save();
       ctx.translate(b.x, b.y);
       ctx.fillStyle = 'rgba(109, 76, 65, 0.95)';
-      roundRect(ctx, -26, -12, 52, 24, 4);
+      roundRect(ctx, -w / 2, -h / 2, w, h, 4);
       ctx.fill();
       ctx.strokeStyle = 'rgba(255, 224, 130, 0.55)';
       ctx.lineWidth = 2;
-      for (let i = -18; i <= 18; i += 12) {
-        ctx.beginPath();
-        ctx.moveTo(i, -12);
-        ctx.lineTo(i + 7, 12);
-        ctx.stroke();
+      if (vertical) {
+        for (let i = -h / 2 + 6; i <= h / 2 - 6; i += 12) {
+          ctx.beginPath();
+          ctx.moveTo(-w / 2, i);
+          ctx.lineTo(w / 2, i + 7);
+          ctx.stroke();
+        }
+      } else {
+        for (let i = -w / 2 + 8; i <= w / 2 - 8; i += 12) {
+          ctx.beginPath();
+          ctx.moveTo(i, -h / 2);
+          ctx.lineTo(i + 7, h / 2);
+          ctx.stroke();
+        }
       }
+      ctx.strokeStyle = 'rgba(62, 39, 35, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.rect(-w / 2, -h / 2, w, h);
+      ctx.stroke();
       ctx.restore();
     } else {
       drawUnitBase(ctx, b.x, b.y, 17, data.color, data.symbol, false);
@@ -807,29 +799,35 @@
       ctx.restore();
     }
 
-    if (ui.selectedSlot) {
+    if (ui.selectedBuilding && ZG.Data.buildings[ui.selectedBuilding] && ui.mouse) {
+      const m = ui.mouse;
+      const d = ZG.Data.buildings[ui.selectedBuilding];
+      const vert = !!ui.wallVertical;
+      const ok = ZG.Economy.canPlaceBuilding(state, ui.selectedBuilding, m.x, m.y,
+        { vertical: vert }).ok;
+      const color = ok ? 'rgba(102,187,106,0.85)' : 'rgba(239,83,80,0.85)';
       ctx.save();
-      const sl = state.slots.find(s => s.id === ui.selectedSlot);
-      if (sl) {
-        ctx.strokeStyle = 'rgba(102, 187, 106, 0.9)';
-        ctx.lineWidth = 2.5;
-        ctx.setLineDash([5, 4]);
+      if ((d.shape || 'circle') === 'rect') {
+        const w = vert ? d.h : d.w;
+        const h = vert ? d.w : d.h;
+        ctx.globalAlpha = 0.45;
+        ctx.fillStyle = color;
+        ctx.fillRect(m.x - w / 2, m.y - h / 2, w, h);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(m.x - w / 2, m.y - h / 2, w, h);
+      } else {
+        ctx.globalAlpha = 0.45;
+        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(sl.x, sl.y, 22, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    if (ui.selectedBuilding && ZG.Data.buildings[ui.selectedBuilding]) {
-      ctx.save();
-      ctx.strokeStyle = 'rgba(102, 187, 106, 0.35)';
-      ctx.lineWidth = 2;
-      for (const sl of state.slots) {
-        if (sl.buildingId || sl.rubble) continue;
-        ctx.setLineDash([3, 5]);
+        ctx.arc(m.x, m.y, d.radius || 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(sl.x, sl.y, 20, 0, Math.PI * 2);
+        ctx.arc(m.x, m.y, (d.radius || 24) + 3, 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();
@@ -862,7 +860,7 @@
     const rect = R.canvas.getBoundingClientRect();
     if (Math.abs(rect.width - R.cssW) > 0.5 || Math.abs(rect.height - R.cssH) > 0.5) resize();
 
-    const sig = slotSignature(state);
+    const sig = mapSignature(state);
     if (sig !== R.bgSig) {
       drawBackground(state);
       R.bgSig = sig;
@@ -888,5 +886,5 @@
     ctx.restore();
   }
 
-  ZG.Renderer = { init, resize, draw, drawBackground, slotSignature };
+  ZG.Renderer = { init, resize, draw, drawBackground, mapSignature };
 })();

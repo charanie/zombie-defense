@@ -27,9 +27,16 @@
     }
     for (const b of state.buildings) {
       if (!b.alive) continue;
-      const d = ZG.Geom.dist2(p.x, p.y, b.x, b.y);
-      const r = b.radius + 4;
-      if (d <= r * r && d < bestD) { bestD = d; best = { kind: 'building', id: b.id, entity: b }; }
+      let d, r;
+      if (b.shape === 'rect') {
+        const br = ZG.Geom.rectOfBuilding(b);
+        d = ZG.Geom.distPointToRect(p.x, p.y, br.x, br.y, br.w, br.h);
+        r = 4;
+      } else {
+        d = ZG.Geom.dist(p.x, p.y, b.x, b.y);
+        r = (b.radius || 24) + 4;
+      }
+      if (d <= r && d < bestD) { bestD = d; best = { kind: 'building', id: b.id, entity: b }; }
     }
     return best;
   }
@@ -45,7 +52,6 @@
       if (!s) return;
       s.ui.selectedCard = null;
       s.ui.selectedBuilding = null;
-      s.ui.selectedSlot = null;
       s.ui.selectedHumanId = null;
       s.ui.selectedBuildingId = null;
       s.ui.drag = null;
@@ -104,13 +110,13 @@
 
       // 建造
       if (ui.selectedBuilding && ZG.Data.buildings[ui.selectedBuilding]) {
-        let slot = null, bd = 40 * 40;
-        for (const sl of s.slots) {
-          const d = ZG.Geom.dist2(p.x, p.y, sl.x, sl.y);
-          if (d < bd) { bd = d; slot = sl; }
-        }
-        if (!slot) { ZG.HUD.toast('请点击建筑槽位', 'warn'); return; }
-        const r = ZG.Sim.applyCommand(s, { op: 'build', typeId: ui.selectedBuilding, slotId: slot.id });
+        const r = ZG.Sim.applyCommand(s, {
+          op: 'build',
+          typeId: ui.selectedBuilding,
+          x: p.x,
+          y: p.y,
+          vertical: !!ui.wallVertical
+        });
         if (r.ok) {
           ZG.Audio.play('click');
           ZG.HUD.toast(ZG.Data.buildings[ui.selectedBuilding].name + ' 建造完成', 'ok');
@@ -148,7 +154,6 @@
 
       ui.selectedHumanId = null;
       ui.selectedBuildingId = null;
-      ui.selectedSlot = null;
     });
 
     canvas.addEventListener('pointerup', () => {
@@ -193,6 +198,11 @@
         cb.onMute && cb.onMute();
       } else if (ev.key === 'h' || ev.key === 'H') {
         cb.onHelp && cb.onHelp();
+      } else if (ev.key === 'r' || ev.key === 'R') {
+        if (s.ui.selectedBuilding === 'barricade') {
+          s.ui.wallVertical = !s.ui.wallVertical;
+          ZG.HUD.toast(s.ui.wallVertical ? '竖墙' : '横墙', 'info');
+        }
       } else if (ev.key === 'Escape') {
         if (s.ui.showHelp || s.ui.showSettings) cb.onCloseModal && cb.onCloseModal();
         else cancelSelection();

@@ -100,17 +100,72 @@
     return { ok: true, refund };
   }
 
-  function build(state, typeId, slotId) {
+  function buildingDims(typeId, opts) {
+    const data = ZG.Data.buildings[typeId];
+    if (!data) return null;
+    const vertical = !!(opts && opts.vertical) && data.rotatable !== false;
+    const shape = data.shape || 'circle';
+    const w = shape === 'rect' ? (vertical ? data.h : data.w) : (data.radius || 24) * 2;
+    const h = shape === 'rect' ? (vertical ? data.w : data.h) : (data.radius || 24) * 2;
+    return { data, shape, w, h, vertical, radius: data.radius || Math.max(w, h) / 2 };
+  }
+
+  function canPlaceBuilding(state, typeId, x, y, opts) {
+    if (!state.map) return { ok: false, reason: 'outside' };
+    const d = buildingDims(typeId, opts);
+    if (!d) return { ok: false, reason: 'unknown' };
+    if (d.shape === 'rect') {
+      if (x - d.w / 2 < ZG.Const.PLACE_MARGIN ||
+          y - d.h / 2 < ZG.Const.PLACE_MARGIN ||
+          x + d.w / 2 > ZG.Const.W - ZG.Const.PLACE_MARGIN ||
+          y + d.h / 2 > ZG.Const.H - ZG.Const.PLACE_MARGIN) {
+        return { ok: false, reason: 'outside' };
+      }
+    } else {
+      const m = d.radius + ZG.Const.PLACE_MARGIN;
+      if (x < m || y < m || x > ZG.Const.W - m || y > ZG.Const.H - m) {
+        return { ok: false, reason: 'outside' };
+      }
+    }
+    const my = d.shape === 'rect' ? ZG.Geom.rectOfCenter(x, y, d.w, d.h) : null;
+    const hitsCircle = (cx, cy, cr) => d.shape === 'rect'
+      ? ZG.Geom.circleOverlapsRect(cx, cy, cr, my.x, my.y, my.w, my.h, ZG.Const.PLACE_GAP)
+      : ZG.Geom.circleOverlapsCircle(x, y, d.radius, cx, cy, cr, ZG.Const.PLACE_GAP);
+    const hitsRect = (r) => d.shape === 'rect'
+      ? ZG.Geom.rectOverlapsRect(my.x, my.y, my.w, my.h, r.x, r.y, r.w, r.h, ZG.Const.PLACE_GAP)
+      : ZG.Geom.circleOverlapsRect(x, y, d.radius, r.x, r.y, r.w, r.h, ZG.Const.PLACE_GAP);
+
+    for (const ob of state.map.obstacles || []) {
+      const hit = ob.kind === 'rect' ? hitsRect(ob) : hitsCircle(ob.x, ob.y, ob.r);
+      if (hit) return { ok: false, reason: 'obstacle' };
+    }
+    for (const h of state.humans) {
+      if (h.alive && hitsCircle(h.x, h.y, h.radius)) return { ok: false, reason: 'overlap' };
+    }
+    for (const b of state.buildings) {
+      if (!b.alive) continue;
+      const br = ZG.Geom.rectOfBuilding(b);
+      const hit = b.shape === 'rect'
+        ? hitsRect(br)
+        : hitsCircle(b.x, b.y, b.radius || 24);
+      if (hit) return { ok: false, reason: 'overlap' };
+    }
+    return { ok: true };
+  }
+
+  function build(state, typeId, x, y, opts) {
     if (state.status !== 'prep') return { ok: false, reason: 'not-prep' };
     const data = ZG.Data.buildings[typeId];
     if (!data) return { ok: false, reason: 'unknown' };
-    const slot = state.slots.find(s => s.id === slotId);
-    if (!slot) return { ok: false, reason: 'no-slot' };
-    if (slot.buildingId) return { ok: false, reason: 'occupied' };
-    if (slot.rubble) return { ok: false, reason: 'rubble' };
+    const count = state.buildings.filter(b => b.alive && b.typeId === typeId).length;
+    if (data.limit !== undefined && count >= data.limit) {
+      return { ok: false, reason: 'limit' };
+    }
     if (!canAfford(state, data.cost)) return { ok: false, reason: 'money' };
+    const p = canPlaceBuilding(state, typeId, x, y, opts);
+    if (!p.ok) return p;
     spend(state, data.cost);
-    const b = ZG.State.spawnBuilding(state, typeId, slotId);
+    const b = ZG.State.spawnBuilding(state, typeId, x, y, opts);
     if (state.pathing) state.pathing = ZG.Pathing.build(state);
     return { ok: true, building: b };
   }
@@ -124,8 +179,6 @@
     b.alive = false;
     const i = state.buildings.indexOf(b);
     if (i >= 0) state.buildings.splice(i, 1);
-    const slot = state.slots.find(s => s.id === b.slotId);
-    if (slot) { slot.buildingId = null; slot.rubble = true; }
     state.money += refund;
     state.bus.emit(ZG.Events.MONEY_CHANGED, { money: state.money, delta: refund });
     if (state.pathing) state.pathing = ZG.Pathing.build(state);
@@ -175,6 +228,6 @@
 
   ZG.Economy = {
     canAfford, spend, earn, populationUsed, heroesUsed, civilianCount,
-    canPlace, recruit, sell, build, demolish, buyTech, moveHuman
+    canPlace, canPlaceBuilding, buildingDims, recruit, sell, build, demolish, buyTech, moveHuman
   };
 })();

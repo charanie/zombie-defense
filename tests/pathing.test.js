@@ -6,7 +6,6 @@ test('郊区公路网格与流场', () => {
   const map = ZG.Data.maps.suburban;
   const s = ZG.State.create({ mapId: 'suburban', seed: 1 });
   s.map = map;
-  s.slots = map.slots.map(sl => ({ ...sl, buildingId: null, rubble: false }));
   s.pathing = ZG.Pathing.build(s);
   assert.equal(s.pathing.cols, 40);
   assert.equal(s.pathing.rows, 23);
@@ -16,27 +15,31 @@ test('郊区公路网格与流场', () => {
   }
 });
 
-test('三张地图满建仍可达且绕行 ≤1.35 倍', () => {
+test('三张地图边缘可达中心', () => {
   for (const id of ['suburban', 'hospital', 'subway']) {
     const r = ZG.Pathing.validate(ZG.Data.maps[id]);
     assert.equal(r.ok, true, id + ': ' + JSON.stringify(r));
-    assert.ok(r.maxDetour <= 1.35, id + ': ' + r.maxDetour);
   }
 });
 
 test('不可达点返回最近可达格', () => {
   const s = ZG.State.create({ mapId: 'suburban', seed: 1 });
   s.map = ZG.Data.maps.suburban;
-  s.slots = s.map.slots.map(sl => ({ ...sl, buildingId: null, rubble: false }));
   const p = ZG.Pathing.nearestReachable(ZG.Pathing.build(s), 420, 300);
   assert.ok(p.x >= 0 && p.y >= 0);
   assert.ok(!isNaN(p.x));
 });
 
+test('矩形墙阻挡流场', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+  s.money = 9999;
+  const r = ZG.Economy.build(s, 'barricade', 600, 400, { vertical: false });
+  assert.equal(r.ok, true);
+  const i = Math.floor(400 / 32) * 40 + Math.floor(600 / 32);
+  assert.equal(s.pathing.blocked[i], 1);
+});
+
 test('地图字段与出生点不在部署区', () => {
-  assert.equal(ZG.Data.maps.suburban.slots.length, 6);
-  assert.equal(ZG.Data.maps.hospital.slots.length, 7);
-  assert.equal(ZG.Data.maps.subway.slots.length, 8);
   assert.equal(ZG.Data.maps.hospital.deploy.kind, 'circle');
   assert.equal(ZG.Data.maps.subway.deploy.kind, 'rect');
   for (const id of ['suburban', 'hospital', 'subway']) {

@@ -16,14 +16,6 @@
       { kind: 'circle', x: 860, y: 300, r: 36, theme: 'car' }
     ],
     terrain: [],
-    slots: [
-      { id: 's1', x: 260, y: 460 },
-      { id: 's2', x: 420, y: 460 },
-      { id: 's3', x: 580, y: 460 },
-      { id: 's4', x: 740, y: 460 },
-      { id: 's5', x: 900, y: 460 },
-      { id: 's6', x: 1020, y: 460 }
-    ],
     roads: [
       { x: 0, y: 210, w: 1280, h: 110 },
       { x: 0, y: 480, w: 1280, h: 40 }
@@ -43,15 +35,6 @@
       { kind: 'circle', x: 300, y: 560, r: 100, theme: 'pool', infectionMul: 0.5 },
       { kind: 'circle', x: 980, y: 560, r: 100, theme: 'pool', infectionMul: 0.5 }
     ],
-    slots: [
-      { id: 's1', x: 640, y: 120 },
-      { id: 's2', x: 859, y: 225 },
-      { id: 's3', x: 913, y: 462 },
-      { id: 's4', x: 761, y: 652 },
-      { id: 's5', x: 519, y: 652 },
-      { id: 's6', x: 367, y: 462 },
-      { id: 's7', x: 421, y: 225 }
-    ],
     roads: []
   };
 
@@ -69,16 +52,6 @@
       { kind: 'circle', x: 700, y: 370, r: 40, theme: 'pillar' }
     ],
     terrain: [],
-    slots: [
-      { id: 's1', x: 220, y: 130 },
-      { id: 's2', x: 220, y: 590 },
-      { id: 's3', x: 470, y: 130 },
-      { id: 's4', x: 470, y: 590 },
-      { id: 's5', x: 620, y: 170 },
-      { id: 's6', x: 620, y: 570 },
-      { id: 's7', x: 810, y: 130 },
-      { id: 's8', x: 810, y: 590 }
-    ],
     roads: [
       { x: 0, y: 120, w: 930, h: 130 },
       { x: 0, y: 470, w: 930, h: 130 },

@@ -43,11 +43,14 @@
 
   function buildingCard(state, classId) {
     const data = ZG.Data.buildings[classId];
-    if (!data) return { disabled: true, reason: 'unknown', cost: 0 };
+    if (!data) return { disabled: true, reason: 'unknown', cost: 0, count: 0, limit: 0 };
+    const count = state.buildings.filter(b => b.alive && b.typeId === classId).length;
+    const limit = data.limit === undefined ? Infinity : data.limit;
     let reason = null;
     if (state.status !== 'prep') reason = 'not-prep';
+    else if (count >= limit) reason = 'limit';
     else if (state.money < data.cost) reason = 'money';
-    return { disabled: reason !== null, reason, cost: data.cost };
+    return { disabled: reason !== null, reason, cost: data.cost, count, limit };
   }
 
   function wavePreview(state) {

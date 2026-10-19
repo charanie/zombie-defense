@@ -80,11 +80,6 @@
       b.alive = false;
       const i = state.buildings.indexOf(b);
       if (i >= 0) state.buildings.splice(i, 1);
-      const slot = state.slots.find(s => s.id === b.slotId);
-      if (slot && slot.buildingId === b.id) {
-        slot.buildingId = null;
-        slot.rubble = true;
-      }
       state.stats.buildingsLost = (state.stats.buildingsLost || 0) + 1;
       state.bus.emit(ZG.Events.BUILDING_DESTROYED, { building: b });
       if (state.pathing) {

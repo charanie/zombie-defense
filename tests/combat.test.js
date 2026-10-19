@@ -245,7 +245,7 @@ test('巨人拆建筑伤害 ×3（数据与行为）', () => {
   const s = setup();
   s.money = 9999;
   ZG.State.spawnHuman(s, 'shield', 700, 600);
-  const b = ZG.Economy.build(s, 'barricade', 's1').building;
+  const b = ZG.Economy.build(s, 'barricade', 300, 300).building;
   const z = ZG.State.spawnZombie(s, 'giant', b.x, b.y + 40);
   z.speed = 0;
   ZG.Sim.startRound(s); s.spawner.batches = [];

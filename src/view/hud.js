@@ -38,9 +38,10 @@
       money: '金钱不足',
       population: '人口已满',
       'civilian-cap': '平民已满',
-      outside: '部署区外',
+      outside: '地图外',
       overlap: '位置重叠',
       obstacle: '障碍阻挡',
+      limit: '已达上限',
       'not-prep': '战斗中',
       unknown: '不可用'
     };
@@ -155,10 +156,13 @@
     H.refs.sellBtn = el('button', 'btn btn-sell hidden', '出售选中单位');
     H.refs.sellBtn.onclick = () => { H.cb.onSell && H.cb.onSell(); };
     H.refs.wavePreview = el('span', 'wave-preview', '下一波：');
+    H.refs.wallBtn = el('button', 'btn btn-wall hidden', '横墙');
+    H.refs.wallBtn.title = '切换围墙横/竖（R）';
+    H.refs.wallBtn.onclick = () => { H.cb.onToggleWall && H.cb.onToggleWall(); };
     H.refs.startBtn = el('button', 'btn btn-start', '开始回合');
     H.refs.startBtn.onclick = () => { H.cb.onStartRound && H.cb.onStartRound(); };
     const spacer = el('span', 'footer-spacer');
-    footer.append(H.refs.sellBtn, H.refs.wavePreview, spacer, H.refs.startBtn);
+    footer.append(H.refs.sellBtn, H.refs.wavePreview, H.refs.wallBtn, spacer, H.refs.startBtn);
 
     const log = el('div', 'battle-log');
     H.refs.log = log;
@@ -239,7 +243,7 @@
       };
       card.onmouseleave = hideTip;
       grid.appendChild(card);
-      H.buildEls[id] = { card, reason };
+      H.buildEls[id] = { card, reason, stats };
     }
   }
 
@@ -342,10 +346,6 @@
       ctx.strokeRect(d.x, d.y, d.w, d.h);
     } else {
       ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    }
-    ctx.fillStyle = 'rgba(144,164,174,0.8)';
-    for (const s of map.slots) {
-      ctx.beginPath(); ctx.arc(s.x, s.y, 16, 0, Math.PI * 2); ctx.fill();
     }
     ctx.fillStyle = 'rgba(239,83,80,0.9)';
     for (const sp of map.spawns) {
@@ -603,6 +603,10 @@
       H.refs.sellBtn.classList.add('hidden');
     }
 
+    const showWall = !battle && ui.selectedBuilding === 'barricade';
+    H.refs.wallBtn.classList.toggle('hidden', !showWall);
+    if (showWall) H.refs.wallBtn.textContent = ui.wallVertical ? '竖墙' : '横墙';
+
     // 结算 / 失败
     H.refs.settlement.classList.toggle('hidden', !ui.showSettlement || state.status === 'over');
     if (ui.showSettlement && state.lastSettlement) renderSettlement(state);
@@ -654,6 +658,11 @@
       const ref = H.buildEls[id];
       if (!ref) continue;
       const cs = ZG.Model.buildingCard(state, id);
+      if (ref.stats) {
+        const d = ZG.Data.buildings[id];
+        const lim = cs.limit === Infinity ? '∞' : cs.limit;
+        ref.stats.textContent = 'HP ' + d.hp + ' · 现存 ' + cs.count + '/' + lim;
+      }
       ref.card.classList.toggle('disabled', cs.disabled || battle);
       ref.card.classList.toggle('selected', state.ui.selectedBuilding === id);
       if (cs.disabled) {

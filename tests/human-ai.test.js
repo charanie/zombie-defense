@@ -46,7 +46,7 @@ test('受伤单位前往医疗站', () => {
   s.money = 9999;
   const h = ZG.State.spawnHuman(s, 'pistol', 600, 620);
   h.hp = 50;
-  const b = ZG.Economy.build(s, 'hospital', 's3').building;
+  const b = ZG.Economy.build(s, 'hospital', 600, 420).building;
   start(s);
   ZG.Sim.tick(s, 120);
 

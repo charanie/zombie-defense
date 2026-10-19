@@ -51,38 +51,34 @@ test('金钱不足返回原因', () => {
   assert.deepEqual(ZG.Economy.recruit(s, 'pistol', 600, 600), { ok: false, reason: 'money' });
 });
 
-test('建造占槽、扣钱、满槽拒绝', () => {
+test('自由建造扣钱并遵守数量上限', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
-  s.money = 9999;
-  assert.equal(ZG.Economy.build(s, 'barricade', 's1').ok, true);
-  assert.deepEqual(ZG.Economy.build(s, 'barricade', 's1'), { ok: false, reason: 'occupied' });
-  for (const id of ['s2', 's3', 's4', 's5', 's6']) {
-    assert.equal(ZG.Economy.build(s, 'barricade', id).ok, true);
+  s.money = 99999;
+  for (let i = 0; i < 10; i++) {
+    assert.equal(ZG.Economy.build(s, 'barricade', 100 + i * 80, 200).ok, true, '第 ' + i + ' 面');
   }
-  assert.equal(s.buildings.length, 6);
-  assert.deepEqual(ZG.Economy.build(s, 'barricade', 's1'), { ok: false, reason: 'occupied' });
+  assert.deepEqual(ZG.Economy.build(s, 'barricade', 600, 100), { ok: false, reason: 'limit' });
+  assert.equal(s.buildings.length, 10);
 });
 
-test('拆除返 50%，废墟锁槽 1 回合', () => {
+test('拆除返 50%，摧毁后释放名额', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
   s.money = 1000;
-  const b = ZG.Economy.build(s, 'turret', 's1').building;
+  const b = ZG.Economy.build(s, 'turret', 600, 200).building;
   assert.equal(ZG.Economy.demolish(s, b.id).refund, 100);
-  assert.equal(s.slots.find(x => x.id === 's1').rubble, true);
-  assert.equal(ZG.Economy.build(s, 'turret', 's1').reason, 'rubble');
+  assert.equal(ZG.Economy.build(s, 'turret', 600, 200).ok, true);
 
-  ZG.State.spawnHuman(s, 'pistol', 600, 600);
-  ZG.Sim.startRound(s); s.spawner.batches = []; s.zombies.length = 0;
-  ZG.Sim.tick(s, 240);
-  assert.equal(s.slots.find(x => x.id === 's1').rubble, false);
-  assert.equal(ZG.Economy.build(s, 'turret', 's1').ok, true);
+  const b2 = s.buildings[0];
+  ZG.Combat.applyBuildingDamage(s, b2, 99999);
+  assert.equal(s.buildings.length, 0);
+  assert.equal(ZG.Economy.build(s, 'turret', 600, 200).ok, true);
 });
 
 test('医疗站治疗与感染 -1/s', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
   s.money = 9999;
   const h = ZG.State.spawnHuman(s, 'pistol', 600, 600);
-  const b = ZG.Economy.build(s, 'hospital', 's1').building;
+  const b = ZG.Economy.build(s, 'hospital', 600, 500).building;
   b.x = 600; b.y = 600;
   h.hp = 100; h.infection = 50;
   ZG.Sim.startRound(s); s.spawner.batches = [];
@@ -94,7 +90,7 @@ test('医疗站治疗与感染 -1/s', () => {
 test('地雷阵 3 次触发并按回合成长', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
   s.money = 9999;
-  const b = ZG.Economy.build(s, 'mine', 's1').building;
+  const b = ZG.Economy.build(s, 'mine', 300, 200).building;
   assert.equal(b.charges, 3);
   s.round = 7;
   assert.equal(ZG.Balance.mineDamage(7).toFixed(2), (120 * Math.pow(1.06, 6)).toFixed(2));

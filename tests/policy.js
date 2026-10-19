@@ -2,38 +2,22 @@
 'use strict';
 
 function candidates(state) {
-  const d = state.map.deploy;
   const pts = [];
-  if (d.kind === 'rect') {
-    for (let y = d.y + 22; y <= d.y + d.h - 22; y += 34) {
-      for (let x = d.x + 22; x <= d.x + d.w - 22; x += 34) pts.push({ x, y });
-    }
-  } else {
-    for (let r = 40; r <= d.r - 16; r += 34) {
-      const n = Math.max(6, Math.round((Math.PI * 2 * r) / 34));
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        pts.push({ x: d.x + Math.cos(a) * r, y: d.y + Math.sin(a) * r });
-      }
+  for (let y = 60; y <= ZG.Const.H - 60; y += 40) {
+    for (let x = 60; x <= ZG.Const.W - 60; x += 40) {
+      const r = ZG.Economy.canPlace(state, x, y, 10);
+      if (r.ok) pts.push({ x, y });
     }
   }
   return pts;
 }
 
 function roleScore(state, p, role) {
-  const d = state.map.deploy;
-  if (role === 'front') {
-    if (state.mapId === 'subway') return p.x;
-    if (state.mapId === 'hospital') return p.y;
-    return p.y;
-  }
-  if (role === 'back') {
-    if (state.mapId === 'subway') return -p.x;
-    if (state.mapId === 'hospital') return Math.hypot(p.x - 640, p.y - 300);
-    return -p.y;
-  }
-  if (state.mapId === 'hospital') return Math.hypot(p.x - 640, p.y - 310);
-  return 0;
+  // 僵尸四面来袭：默认围绕地图中心结阵，前排略偏下、后排略偏上
+  const target = role === 'front'
+    ? { x: 640, y: 470 }
+    : (role === 'back' ? { x: 640, y: 570 } : { x: 640, y: 520 });
+  return Math.hypot(p.x - target.x, p.y - target.y);
 }
 
 function place(state, classId, role) {
@@ -59,11 +43,18 @@ function hasBuilding(state, typeId) {
   return state.buildings.some(b => b.alive && b.typeId === typeId);
 }
 
-function tryBuild(state, typeId, slotId, reserve) {
+function tryBuild(state, typeId, x, y, opts, reserve) {
   const data = ZG.Data.buildings[typeId];
   if (state.money < data.cost + (reserve || 120)) return false;
-  const r = ZG.Economy.build(state, typeId, slotId);
-  return r.ok;
+  let r = ZG.Economy.build(state, typeId, x, y, opts);
+  if (r.ok) return true;
+  if (r.reason === 'limit' || r.reason === 'money' || r.reason === 'unknown') return false;
+  for (const p of candidates(state)) {
+    r = ZG.Economy.build(state, typeId, p.x, p.y, opts);
+    if (r.ok) return true;
+    if (r.reason === 'limit' || r.reason === 'money') return false;
+  }
+  return false;
 }
 
 function prep(state, opts) {
@@ -72,16 +63,18 @@ function prep(state, opts) {
   const c = counts(state);
 
   // 建筑顺序
-  if (!hasBuilding(state, 'barricade') && (state.mapId === 'suburban' || R >= 4)) tryBuild(state, 'barricade', 's1', 260);
-  if (R >= 2 && !hasBuilding(state, 'hospital')) tryBuild(state, 'hospital', 's3', 160);
-  if (R >= 2 && !hasBuilding(state, 'turret')) tryBuild(state, 'turret', 's5', 160);
-  if (R >= 4 && !hasBuilding(state, 'ammo')) tryBuild(state, 'ammo', 's4', 160);
-  if (R >= 3 && !hasBuilding(state, 'tarpit')) tryBuild(state, 'tarpit', 's6', 100);
-  if (!hasBuilding(state, 'barricade') && state.map.slots.length > 1) {
-    tryBuild(state, 'barricade', 's2', 140);
+  if (!hasBuilding(state, 'barricade') && (state.mapId === 'suburban' || R >= 4)) {
+    tryBuild(state, 'barricade', 640, 430, { vertical: false }, 260);
   }
-  if (R >= 6 && !hasBuilding(state, 'mine') && state.map.slots.length >= 6) {
-    tryBuild(state, 'mine', 's2', 120);
+  if (R >= 2 && !hasBuilding(state, 'hospital')) tryBuild(state, 'hospital', 760, 560, null, 160);
+  if (R >= 2 && !hasBuilding(state, 'turret')) tryBuild(state, 'turret', 520, 560, null, 160);
+  if (R >= 4 && !hasBuilding(state, 'ammo')) tryBuild(state, 'ammo', 640, 600, null, 160);
+  if (R >= 3 && !hasBuilding(state, 'tarpit')) tryBuild(state, 'tarpit', 640, 420, null, 100);
+  if (!hasBuilding(state, 'barricade')) {
+    tryBuild(state, 'barricade', 580, 430, { vertical: false }, 140);
+  }
+  if (R >= 6 && !hasBuilding(state, 'mine')) {
+    tryBuild(state, 'mine', 700, 420, null, 120);
   }
 
   // 科技
