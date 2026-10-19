@@ -8,9 +8,6 @@
     ground: '#1A2233',
     grid: '#22304A',
     road: '#232D42',
-    deploy: 'rgba(79, 195, 247, 0.10)',
-    deployEdge: 'rgba(79, 195, 247, 0.55)',
-    slot: 'rgba(144, 164, 174, 0.35)',
     human: {
       pistol: '#4FC3F7',
       shotgun: '#FFB74D',

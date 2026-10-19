@@ -36,9 +36,22 @@
     return best;
   }
 
+  function buildingDist(x, y, b) {
+    if (b.shape === 'rect') {
+      const r = ZG.Geom.rectOfBuilding(b);
+      return ZG.Geom.distPointToRect(x, y, r.x, r.y, r.w, r.h);
+    }
+    return Math.max(0, ZG.Geom.dist(x, y, b.x, b.y) - (b.radius || 24));
+  }
+
   function nearestBuilding(state, x, y, maxR) {
-    return ZG.Spatial.queryNearest(state.spatial, x, y, maxR || 220,
-      e => e.kind === 'building' && e.alive);
+    let best = null, bestD = maxR || 220;
+    for (const b of state.buildings) {
+      if (!b.alive) continue;
+      const d = buildingDist(x, y, b);
+      if (d < bestD) { bestD = d; best = b; }
+    }
+    return best;
   }
 
   function densestHumanPoint(state) {
@@ -53,7 +66,7 @@
       if (count > bestCount) { bestCount = count; best = a; }
     }
     if (!best) {
-      const c = state.map ? ZG.Geom.deployCenter(state.map.deploy) : { x: 640, y: 600 };
+      const c = ZG.Geom.humanCentroid(state) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
       return { x: c.x, y: c.y, count: 0 };
     }
     return { x: best.x, y: best.y, count: bestCount, human: best };
@@ -792,12 +805,10 @@
       threat = true;
     }
     if (threat) {
-      const center = ZG.Geom.deployCenter(state.map.deploy);
-      if (!ZG.Geom.pointInDeploy(h.x, h.y, state.map.deploy)) {
-        const dc = ZG.Geom.dist(h.x, h.y, center.x, center.y) || 1;
-        fx += ((center.x - h.x) / dc) * 0.8;
-        fy += ((center.y - h.y) / dc) * 0.8;
-      }
+      const center = ZG.Geom.humanCentroid(state) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
+      const dc = ZG.Geom.dist(h.x, h.y, center.x, center.y) || 1;
+      fx += ((center.x - h.x) / dc) * 0.8;
+      fy += ((center.y - h.y) / dc) * 0.8;
       if (Math.hypot(fx, fy) < 1e-6) {
         fx = h.x - center.x;
         fy = h.y - center.y;
@@ -908,7 +919,7 @@
     const h = nearestHuman(state, z.x, z.y, 4000);
     if (h) return { kind: 'human', target: h };
 
-    const c = state.map ? ZG.Geom.deployCenter(state.map.deploy) : { x: 640, y: 600 };
+    const c = ZG.Geom.humanCentroid(state) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
     return { kind: 'point', x: c.x, y: c.y, count: 0, target: null };
   }
 
@@ -925,21 +936,65 @@
     return m;
   }
 
+  function pushOutRect(z, nx, ny, x, y, w, h) {
+    const px = Math.max(x, Math.min(x + w, nx));
+    const py = Math.max(y, Math.min(y + h, ny));
+    const dx = nx - px, dy = ny - py;
+    const d = Math.hypot(dx, dy);
+    if (d > 1e-9) {
+      if (d < z.radius) {
+        nx = px + (dx / d) * (z.radius + 1);
+        ny = py + (dy / d) * (z.radius + 1);
+      }
+    } else {
+      const left = nx - x, right = x + w - nx;
+      const top = ny - y, bottom = y + h - ny;
+      const m = Math.min(left, right, top, bottom);
+      if (m === left) nx = x - z.radius - 1;
+      else if (m === right) nx = x + w + z.radius + 1;
+      else if (m === top) ny = y - z.radius - 1;
+      else ny = y + h + z.radius + 1;
+    }
+    return { x: nx, y: ny };
+  }
+
   function moveZombie(state, z, tx, ty, speed, dt) {
     const dx = tx - z.x, dy = ty - z.y;
     const d = Math.hypot(dx, dy) || 1;
     const move = speed * dt;
     let nx = z.x + (dx / d) * move;
     let ny = z.y + (dy / d) * move;
-    // 障碍物简单滑动
+    // 障碍物/建筑推离
     if (state.map && state.map.obstacles) {
       for (const ob of state.map.obstacles) {
-        if (ob.kind !== 'circle') continue;
+        if (ob.kind === 'rect') {
+          const p = pushOutRect(z, nx, ny, ob.x, ob.y, ob.w, ob.h);
+          nx = p.x; ny = p.y;
+          continue;
+        }
         const dd = ZG.Geom.dist(nx, ny, ob.x, ob.y);
         if (dd < ob.r + z.radius) {
           const a = Math.atan2(ny - ob.y, nx - ob.x);
           nx = ob.x + Math.cos(a) * (ob.r + z.radius + 1);
           ny = ob.y + Math.sin(a) * (ob.r + z.radius + 1);
+        }
+      }
+    }
+    for (const b of state.buildings) {
+      if (!b.alive) continue;
+      const data = ZG.Data.buildings[b.typeId];
+      if (data && data.blocks === false) continue;
+      if (b.shape === 'rect') {
+        const r = ZG.Geom.rectOfBuilding(b);
+        const p = pushOutRect(z, nx, ny, r.x, r.y, r.w, r.h);
+        nx = p.x; ny = p.y;
+      } else {
+        const dd = ZG.Geom.dist(nx, ny, b.x, b.y);
+        const rr = (b.radius || 24) + z.radius;
+        if (dd < rr) {
+          const a = Math.atan2(ny - b.y, nx - b.x);
+          nx = b.x + Math.cos(a) * (rr + 1);
+          ny = b.y + Math.sin(a) * (rr + 1);
         }
       }
     }
@@ -1059,8 +1114,20 @@
       if (tgt.target) { tx = tgt.target.x; ty = tgt.target.y; }
       else { tx = tgt.x; ty = tgt.y; }
 
-      const dist = Math.hypot(tx - z.x, ty - z.y);
-      const targetRadius = tgt.target ? tgt.target.radius : 0;
+      let dist, targetRadius = 0;
+      if (tgt.kind === 'building') {
+        const b = tgt.target;
+        if (b.shape === 'rect') {
+          const r = ZG.Geom.rectOfBuilding(b);
+          dist = ZG.Geom.distPointToRect(z.x, z.y, r.x, r.y, r.w, r.h);
+        } else {
+          dist = ZG.Geom.dist(z.x, z.y, b.x, b.y);
+          targetRadius = b.radius || 24;
+        }
+      } else {
+        dist = ZG.Geom.dist(z.x, z.y, tx, ty);
+        targetRadius = tgt.target ? tgt.target.radius : 0;
+      }
       const range = z.radius + targetRadius + (tgt.kind === 'building' ? 8 : 4);
 
       if (dist <= range) {
@@ -1069,8 +1136,7 @@
       } else {
         // 远处沿流场，近处直追
         let nx = tx, ny = ty;
-        const inDeploy = state.map && ZG.Geom.pointInDeploy(z.x, z.y, state.map.deploy);
-        if (!inDeploy && dist > 340 && tgt.kind !== 'building') {
+        if (dist > 340 && tgt.kind !== 'building') {
           const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y);
           nx = z.x + dir.x * 100;
           ny = z.y + dir.y * 100;

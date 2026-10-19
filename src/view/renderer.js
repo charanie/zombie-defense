@@ -165,31 +165,6 @@
       }
     }
 
-    // 部署区
-    const d = map.deploy;
-    ctx.save();
-    ctx.fillStyle = 'rgba(79, 195, 247, 0.07)';
-    ctx.strokeStyle = C.deployEdge;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 6]);
-    if (d.kind === 'rect') {
-      roundRect(ctx, d.x, d.y, d.w, d.h, 16);
-      ctx.fill();
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(137, 216, 255, 0.55)';
-    ctx.font = 'bold 12px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    if (d.kind === 'rect') ctx.fillText('部 署 区', d.x + d.w / 2, d.y + 20);
-    else ctx.fillText('部 署 区', d.x, d.y - d.r + 22);
-    ctx.restore();
-
     // 障碍
     if (map.obstacles) {
       for (const ob of map.obstacles) {

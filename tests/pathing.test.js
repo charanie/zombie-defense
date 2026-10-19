@@ -2,46 +2,54 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const ZG = require('./load-sim.js')();
 
-test('郊区公路网格与流场', () => {
-  const map = ZG.Data.maps.suburban;
-  const s = ZG.State.create({ mapId: 'suburban', seed: 1 });
-  s.map = map;
+test('流场朝向最近人类', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+  ZG.State.spawnHuman(s, 'pistol', 600, 600);
   s.pathing = ZG.Pathing.build(s);
-  assert.equal(s.pathing.cols, 40);
-  assert.equal(s.pathing.rows, 23);
-  const d = ZG.Pathing.directionAt(s.pathing, 640, 80);
-  assert.ok(d.y > 0, '上方流场应指向下方部署区');
+  const d = ZG.Pathing.directionAt(s.pathing, 600, 100);
+  assert.ok(d.y > 0, '应指向下方人类');
 });
 
-test('三张地图边缘可达中心', () => {
+test('无人类时流场指向地图中心', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+  const d = ZG.Pathing.directionAt(s.pathing, 100, 100);
+  assert.ok(d.x > 0 && d.y > 0);
+});
+
+test('矩形墙阻挡流场', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+  s.money = 9999;
+  ZG.State.spawnHuman(s, 'pistol', 600, 650);
+  ZG.Economy.build(s, 'barricade', 600, 400, { vertical: false });
+  s.pathing = ZG.Pathing.build(s);
+  const i = Math.floor(400 / 32) * 40 + Math.floor(600 / 32);
+  assert.equal(s.pathing.blocked[i], 1);
+});
+
+test('地图边缘可达中心', () => {
   for (const id of ['suburban', 'hospital', 'subway']) {
     const r = ZG.Pathing.validate(ZG.Data.maps[id]);
     assert.equal(r.ok, true, id + ': ' + JSON.stringify(r));
   }
 });
 
-test('不可达点返回最近可达格', () => {
-  const s = ZG.State.create({ mapId: 'suburban', seed: 1 });
-  s.map = ZG.Data.maps.suburban;
-  const p = ZG.Pathing.nearestReachable(ZG.Pathing.build(s), 420, 300);
-  assert.ok(p.x >= 0 && p.y >= 0);
-  assert.ok(!isNaN(p.x));
-});
-
-test('矩形墙阻挡流场', () => {
+test('建造/摧毁后流场立即重建', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
   s.money = 9999;
-  const r = ZG.Economy.build(s, 'barricade', 600, 400, { vertical: false });
-  assert.equal(r.ok, true);
+  ZG.State.spawnHuman(s, 'pistol', 600, 650);
+  const b = ZG.Economy.build(s, 'barricade', 600, 400).building;
   const i = Math.floor(400 / 32) * 40 + Math.floor(600 / 32);
   assert.equal(s.pathing.blocked[i], 1);
+  ZG.Combat.applyBuildingDamage(s, b, 99999);
+  assert.equal(s.pathing.blocked[i], 0);
 });
 
-test('地图字段', () => {
-  assert.equal(ZG.Data.maps.hospital.deploy.kind, 'circle');
-  assert.equal(ZG.Data.maps.subway.deploy.kind, 'rect');
-  for (const id of ['suburban', 'hospital', 'subway']) {
-    const s = ZG.Sim.createGame({ mapId: id, seed: 1 });
-    assert.equal(s.status, 'prep');
-  }
+test('战斗中每 15 步重建一次流场', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+  ZG.State.spawnHuman(s, 'shield', 600, 600);
+  ZG.State.spawnZombie(s, 'walker', 600, 100);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  const before = s.pathing;
+  ZG.Sim.tick(s, 15);
+  assert.notEqual(s.pathing, before);
 });

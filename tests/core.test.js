@@ -63,15 +63,16 @@ test('事件总线 on/emit/off 与异常隔离', () => {
   assert.equal(after, true);
 });
 
-test('几何：角度、锥形、部署区', () => {
+test('几何：角度、锥形、矩形/圆/世界边界', () => {
   assert.ok(ZG.Geom.inCone(0, 0, 0, 100, 0, 200, 30));
   assert.ok(!ZG.Geom.inCone(0, 0, 0, 0, 100, 200, 30));
   assert.ok(Math.abs(Math.abs(ZG.Geom.angleDiff(Math.PI * 1.9, 0)) - 0.1 * Math.PI) < 1e-9);
   assert.ok(ZG.Geom.pointInRect(10, 10, { x: 0, y: 0, w: 20, h: 20 }));
   assert.ok(!ZG.Geom.pointInRect(21, 10, { x: 0, y: 0, w: 20, h: 20 }));
   assert.ok(ZG.Geom.pointInCircle(0, 0, { x: 0, y: 0, r: 5 }));
-  assert.ok(ZG.Geom.pointInDeploy(600, 600, { kind: 'rect', x: 140, y: 520, w: 1000, h: 160 }));
-  assert.ok(!ZG.Geom.pointInDeploy(100, 100, { kind: 'rect', x: 140, y: 520, w: 1000, h: 160 }));
-  const c = ZG.Geom.clampPoint(1300, 900, { kind: 'circle', x: 640, y: 400, r: 170 }, 0);
-  assert.ok(ZG.Geom.dist(640, 400, c.x, c.y) <= 170.001);
+  assert.equal(ZG.Geom.circleOverlapsRect(0, 0, 8, 7, 0, 20, 10), true);
+  assert.equal(ZG.Geom.rectOverlapsRect(0, 0, 10, 10, 20, 0, 10, 10), false);
+  const c = ZG.Geom.clampToWorld(1300, 900, 8);
+  assert.equal(c.x, ZG.Const.W - 12);
+  assert.equal(c.y, ZG.Const.H - 12);
 });

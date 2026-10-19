@@ -64,26 +64,28 @@
       }
     }
 
-    const deploy = map ? map.deploy : { kind: 'rect', x: 0, y: 0, w: 1280, h: 720 };
     const dist = new Uint16Array(COLS * ROWS).fill(INF);
     const dirX = new Int8Array(COLS * ROWS);
     const dirY = new Int8Array(COLS * ROWS);
     const queue = new Int32Array(COLS * ROWS);
     let head = 0, tail = 0;
 
-    for (let cy = 0; cy < ROWS; cy++) {
-      for (let cx = 0; cx < COLS; cx++) {
-        const i = idx(cx, cy);
-        if (blocked[i]) continue;
-        if (ZG.Geom.pointInDeploy(cellCX(cx), cellCY(cy), deploy)) {
-          dist[i] = 0;
-          queue[tail++] = i;
-        }
-      }
+    // 源点：所有存活人类所在格；没有人类时用地图中心
+    const sources = [];
+    for (const h of state.humans || []) {
+      if (!h.alive) continue;
+      const c = cellOf(h.x, h.y);
+      if (!blocked[c.i]) sources.push(c.i);
     }
-
-    const dcx = ZG.Geom.deployCenter(deploy).x;
-    const dcy = ZG.Geom.deployCenter(deploy).y;
+    if (!sources.length) {
+      const c = cellOf(ZG.Const.W / 2, ZG.Const.H / 2);
+      if (!blocked[c.i]) sources.push(c.i);
+    }
+    for (const i of sources) {
+      if (dist[i] !== INF) continue;
+      dist[i] = 0;
+      queue[tail++] = i;
+    }
 
     // 4 邻域 BFS
     while (head < tail) {
@@ -106,20 +108,11 @@
       queue[tail++] = ni;
     }
 
-    // 部署区内 (含多源) 方向指向中心
-    for (let cy = 0; cy < ROWS; cy++) {
-      for (let cx = 0; cx < COLS; cx++) {
-        const i = idx(cx, cy);
-        if (dist[i] !== 0) continue;
-        const vx = dcx - cellCX(cx), vy = dcy - cellCY(cy);
-        const len = Math.hypot(vx, vy) || 1;
-        // 在部署区内部不需要流场，留空由 AI 直追
-        dirX[i] = Math.round(vx / len) || 0;
-        dirY[i] = Math.round(vy / len) || 0;
-      }
-    }
-
-    return { cols: COLS, rows: ROWS, cell: CELL, blocked, dist, dirX, dirY, deploy, mapId: map ? map.id : '' };
+    const center = ZG.Geom.humanCentroid(state) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
+    return {
+      cols: COLS, rows: ROWS, cell: CELL, blocked, dist, dirX, dirY,
+      centerX: center.x, centerY: center.y, mapId: map ? map.id : ''
+    };
   }
 
   function cellOf(x, y) {
@@ -129,14 +122,19 @@
   }
 
   function directionAt(pathing, x, y) {
+    if (!pathing) return { x: 0, y: 0 };
     const c = cellOf(x, y);
-    if (!pathing || pathing.dist[c.i] === INF) {
-      const center = pathing ? ZG.Geom.deployCenter(pathing.deploy) : { x: 640, y: 600 };
-      const dx = center.x - x, dy = center.y - y;
+    if (pathing.dist[c.i] === INF || (pathing.dirX[c.i] === 0 && pathing.dirY[c.i] === 0)) {
+      const dx = pathing.centerX - x, dy = pathing.centerY - y;
       const len = Math.hypot(dx, dy) || 1;
       return { x: dx / len, y: dy / len };
     }
-    const dx = pathing.dirX[c.i], dy = pathing.dirY[c.i];
+    // 网格方向为主，混入少量指向中心的平滑分量，避免纯轴向抖动
+    let dx = pathing.dirX[c.i], dy = pathing.dirY[c.i];
+    const vx = pathing.centerX - x, vy = pathing.centerY - y;
+    const vlen = Math.hypot(vx, vy) || 1;
+    dx += (vx / vlen) * 0.25;
+    dy += (vy / vlen) * 0.25;
     const len = Math.hypot(dx, dy) || 1;
     return { x: dx / len, y: dy / len };
   }
@@ -156,8 +154,7 @@
         }
       }
     }
-    const center = ZG.Geom.deployCenter(pathing.deploy);
-    return { x: center.x, y: center.y };
+    return { x: pathing.centerX, y: pathing.centerY };
   }
 
   function pathToTarget(pathing, x, y) {
@@ -173,23 +170,13 @@
     return path;
   }
 
-  function nearestDeployPoint(map, x, y) {
-    const d = map.deploy;
-    if (d.kind === 'rect') {
-      return { x: Math.max(d.x, Math.min(d.x + d.w, x)), y: Math.max(d.y, Math.min(d.y + d.h, y)) };
-    }
-    const dx = x - d.x, dy = y - d.y;
-    const len = Math.hypot(dx, dy) || 1;
-    if (len <= d.r) return { x, y };
-    return { x: d.x + (dx / len) * d.r, y: d.y + (dy / len) * d.r };
-  }
-
   function validate(map) {
-    // Task 3 过渡实现：只用地图 + 地图中心源，边缘不可达即失败。
-    const m = Object.assign({}, map, {
-      deploy: { kind: 'circle', x: ZG.Const.W / 2, y: ZG.Const.H / 2, r: CELL }
-    });
-    const p = build({ map: m, humans: [], buildings: [] });
+    const fake = {
+      map,
+      humans: [{ id: 0, alive: true, x: ZG.Const.W / 2, y: ZG.Const.H / 2, radius: 8 }],
+      buildings: []
+    };
+    const p = build(fake);
     let ok = true, maxDetour = 0;
     const problems = [];
     const check = (x, y) => {
@@ -200,21 +187,14 @@
         problems.push('unreachable ' + x + ',' + y);
         return;
       }
-      const cx = zCenter(m).x, cy = zCenter(m).y;
-      const straight = Math.max(1, ZG.Geom.dist(x, y, cx, cy));
+      const straight = Math.max(1, ZG.Geom.dist(x, y, p.centerX, p.centerY));
       maxDetour = Math.max(maxDetour, (p.dist[c.i] * CELL) / straight);
     };
     for (let cx = 0; cx < COLS; cx++) { check(cellCX(cx), cellCY(0)); check(cellCX(cx), cellCY(ROWS - 1)); }
     for (let cy = 0; cy < ROWS; cy++) { check(cellCX(0), cellCY(cy)); check(cellCX(COLS - 1), cellCY(cy)); }
-    check(m.deploy.x, m.deploy.y);
+    check(p.centerX, p.centerY);
     return { ok, maxDetour, problems, detourOk: true };
   }
 
-  function zCenter(map) {
-    const d = map.deploy;
-    if (d.kind === 'rect') return { x: d.x + d.w / 2, y: d.y + d.h / 2 };
-    return { x: d.x, y: d.y };
-  }
-
-  ZG.Pathing = { build, directionAt, nearestReachable, nearestDeployPoint, pathToTarget, validate };
+  ZG.Pathing = { build, directionAt, nearestReachable, pathToTarget, validate };
 })();

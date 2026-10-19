@@ -14,8 +14,12 @@
     return set;
   }
 
+  function heroSpawnPoint(state) {
+    return ZG.Geom.humanCentroid(state) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
+  }
+
   function spawnHero(state, heroId) {
-    const c = ZG.Geom.deployCenter(state.map.deploy);
+    const c = heroSpawnPoint(state);
     const angle = (state.stats.heroes || 0) * 1.7;
     const x = c.x + Math.cos(angle) * 26;
     const y = c.y + Math.sin(angle) * 26;
@@ -86,7 +90,7 @@
         h.alive = true;
         h.hp = h.maxHp * 0.5;
         h.infection = 0;
-        const c = ZG.Geom.deployCenter(state.map.deploy);
+        const c = heroSpawnPoint(state);
         h.x = c.x; h.y = c.y; h.homeX = c.x; h.homeY = c.y;
         if (state.humans.indexOf(h) < 0) state.humans.push(h);
         state.woundedHeroes.splice(i, 1);

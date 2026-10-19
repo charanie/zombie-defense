@@ -28,7 +28,6 @@
       buildings: [],
       projectiles: [],
       effects: [],
-      deploy: map ? map.deploy : null,
       spawner: { batches: [], batchIndex: 0, timer: 0, remaining: 0, warning: 0, bossPending: false, portals: [] },
       battle: {
         time: 0, killCount: 0, spawned: 0, berserkTier: 0, bossId: null,
@@ -144,8 +143,7 @@
       wounded: false,
       woundedUntilRound: 0,
       dmgMul: 1 + 0.15 * stacks,
-      atkSpeedMul: 1,
-      deploySlot: null
+      atkSpeedMul: 1
     };
 
     if (data.shieldHp) {

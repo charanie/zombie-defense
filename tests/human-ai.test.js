@@ -12,7 +12,7 @@ function start(s) {
   return s;
 }
 
-test('人类离开部署区追击视野内目标', () => {
+test('人类离开初始位置并向目标推进', () => {
   const s = game(1);
   const h = ZG.State.spawnHuman(s, 'pistol', 600, 525);
   const z = ZG.State.spawnZombie(s, 'walker', 600, 300);
@@ -21,7 +21,6 @@ test('人类离开部署区追击视野内目标', () => {
   start(s);
   ZG.Sim.tick(s, 60);
 
-  assert.equal(ZG.Geom.pointInDeploy(h.x, h.y, s.map.deploy), false, '应离开部署区');
   assert.ok(h.y < 519, '应向目标推进，实际 y=' + h.y.toFixed(1));
   assert.equal(h.aiState, 'engage');
 });

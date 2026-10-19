@@ -337,16 +337,6 @@
     ctx.fillRect(0, 0, 1280, 720);
     ctx.fillStyle = map.theme.road;
     for (const r of map.roads || []) ctx.fillRect(r.x, r.y, r.w, r.h);
-    const d = map.deploy;
-    ctx.fillStyle = 'rgba(79,195,247,0.25)';
-    ctx.strokeStyle = 'rgba(79,195,247,0.8)';
-    ctx.lineWidth = 6;
-    if (d.kind === 'rect') {
-      ctx.fillRect(d.x, d.y, d.w, d.h);
-      ctx.strokeRect(d.x, d.y, d.w, d.h);
-    } else {
-      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    }
     // 四面来袭提示
     ctx.fillStyle = 'rgba(239,83,80,0.75)';
     for (const sp of [{ x: 640, y: 12 }, { x: 640, y: 708 }, { x: 12, y: 360 }, { x: 1268, y: 360 }]) {

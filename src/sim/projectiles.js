@@ -94,12 +94,14 @@
             if (d2 <= p.radius * p.radius) {
               const dx = h.x - p.x, dy = h.y - p.y;
               const len = Math.hypot(dx, dy) || 1;
-              const pos = ZG.Geom.clampPoint(
+              const pos = ZG.Geom.clampToWorld(
                 h.x + (dx / len) * 60,
                 h.y + (dy / len) * 60,
-                state.map.deploy, h.radius
+                h.radius
               );
-              h.x = pos.x; h.y = pos.y;
+              if (!ZG.Geom.isBlockedAt(state, pos.x, pos.y, h.radius)) {
+                h.x = pos.x; h.y = pos.y;
+              }
             }
           }
         }

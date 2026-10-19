@@ -12,7 +12,6 @@
       quality: o.quality || 'desktop'
     });
     state.map = ZG.Data.maps[state.mapId];
-    state.deploy = state.map.deploy;
     state.spatial = ZG.Spatial.create();
     state.pathing = ZG.Pathing.build(state);
     state.status = 'prep';
@@ -21,6 +20,7 @@
 
   function resetRoundBattle(state) {
     state.battle.time = 0;
+    state.battle.stepCount = 0;
     state.battle.killCount = 0;
     state.battle.spawned = 0;
     state.battle.berserkTier = 0;
@@ -77,6 +77,7 @@
       }
     }
 
+    state.pathing = ZG.Pathing.build(state);
     ZG.Spawner.prepare(state);
     state.battle.waveTotal = state.spawner.total;
     state.status = 'battle';
@@ -91,6 +92,10 @@
     if (state.status !== 'battle' || state.ui.paused) return;
 
     state.battle.time += STEP;
+    state.battle.stepCount = (state.battle.stepCount || 0) + 1;
+    if (state.battle.stepCount % ZG.Const.PATH_REFRESH_STEPS === 0) {
+      state.pathing = ZG.Pathing.build(state);
+    }
 
     // 狂暴与 240 秒强制结算
     if (state.battle.time >= ZG.Const.BERSERK_AT) {
