@@ -347,9 +347,10 @@
     } else {
       ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
-    ctx.fillStyle = 'rgba(239,83,80,0.9)';
-    for (const sp of map.spawns) {
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, 22, 0, Math.PI * 2); ctx.fill();
+    // 四面来袭提示
+    ctx.fillStyle = 'rgba(239,83,80,0.75)';
+    for (const sp of [{ x: 640, y: 12 }, { x: 640, y: 708 }, { x: 12, y: 360 }, { x: 1268, y: 360 }]) {
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 14, 0, Math.PI * 2); ctx.fill();
     }
     ctx.fillStyle = 'rgba(84,110,122,0.9)';
     for (const ob of map.obstacles || []) {

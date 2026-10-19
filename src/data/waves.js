@@ -5,6 +5,17 @@
 
   const ORDER = ['walker', 'runner', 'shield', 'boomer', 'mother', 'giant'];
   const ELITE_ORDER = ['runner', 'shield', 'boomer', 'mother', 'giant'];
+  const EDGES = ['top', 'right', 'bottom', 'left'];
+
+  function spawnPoint(rng, edge) {
+    const inset = ZG.Const.SPAWN_EDGE_INSET;
+    const d = ZG.Const.SPAWN_OUT_MIN +
+      rng.next() * (ZG.Const.SPAWN_OUT_MAX - ZG.Const.SPAWN_OUT_MIN);
+    if (edge === 'top') return { x: inset + rng.next() * (ZG.Const.W - 2 * inset), y: -d, edge };
+    if (edge === 'bottom') return { x: inset + rng.next() * (ZG.Const.W - 2 * inset), y: ZG.Const.H + d, edge };
+    if (edge === 'left') return { x: -d, y: inset + rng.next() * (ZG.Const.H - 2 * inset), edge };
+    return { x: ZG.Const.W + d, y: inset + rng.next() * (ZG.Const.H - 2 * inset), edge: 'right' };
+  }
 
   function percents(R) {
     let p;
@@ -84,7 +95,7 @@
     return 'walker';
   }
 
-  function build(R, rng, map) {
+  function build(R, rng) {
     const counts = composition(R);
     const types = [];
     for (const t of ORDER) for (let i = 0; i < counts[t]; i++) types.push(t);
@@ -119,7 +130,13 @@
       const size = sizes[i];
       const chunk = types.slice(cursor, cursor + size);
       cursor += size;
-      batches.push({ spawns: chunk.map(t => ({ type: t })) });
+      batches.push({
+        spawns: chunk.map((t, j) => {
+          const sp = spawnPoint(rng, EDGES[(i + j) % 4]);
+          sp.type = t;
+          return sp;
+        })
+      });
     }
 
     // BOSS 放到中间批次
@@ -144,25 +161,18 @@
       }
     }
 
-    // 时间与坐标
+    // 时间
     let at = ZG.Const.SPAWN_FIRST_DELAY;
-    let spawnIdx = 0;
     for (let i = 0; i < batches.length; i++) {
       const b = batches[i];
       if (i > 0) at += ZG.Const.BATCH_GAP_MIN + rng.next() * (ZG.Const.BATCH_GAP_MAX - ZG.Const.BATCH_GAP_MIN);
       b.at = at;
       b.portalAt = at - ZG.Const.SPAWN_WARN;
       b.warned = false;
-      for (const s of b.spawns) {
-        const sp = map.spawns[spawnIdx % map.spawns.length];
-        spawnIdx++;
-        s.x = Math.max(20, Math.min(ZG.Const.W - 20, sp.x + (rng.next() - 0.5) * 36));
-        s.y = Math.max(20, Math.min(ZG.Const.H - 20, sp.y + (rng.next() - 0.5) * 36));
-      }
     }
 
     return { batches, bossRound, total: totalLen, bossBatchIndex: Math.floor(batches.length / 2) };
   }
 
-  ZG.Waves = { composition, total, isBossRound, escortCount, newTypes, preview, build, ORDER };
+  ZG.Waves = { composition, total, isBossRound, escortCount, newTypes, preview, build, spawnPoint, ORDER };
 })();

@@ -87,7 +87,7 @@ test('BOSS 回合与护卫', () => {
 
 test('批次总量、时长与 BOSS 位置', () => {
   const rng = ZG.Rng.createStreams(9).spawn;
-  const w = ZG.Waves.build(7, rng, ZG.Data.maps.suburban);
+  const w = ZG.Waves.build(7, rng);
   const n = w.batches.reduce((s, b) => s + b.spawns.length, 0);
   assert.equal(n, 49);
   for (const b of w.batches) assert.ok(b.spawns.length >= 6 && b.spawns.length <= 12);

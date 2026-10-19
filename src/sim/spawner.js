@@ -4,7 +4,7 @@
   const ZG = globalThis.ZG = globalThis.ZG || {};
 
   function prepare(state) {
-    const w = ZG.Waves.build(state.round, state.rng.spawn, state.map);
+    const w = ZG.Waves.build(state.round, state.rng.spawn);
     state.spawner = {
       batches: w.batches,
       batchIndex: 0,
@@ -45,8 +45,8 @@
         b.warned = true;
         const first = b.spawns[0];
         if (first) {
-          sp.portals.push({ x: first.x, y: first.y, ttl: 1.2 });
-          state.bus.emit(ZG.Events.PORTAL_WARNING, { x: first.x, y: first.y });
+          sp.portals.push({ x: first.x, y: first.y, edge: first.edge, ttl: 1.2 });
+          state.bus.emit(ZG.Events.PORTAL_WARNING, { x: first.x, y: first.y, edge: first.edge });
         }
       }
       if (state.battle.time < b.at) break;

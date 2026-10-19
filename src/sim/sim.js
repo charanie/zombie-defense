@@ -13,7 +13,6 @@
     });
     state.map = ZG.Data.maps[state.mapId];
     state.deploy = state.map.deploy;
-    state.spawns = state.map.spawns.slice();
     state.spatial = ZG.Spatial.create();
     state.pathing = ZG.Pathing.build(state);
     state.status = 'prep';

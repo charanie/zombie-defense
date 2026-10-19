@@ -943,8 +943,9 @@
         }
       }
     }
-    z.x = Math.max(6, Math.min(ZG.Const.W - 6, nx));
-    z.y = Math.max(6, Math.min(ZG.Const.H - 6, ny));
+    const M = ZG.Const.SPAWN_WORLD_MARGIN;
+    z.x = Math.max(-M, Math.min(ZG.Const.W + M, nx));
+    z.y = Math.max(-M, Math.min(ZG.Const.H + M, ny));
     z.facing = Math.atan2(dy, dx);
   }
 
@@ -1116,8 +1117,9 @@
           z.y += (dy / d) * push;
         }
       }
-      z.x = Math.max(6, Math.min(ZG.Const.W - 6, z.x));
-      z.y = Math.max(6, Math.min(ZG.Const.H - 6, z.y));
+      const M = ZG.Const.SPAWN_WORLD_MARGIN;
+      z.x = Math.max(-M, Math.min(ZG.Const.W + M, z.x));
+      z.y = Math.max(-M, Math.min(ZG.Const.H + M, z.y));
     }
   }
 

@@ -28,7 +28,6 @@
       buildings: [],
       projectiles: [],
       effects: [],
-      spawns: map ? map.spawns.slice() : [],
       deploy: map ? map.deploy : null,
       spawner: { batches: [], batchIndex: 0, timer: 0, remaining: 0, warning: 0, bossPending: false, portals: [] },
       battle: {

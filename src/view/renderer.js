@@ -234,27 +234,6 @@
       }
     }
 
-    // 出生点
-    for (let i = 0; i < map.spawns.length; i++) {
-      const sp = map.spawns[i];
-      ctx.save();
-      const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 400 + i);
-      ctx.strokeStyle = 'rgba(239, 83, 80, ' + (0.5 + pulse * 0.35) + ')';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(sp.x, sp.y, 18 + pulse * 3, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(sp.x, sp.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(239, 83, 80, 0.85)';
-      ctx.fill();
-      ctx.font = '10px "Microsoft YaHei", sans-serif';
-      ctx.fillStyle = 'rgba(239, 160, 160, 0.85)';
-      ctx.textAlign = 'center';
-      ctx.fillText('出生点', sp.x, sp.y - 26);
-      ctx.restore();
-    }
-
     // 暗角
     const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -837,17 +816,31 @@
   function drawPortals(ctx, state) {
     for (const p of state.spawner.portals) {
       const a = Math.min(1, p.ttl);
+      const x = Math.max(20, Math.min(ZG.Const.W - 20, p.x));
+      const y = Math.max(20, Math.min(ZG.Const.H - 20, p.y));
       ctx.save();
       ctx.globalAlpha = a;
-      ctx.strokeStyle = 'rgba(239, 83, 80, 0.95)';
+      ctx.fillStyle = 'rgba(239,83,80,0.16)';
+      ctx.beginPath();
+      ctx.arc(x, y, 30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(239,83,80,0.95)';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 24 + (1 - a) * 20, 0, Math.PI * 2);
+      ctx.arc(x, y, 24 + (1 - a) * 20, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.fillStyle = 'rgba(239, 83, 80, 0.2)';
+      // 朝内的箭头
+      let ax = 0, ay = 0;
+      if (p.edge === 'top') ay = 1;
+      else if (p.edge === 'bottom') ay = -1;
+      else if (p.edge === 'left') ax = 1;
+      else ax = -1;
+      ctx.strokeStyle = 'rgba(255,205,210,0.95)';
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 30, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(x - ax * 12, y - ay * 12);
+      ctx.lineTo(x + ax * 10, y + ay * 10);
+      ctx.stroke();
       ctx.restore();
     }
   }
