@@ -376,7 +376,7 @@
     if (!h.attack || h.classId === 'civilian') return null;
     if (h.classId === 'shield' && !h.shieldBroken) return null;
 
-    // 每 3 个模拟步重新索敌一次，减少大群时的重复空间查询
+    // 同一模拟步内复用索敌结果，减少重复空间查询（跨步仍重新索敌）
     const step = (state.battle && state.battle.stepCount) || 0;
     if (h.tgtStep !== undefined && step >= h.tgtStep && step - h.tgtStep < 1) {
       if (!h.tgtId) return null;

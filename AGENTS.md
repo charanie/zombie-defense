@@ -25,7 +25,7 @@
 ## 运行与验证
 
 ```bash
-npm test                 # Node 内置测试，151 项
+npm test                 # Node 内置测试，161 项
 node tests/bench.js      # 300 僵尸 + 99 人类 + 100 投射物
 node tests/bot.js --rounds 40 --seed 1
 python -m http.server 8765   # 然后打开 http://127.0.0.1:8765/

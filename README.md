@@ -67,7 +67,7 @@ python -m http.server 8765
 ## 开发
 
 ```bash
-npm test                    # Node 内置测试（151 项）
+npm test                    # Node 内置测试（161 项）
 node tests/bench.js         # 300 僵尸 + 99 人类 + 100 投射物基准
 node tests/bot.js --rounds 40 --seed 1
 node tests/bot.js --rounds 40 --seed 1 --rocket-only   # 纯火箭兵平衡回归
@@ -100,7 +100,7 @@ zombie-defense/
 - 经典 `<script>` + `window.ZG` 命名空间；`tests/load-sim.js` 解析 `index.html`，保证加载顺序是唯一真相。
 - `src/sim` 纯逻辑、固定 1/60 秒步长、随机走种子流；同种子 + 同整备期命令可复现。
 - 32px 导航网格 + 人类源动态 BFS 流场；64px 空间哈希；双层 Canvas。
-- 300 僵尸基准：Node 模拟 ≈2.4ms/步（预算 2.5ms）；流场每 15 步重建，小队每秒重排。
+- 300 僵尸基准：Node 模拟 ≈1.4ms/步（预算 2.5ms）；流场每 15 步重建，小队每秒重排。
 
 ## 发布
 

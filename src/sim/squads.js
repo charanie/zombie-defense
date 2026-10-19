@@ -69,6 +69,12 @@
       const s = prev ? Object.assign({}, prev) : makeSquad(0, null);
       s.coreId = null; s.shieldIds = [];
       s.memberIds = []; s.civilianIds = []; s.tiers = {};
+      if (!prev) {
+        // 新无盾小队从存活成员质心结阵，不落到地图中心
+        const p = centroid(humans);
+        s.anchorX = p.x; s.anchorY = p.y;
+        s.frontX = p.x; s.frontY = p.y;
+      }
       squads.push(s);
     }
 
@@ -166,13 +172,18 @@
     const offset = s.depthOffset || 0;
     const frontRoles = { tank: 1, melee: 1, flame: 1, shotgun: 1 };
     let bestFront = Infinity, bestAny = Infinity;
-    for (const id of s.memberIds) {
+    const ids = s.shieldIds.concat(s.memberIds);
+    for (const id of ids) {
       const h = map.get(id);
       if (!h || !h.attack) continue;
       const base = c.roleDepth[h.role] !== undefined ? c.roleDepth[h.role] : c.roleDepth.rifle;
-      const depth = Math.max(0, base + (h.squadTier || 0) * c.overflowTierDepth - offset);
+      const depth = h.role === 'tank' ? 0
+        : Math.max(0, base + (h.squadTier || 0) * c.overflowTierDepth - offset);
       const effective = ZG.Stats.range(state, h) - depth;
-      bestAny = Math.min(bestAny, effective);
+      // 治疗/火箭不参与前排判距，避免把盾线拉到贴脸或让小队永远不推进
+      if (h.role !== 'medic' && h.role !== 'rocket') {
+        bestAny = Math.min(bestAny, effective);
+      }
       if (frontRoles[h.role]) bestFront = Math.min(bestFront, effective);
     }
     const best = isFinite(bestFront) ? bestFront : bestAny;

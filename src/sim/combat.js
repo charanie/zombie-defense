@@ -13,9 +13,13 @@
     const dx = hasSource ? fromX - target.x : 0;
     const dy = hasSource ? fromY - target.y : 0;
     const d = hasSource ? Math.hypot(dx, dy) : Infinity;
-    const facing = hasSource
-      ? Math.abs(ZG.Geom.angleDiff(Math.atan2(dy, dx), target.facing)) <= Math.PI / 3
-      : true;
+    const shieldHalf = (target.kind === 'zombie' && target.typeId === 'shield')
+      ? ((ZG.Data.zombies.shield.shieldAngle || 120) / 2) * Math.PI / 180
+      : Math.PI / 3;
+    // 爆炸中心与目标重合（直击）时没有方向信息，视为正面承受
+    const facing = !hasSource || d <= 1e-6
+      ? true
+      : Math.abs(ZG.Geom.angleDiff(Math.atan2(dy, dx), target.facing)) <= shieldHalf;
 
     if (target.kind === 'zombie' && target.typeId === 'shield') {
       const zd = ZG.Data.zombies.shield || {};
@@ -250,6 +254,7 @@
   function killHuman(state, h) {
     if (!h.alive) return;
     h.alive = false;
+    if (h.classId === 'shield') state.squadDirty = true;
 
     if (h.captain) {
       captainExplosion(state, h);

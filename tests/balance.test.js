@@ -69,9 +69,9 @@ test('盾尸近战 <40 绕过、背面全额、破盾全额', () => {
   assert.equal(r3.hpDamage, 100);
 });
 
-test('喷火射程 160、导弹价格 320', () => {
-  // 计划 §6.4 调参顺序允许为提高混合阵容胜率微调喷火射程（140 → 160）
-  assert.equal(ZG.Data.humans.flame.attack.range, 160);
+test('喷火射程 170、导弹价格 320', () => {
+  // 计划 §6.4 调参顺序允许为提高混合阵容胜率微调喷火射程（140 → 170）
+  assert.equal(ZG.Data.humans.flame.attack.range, 170);
   assert.equal(ZG.Data.humans.rocket.cost, 320);
 });
 
@@ -85,4 +85,16 @@ test('灼烧走火焰伤害管线且不刷伤害数字', () => {
   ZG.Infection.tick(s);
   assert.ok(z.shield < z.maxShield);
   assert.equal(hits, 0);
+});
+
+test('火箭直击盾尸仍按正面减伤（爆炸中心在目标自身）', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+  const z = ZG.State.spawnZombie(s, 'shield', 600, 500);
+  z.facing = -Math.PI / 2; // 不朝东，旧实现会把 atan2(0,0)=0 当成正面失败
+  const hp0 = z.hp;
+  ZG.Projectiles.explode(s, 600, 500, 60, 130, 'explosion', {
+    hitsHumans: false, directTargetId: z.id, splashMul: 0.5
+  });
+  assert.equal(z.shield, 200 - 65);
+  assert.equal(z.hp, hp0);
 });

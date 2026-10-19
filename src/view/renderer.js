@@ -42,25 +42,38 @@
     return R;
   }
 
+  function stageLayout(vw, vh, topH, coarse, portrait) {
+    let panelH;
+    if (coarse && portrait) panelH = Math.max(170, Math.min(250, vh * 0.30));
+    else if (coarse) panelH = Math.max(120, Math.min(190, vh * 0.22));
+    else panelH = Math.max(150, Math.min(210, vh * 0.207));
+    let canvasH = Math.max(160, vh - topH - panelH);
+    if (canvasH + topH + panelH > vh) {
+      panelH = Math.max(100, vh - topH - canvasH);
+      canvasH = Math.max(160, vh - topH - panelH);
+    }
+    return { vw, vh, topH, panelH, canvasH };
+  }
+
   function layoutStage() {
     const stage = document.getElementById('stage');
     if (!stage) return null;
-    const vw = stage.clientWidth || window.innerWidth || 1280;
-    const vh = stage.clientHeight || window.innerHeight || 720;
+    // 取视觉视口（动态地址栏/手势条），避免底部按钮被裁掉
+    const vv = (typeof window !== 'undefined' && window.visualViewport) || null;
+    const vw = Math.round(vv && vv.width ? vv.width
+      : (stage.clientWidth || window.innerWidth || 1280));
+    const vh = Math.round(vv && vv.height ? vv.height
+      : (stage.clientHeight || window.innerHeight || 720));
     const topEl = document.querySelector('.hud-top');
     const topH = topEl ? topEl.getBoundingClientRect().height : (vw < 900 ? 40 : 46);
     const portrait = vh > vw;
     const coarse = (ZG.Platform && ZG.Platform.isMobile) || vw < 900 ||
       (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);
-    let panelH;
-    if (coarse && portrait) panelH = Math.max(170, Math.min(250, vh * 0.30));
-    else if (coarse) panelH = Math.max(120, Math.min(190, vh * 0.22));
-    else panelH = Math.max(150, Math.min(210, vh * 0.207));
-    const canvasH = Math.max(160, vh - topH - panelH);
+    const geo = stageLayout(vw, vh, topH, coarse, portrait);
     stage.style.setProperty('--top-h', Math.round(topH) + 'px');
-    stage.style.setProperty('--panel-h', Math.round(panelH) + 'px');
-    stage.style.setProperty('--canvas-h', Math.round(canvasH) + 'px');
-    return { cssW: vw, cssH: canvasH, topH, panelH, portrait };
+    stage.style.setProperty('--panel-h', Math.round(geo.panelH) + 'px');
+    stage.style.setProperty('--canvas-h', Math.round(geo.canvasH) + 'px');
+    return { cssW: vw, cssH: geo.canvasH, topH, panelH: geo.panelH, portrait };
   }
 
   function resize() {
@@ -883,6 +896,6 @@
 
   ZG.Renderer = {
     init, resize, draw, drawBackground, mapSignature,
-    fitWorldRect, worldRect
+    fitWorldRect, worldRect, stageLayout
   };
 })();

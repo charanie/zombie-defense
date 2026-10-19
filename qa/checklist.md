@@ -4,8 +4,8 @@
 
 ## 自动化
 
-- [x] `npm test`：151/151 通过。
-- [x] `node tests/bench.js`：300/99/100 实体，`avgStepMs≈2.37–2.44`（预算 2.5）。
+- [x] `npm test`：161/161 通过。
+- [x] `node tests/bench.js`：300/99/100 实体，`avgStepMs≈1.39`（预算 2.5）。
 - [x] `node tests/bot.js --rounds 40 --seed 1`：到达 R42，混合阵容通关级。
 - [x] `node tests/bot.js --rounds 40 --seed 1 --rocket-only`：R7 失败。
 - [x] 同种子 + 同命令哈希一致（回放测试）。
@@ -57,7 +57,7 @@
 
 ## 性能
 
-- [x] 300 僵尸 + 99 人类 + 100 投射物：`avgStepMs≈2.4`、`maxStepMs≈13`。
+- [x] 300 僵尸 + 99 人类 + 100 投射物：`avgStepMs≈1.39`、`maxStepMs≈14`。
 - [x] 粒子上限 250/120、伤害数字上限 50。
 - [x] 血条仅受伤单位显示；静态背景仅在地图/建筑变化时重绘。
 

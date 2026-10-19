@@ -268,6 +268,7 @@
       state.ui.selectedCard = null;
       state.ui.selectedBuilding = null;
       state.ui.selectedHumanId = null;
+      state.ui.drag = null;
       const r = ZG.Sim.applyCommand(state, { op: 'startRound' });
       if (!r.ok) ZG.HUD.toast(r.reason === 'no-humans' ? '至少需要一名人类' : '无法开始', 'warn');
       ZG.Audio.init();

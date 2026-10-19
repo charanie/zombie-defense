@@ -115,3 +115,17 @@ test('建筑卡显示上限', () => {
   const c = ZG.Model.buildingCard(s, 'turret');
   assert.equal(c.count, 3); assert.equal(c.limit, 3); assert.equal(c.reason, 'limit');
 });
+
+test('移动端布局高度自适应 visualViewport 并保持三段不溢出', () => {
+  const a = ZG.Renderer.stageLayout(390, 844, 40, true, true);
+  assert.equal(a.panelH, 250);
+  assert.equal(a.canvasH, 554);
+  const b = ZG.Renderer.stageLayout(390, 700, 40, true, true);
+  assert.equal(b.panelH, 210);
+  assert.equal(b.canvasH, 450);
+  assert.equal(b.panelH + b.canvasH + b.topH, 700);
+  const c = ZG.Renderer.stageLayout(844, 390, 40, true, false);
+  assert.equal(c.panelH, 120);
+  assert.equal(c.canvasH, 230);
+  assert.equal(c.panelH + c.canvasH + c.topH, 390);
+});

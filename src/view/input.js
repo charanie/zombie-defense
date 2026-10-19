@@ -49,14 +49,40 @@
 
     function state() { return getState(); }
 
+    function cancelDrag(s) {
+      const drag = s.ui.drag;
+      if (!drag) return;
+      const h = s.humans.find(u => u.id === drag.id && u.alive);
+      if (h) { h.x = drag.sx; h.y = drag.sy; }
+      s.ui.drag = null;
+      canvas.style.cursor = 'grab';
+    }
+
+    function finishDrag(s) {
+      const drag = s.ui.drag;
+      if (!drag) return;
+      const h = s.humans.find(u => u.id === drag.id && u.alive);
+      if (h) {
+        const check = ZG.Economy.canPlace(s, h.x, h.y, h.radius, h.id);
+        if (!check.ok) {
+          h.x = drag.sx; h.y = drag.sy;
+          ZG.HUD.toast('不能放在这里', 'warn');
+        } else {
+          h.homeX = h.x; h.homeY = h.y;
+        }
+      }
+      s.ui.drag = null;
+      canvas.style.cursor = 'grab';
+    }
+
     function cancelSelection() {
       const s = state();
       if (!s) return;
+      cancelDrag(s);
       s.ui.selectedCard = null;
       s.ui.selectedBuilding = null;
       s.ui.selectedHumanId = null;
       s.ui.selectedBuildingId = null;
-      s.ui.drag = null;
     }
 
     canvas.addEventListener('pointermove', ev => {
@@ -68,6 +94,8 @@
 
       const drag = s.ui.drag;
       if (drag) {
+        if (s.status !== 'prep') { cancelDrag(s); return; }
+        if (ev.buttons !== undefined && !(ev.buttons & 1)) { finishDrag(s); return; }
         const h = s.humans.find(u => u.id === drag.id && u.alive);
         if (h) {
           const c = ZG.Geom.clampToWorld(p.x, p.y, h.radius);
@@ -142,6 +170,11 @@
         if (s.status === 'prep') {
           ui.drag = { id: hit.id, sx: hit.entity.x, sy: hit.entity.y };
           canvas.style.cursor = 'grabbing';
+          try {
+            if (ev.pointerId !== undefined && canvas.setPointerCapture) {
+              canvas.setPointerCapture(ev.pointerId);
+            }
+          } catch (e) { /* 忽略 */ }
         }
         return;
       }
@@ -163,20 +196,17 @@
     canvas.addEventListener('pointerup', () => {
       const s = state();
       if (!s) return;
-      const drag = s.ui.drag;
-      if (!drag) return;
-      const h = s.humans.find(u => u.id === drag.id && u.alive);
-      if (h) {
-        const check = ZG.Economy.canPlace(s, h.x, h.y, h.radius, h.id);
-        if (!check.ok) {
-          h.x = drag.sx; h.y = drag.sy;
-          ZG.HUD.toast('不能放在这里', 'warn');
-        } else {
-          h.homeX = h.x; h.homeY = h.y;
-        }
-      }
-      s.ui.drag = null;
-      canvas.style.cursor = 'grab';
+      finishDrag(s);
+    });
+
+    // 鼠标在画布外松开 / 触控被系统取消
+    window.addEventListener('pointerup', () => {
+      const s = state();
+      if (s) finishDrag(s);
+    });
+    window.addEventListener('pointercancel', () => {
+      const s = state();
+      if (s) cancelDrag(s);
     });
 
     canvas.addEventListener('contextmenu', ev => {

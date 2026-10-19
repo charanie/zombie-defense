@@ -11,10 +11,13 @@ test('普通丧尸沿流场接近并攻击人类', () => {
   const s = setup();
   const h = ZG.State.spawnHuman(s, 'shield', 600, 600);
   const z = ZG.State.spawnZombie(s, 'walker', 600, 100);
+  let hits = 0;
+  s.bus.on('fx:hit', p => { if (p.kind === 'human') hits++; });
   ZG.Sim.startRound(s); s.spawner.batches = [];
   ZG.Sim.tick(s, 900);
-  assert.ok(!z.alive || z.y > 400, '应接近部署区');
-  assert.ok(h.hp < h.maxHp || h.shield < h.maxShield);
+  // 小队会主动前压接敌，双方在第一线相遇
+  assert.ok(!z.alive || ZG.Geom.dist(h.x, h.y, z.x, z.y) < 80, '应接敌');
+  assert.ok(hits > 0, '僵尸应攻击到人类');
 });
 
 test('击杀僵尸给赏金并移除', () => {
