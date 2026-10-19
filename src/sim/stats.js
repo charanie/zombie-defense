@@ -16,6 +16,21 @@
     return { speed, range };
   }
 
+  // 只算射程（无对象分配），供编队/索敌的高频路径使用
+  function range(state, h) {
+    const a = h.attack;
+    if (!a) return 0;
+    let mul = 1;
+    for (const b of state.buildings) {
+      if (!b.alive || b.typeId !== 'ammo') continue;
+      const data = ZG.Data.buildings.ammo;
+      if (ZG.Geom.dist2(h.x, h.y, b.x, b.y) <= data.buff.radius * data.buff.radius) {
+        mul = Math.max(mul, 1 + data.buff.range);
+      }
+    }
+    return a.range * mul;
+  }
+
   function human(state, h) {
     const a = h.attack;
     if (!a) return { damage: 0, interval: 1, range: 0, attackSpeed: 1, maxHp: h.maxHp, dps: 0 };
@@ -55,5 +70,5 @@
     }
   }
 
-  ZG.Stats = { human, zombie, recomputeMaxHp, ammoBuff };
+  ZG.Stats = { human, range, zombie, recomputeMaxHp, ammoBuff };
 })();

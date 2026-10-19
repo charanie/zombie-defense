@@ -90,24 +90,24 @@ test('靶子超出射程不受伤', () => {
   assert.equal(z.hp, before);
 });
 
-test('盾尸：正面远程减伤 70%，近战绕过，火焰只吃一半减伤', () => {
+test('盾尸：正面非火焰减半，近战绕过，火焰对盾 2 倍', () => {
   const s = setup();
   const z = ZG.State.spawnZombie(s, 'shield', 600, 500);
   z.facing = Math.PI / 2;
   const r = ZG.Combat.applyDamage(s, { target: z, amount: 100, damageKind: 'ranged', fromX: 600, fromY: 700 });
-  assert.ok(Math.abs(r.shieldDamage - 30) < 1e-9);
-  assert.equal(z.shield, 170);
+  assert.equal(r.shieldDamage, 50);
+  assert.equal(z.shield, 150);
   assert.equal(z.hp, z.maxHp);
 
   const z2 = ZG.State.spawnZombie(s, 'shield', 700, 500);
   z2.facing = Math.PI / 2;
-  ZG.Combat.applyDamage(s, { target: z2, amount: 100, damageKind: 'melee', fromX: 700, fromY: 700 });
+  ZG.Combat.applyDamage(s, { target: z2, amount: 100, damageKind: 'melee', fromX: 700, fromY: 530 });
   assert.equal(z2.hp, z2.maxHp - 100);
 
   const z3 = ZG.State.spawnZombie(s, 'shield', 800, 500);
   z3.facing = Math.PI / 2;
   const r3 = ZG.Combat.applyDamage(s, { target: z3, amount: 100, damageKind: 'fire', fromX: 800, fromY: 700 });
-  assert.equal(r3.shieldDamage, 65);
+  assert.equal(r3.shieldDamage, 200);
 });
 
 test('盾兵 90 内嘲讽优先', () => {

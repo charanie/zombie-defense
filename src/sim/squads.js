@@ -139,9 +139,9 @@
     return state.squads;
   }
 
-  function squadSpeed(state, s) {
+  function squadSpeed(state, s, map) {
     const c = cfg();
-    const map = byId(state);
+    map = map || byId(state);
     const core = s.coreId != null ? map.get(s.coreId) : null;
     let speed = c.squadSpeedCap;
     if (core) {
@@ -160,9 +160,9 @@
     return speed;
   }
 
-  function engageRange(state, s) {
+  function engageRange(state, s, map) {
     const c = cfg();
-    const map = byId(state);
+    map = map || byId(state);
     const offset = s.depthOffset || 0;
     const frontRoles = { tank: 1, melee: 1, flame: 1, shotgun: 1 };
     let bestFront = Infinity, bestAny = Infinity;
@@ -171,7 +171,7 @@
       if (!h || !h.attack) continue;
       const base = c.roleDepth[h.role] !== undefined ? c.roleDepth[h.role] : c.roleDepth.rifle;
       const depth = Math.max(0, base + (h.squadTier || 0) * c.overflowTierDepth - offset);
-      const effective = ZG.Stats.human(state, h).range - depth;
+      const effective = ZG.Stats.range(state, h) - depth;
       bestAny = Math.min(bestAny, effective);
       if (frontRoles[h.role]) bestFront = Math.min(bestFront, effective);
     }
@@ -206,8 +206,8 @@
     return best;
   }
 
-  function advanceFront(state, s, dt) {
-    const step = squadSpeed(state, s) * dt;
+  function advanceFront(state, s, dt, map) {
+    const step = squadSpeed(state, s, map) * dt;
     const dirX = Math.cos(s.faceAngle), dirY = Math.sin(s.faceAngle);
     const perpX = -dirY, perpY = dirX;
     const tries = [0, 0.85, -0.85, 1.5, -1.5];
@@ -240,6 +240,7 @@
     if (!state.squads.length) return;
 
     const used = new Set();
+    const map = byId(state);
     const squads = state.squads.slice().sort((a, b) => a.id - b.id);
     for (const s of squads) {
       let target = null;
@@ -253,9 +254,9 @@
         s.targetX = target.x; s.targetY = target.y;
         s.faceAngle = Math.atan2(target.y - s.frontY, target.x - s.frontX);
         const d = ZG.Geom.dist(s.frontX, s.frontY, target.x, target.y);
-        if (d > engageRange(state, s)) {
+        if (d > engageRange(state, s, map)) {
           s.mode = 'advance';
-          advanceFront(state, s, STEP);
+          advanceFront(state, s, STEP, map);
         } else {
           s.mode = 'hold';
         }
@@ -273,7 +274,7 @@
         const hasUnits = s.memberIds.length + s.shieldIds.length + s.civilianIds.length > 0;
         if (hasUnits && ZG.Geom.dist(s.frontX, s.frontY, goal.x, goal.y) > 2) {
           s.mode = 'search';
-          advanceFront(state, s, STEP);
+          advanceFront(state, s, STEP, map);
         } else {
           s.mode = 'hold';
         }
@@ -281,12 +282,12 @@
       s.anchorX = s.frontX;
       s.anchorY = s.frontY;
     }
-    recomputeSlots(state);
+    recomputeSlots(state, map);
   }
 
-  function recomputeSlots(state) {
+  function recomputeSlots(state, map) {
     const c = cfg();
-    const map = byId(state);
+    map = map || byId(state);
     for (const s of state.squads) {
       const face = s.faceAngle;
       const dx = Math.cos(face), dy = Math.sin(face);

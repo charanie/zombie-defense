@@ -47,7 +47,8 @@ test('僵尸数据表精确', () => {
   const z = ZG.Data.zombies;
   assert.deepEqual([z.walker.hp, z.walker.speed, z.walker.damage, z.walker.bounty], [90, 38, 8, 6]);
   assert.deepEqual([z.runner.hp, z.runner.speed, z.runner.bounty], [60, 75, 9]);
-  assert.deepEqual([z.shield.hp, z.shield.shield, z.shield.shieldReduction], [200, 200, 0.7]);
+  assert.deepEqual([z.shield.hp, z.shield.shield, z.shield.shieldDamageMul], [200, 200, 0.5]);
+  assert.deepEqual([z.shield.fireShieldMul, z.shield.fireBodyMul], [2, 1]);
   assert.deepEqual([z.boomer.fuse, z.boomer.explosion.radius, z.boomer.explosion.infection], [0.8, 80, 100]);
   assert.deepEqual([z.mother.hp, z.mother.deathExplosion.human, z.mother.deathExplosion.building], [360, 80, 200]);
   assert.deepEqual([z.giant.hp, z.giant.buildingMultiplier, z.giant.radius], [1100, 3, 22]);

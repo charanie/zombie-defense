@@ -8,45 +8,69 @@
     return !!(h.captain || h.hero);
   }
 
-  function shieldFacing(target, fromX, fromY) {
-    if (fromX === undefined || fromY === undefined) return true;
-    const dx = fromX - target.x, dy = fromY - target.y;
-    if (Math.hypot(dx, dy) <= 40) return false; // 近身绕过
-    const a = Math.atan2(dy, dx);
-    return Math.abs(ZG.Geom.angleDiff(a, target.facing)) <= Math.PI / 3;
-  }
-
   function resolveShield(target, amount, damageKind, fromX, fromY) {
-    let shieldDamage = 0, hpDamage = 0;
-    if (target.shield > 0 && damageKind !== D.MELEE && shieldFacing(target, fromX, fromY)) {
-      let reduction;
-      if (target.kind === 'human') {
-        reduction = target.shieldReduction !== undefined ? target.shieldReduction : 0.4;
-      } else {
-        reduction = target.typeId === 'shield' ? 0.7 : 0;
+    const hasSource = fromX !== undefined && fromY !== undefined;
+    const dx = hasSource ? fromX - target.x : 0;
+    const dy = hasSource ? fromY - target.y : 0;
+    const d = hasSource ? Math.hypot(dx, dy) : Infinity;
+    const facing = hasSource
+      ? Math.abs(ZG.Geom.angleDiff(Math.atan2(dy, dx), target.facing)) <= Math.PI / 3
+      : true;
+
+    if (target.kind === 'zombie' && target.typeId === 'shield') {
+      const zd = ZG.Data.zombies.shield || {};
+      const fireMul = zd.fireShieldMul || 2;
+      const dmgMul = zd.shieldDamageMul === undefined ? 0.5 : zd.shieldDamageMul;
+      if (target.shield <= 0) return { shieldDamage: 0, hpDamage: amount };
+      if (damageKind === D.MELEE && d <= 40) return { shieldDamage: 0, hpDamage: amount };
+      if (!facing) return { shieldDamage: 0, hpDamage: amount };
+      if (damageKind === D.FIRE) {
+        const shieldCost = amount * fireMul;
+        if (target.shield >= shieldCost) {
+          target.shield -= shieldCost;
+          if (target.shield <= 0) onShieldBreak(target);
+          return { shieldDamage: shieldCost, hpDamage: 0 };
+        }
+        const used = target.shield;
+        target.shield = 0;
+        const hpDamage = amount - used / fireMul;
+        onShieldBreak(target);
+        return { shieldDamage: used, hpDamage };
       }
+      const eff = amount * dmgMul;
+      const shieldDamage = Math.min(target.shield, eff);
+      target.shield -= shieldDamage;
+      const hpDamage = eff - shieldDamage;
+      if (target.shield <= 0) onShieldBreak(target);
+      return { shieldDamage, hpDamage };
+    }
+
+    if (target.kind === 'human' && target.shield > 0 && damageKind !== D.MELEE &&
+        d > 40 && facing) {
+      let reduction = target.shieldReduction !== undefined ? target.shieldReduction : 0.4;
       if (damageKind === D.FIRE || damageKind === D.EXPLOSION) reduction *= 0.5;
       const eff = amount * (1 - reduction);
-      shieldDamage = Math.min(target.shield, eff);
+      const shieldDamage = Math.min(target.shield, eff);
       target.shield -= shieldDamage;
-      hpDamage = eff - shieldDamage;
+      const hpDamage = eff - shieldDamage;
       if (target.shield <= 0) {
         target.shield = 0;
-        if (target.kind === 'zombie' && target.typeId === 'shield') {
-          target.permSlow = Math.max(target.permSlow || 0, 0.2);
-          target.shieldBroken = true;
-        }
-        if (target.kind === 'human' && !target.shieldBroken) {
+        if (!target.shieldBroken) {
           target.shieldBroken = true;
           if (target.fallbackAttack) target.attack = Object.assign({}, target.fallbackAttack);
           target.role = 'rifle';
           target.squadDirty = true;
         }
       }
-    } else {
-      hpDamage = amount;
+      return { shieldDamage, hpDamage };
     }
-    return { shieldDamage, hpDamage };
+
+    return { shieldDamage: 0, hpDamage: amount };
+  }
+
+  function onShieldBreak(z) {
+    z.permSlow = Math.max(z.permSlow || 0, 0.2);
+    z.shieldBroken = true;
   }
 
   // 盾尸拦截：找出射线路径上最近的、正面且盾值未破的盾尸
@@ -101,12 +125,14 @@
     const damageKind = opts.damageKind || D.RANGED;
     const r = resolveShield(target, amount, damageKind, opts.fromX, opts.fromY);
     target.hp -= r.hpDamage;
-    target.flashT = 0.08;
-    if (r.hpDamage > 0) {
-      state.bus.emit('fx:hit', {
-        x: target.x, y: target.y, amount: r.hpDamage,
-        kind: target.kind, damageKind, shield: r.shieldDamage > 0
-      });
+    if (!opts.silent) {
+      target.flashT = 0.08;
+      if (r.hpDamage > 0) {
+        state.bus.emit('fx:hit', {
+          x: target.x, y: target.y, amount: r.hpDamage,
+          kind: target.kind, damageKind, shield: r.shieldDamage > 0
+        });
+      }
     }
 
     if (target.hp <= 0 && target.alive) {

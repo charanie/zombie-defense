@@ -12,11 +12,23 @@ function candidates(state) {
   return pts;
 }
 
+const FRONT_RING = [
+  { x: 640, y: 430 },
+  { x: 640, y: 600 },
+  { x: 480, y: 500 },
+  { x: 800, y: 500 },
+  { x: 560, y: 430 },
+  { x: 720, y: 600 }
+];
+
 function roleScore(state, p, role) {
-  // 僵尸四面来袭：默认围绕地图中心结阵，前排略偏下、后排略偏上
-  const target = role === 'front'
-    ? { x: 640, y: 470 }
-    : (role === 'back' ? { x: 640, y: 570 } : { x: 640, y: 520 });
+  // 僵尸四面来袭：盾兵分散成多个小队，远程/治疗居中
+  if (role === 'front') {
+    const n = counts(state).shield;
+    const t = FRONT_RING[n % FRONT_RING.length];
+    return Math.hypot(p.x - t.x, p.y - t.y);
+  }
+  const target = { x: 640, y: 500 };
   return Math.hypot(p.x - target.x, p.y - target.y);
 }
 
@@ -99,8 +111,8 @@ function prep(state, opts) {
   const wantShield = Math.min(6, shieldBase + Math.floor(R / 4));
   const wantMedic = R <= 2 ? 1 : Math.min(4, (state.mapId === 'hospital' ? 2 : 1) + Math.floor(R / 8));
   const wantCiv = Math.min(8, R <= 3 ? 2 : (R <= 6 ? 5 : 8));
-  const wantRocket = Math.min(6, Math.floor(R / 3));
-  const wantFlame = Math.min(4, Math.floor(R / 5));
+  const wantRocket = Math.min(4, Math.floor(R / 4));
+  const wantFlame = R >= 4 ? Math.min(4, 1 + Math.floor((R - 4) / 3)) : 0;
   const wantMg = Math.min(18, R <= 2 ? 0 : 2 + Math.floor(R / 2));
 
   let guard = 0;
@@ -110,10 +122,14 @@ function prep(state, opts) {
     let next = null, role = 'back';
     if (cc.shield < wantShield) { next = 'shield'; role = 'front'; }
     else if (cc.medic < wantMedic) { next = 'medic'; role = 'back'; }
+    else if (cc.flame < wantFlame && state.money >= ZG.Data.humans.flame.cost) {
+      next = 'flame'; role = 'front';
+    }
     else if (cc.pistol < (R <= 3 ? 5 : 2)) { next = 'pistol'; role = 'mid'; }
-    else if (cc.mg < wantMg && state.money >= 140) { next = 'mg'; role = 'mid'; }
-    else if (cc.rocket < wantRocket && state.money >= 180) { next = 'rocket'; role = 'back'; }
-    else if (cc.flame < wantFlame && state.money >= 130) { next = 'flame'; role = 'front'; }
+    else if (cc.mg < wantMg && state.money >= ZG.Data.humans.mg.cost) { next = 'mg'; role = 'mid'; }
+    else if (cc.rocket < wantRocket && state.money >= ZG.Data.humans.rocket.cost) {
+      next = 'rocket'; role = 'back';
+    }
     else if (cc.civilian < wantCiv && combat >= 6 && R >= 3) { next = 'civilian'; role = 'back'; }
     else if (cc.pistol < 8) { next = 'pistol'; role = 'mid'; }
     else if (combat + cc.civilian < ZG.Balance.populationCap(R) - 2) {

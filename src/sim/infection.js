@@ -53,11 +53,11 @@
       if (!z.alive) continue;
       if (z.burnT > 0) {
         z.burnT -= dt;
-        z.hp -= (z.burnDps || 0) * dt;
-        if (z.hp <= 0) {
-          z.hp = 0;
-          ZG.Combat.killZombie(state, z);
-        }
+        ZG.Combat.applyDamage(state, {
+          target: z, amount: (z.burnDps || 0) * dt,
+          damageKind: ZG.Const.DAMAGE.FIRE,
+          fromX: z.burnFromX, fromY: z.burnFromY, silent: true
+        });
       }
     }
   }

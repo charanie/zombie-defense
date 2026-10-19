@@ -45,14 +45,14 @@
       color: C.flame, symbol: '火', blurb: '范围清群 / 穿透 · 贴脸推进',
       moveSpeed: 78, vision: 250, huntRadius: 320,
       attack: {
-        kind: 'flame', damage: 5, interval: 0.125, range: 100,
+        kind: 'flame', damage: 5, interval: 0.125, range: 140,
         damageKind: 'fire', coneDeg: 50, burnDps: 5, burnTime: 3
       },
       counters: '普通群、狂尸群、幼体、盾尸（穿盾）',
       weak: '巨人、远程 BOSS、爆尸'
     },
     rocket: {
-      id: 'rocket', name: '导弹兵', role: 'rocket', cost: 180, hp: 160, pop: 1, radius: 9,
+      id: 'rocket', name: '导弹兵', role: 'rocket', cost: 320, hp: 160, pop: 1, radius: 9,
       color: C.rocket, symbol: '导', blurb: '反大型 / 反集群 · 远程游走',
       moveSpeed: 50, vision: 480, huntRadius: 460,
       attack: {

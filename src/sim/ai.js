@@ -92,14 +92,6 @@
       e => e.kind === 'zombie' && e.alive).filter(z => edgeDist(h, z) <= range);
   }
 
-  // 排序/取最近时每只僵尸只算一次距离，避免比较器里重复开方
-  function sortByEdgeDist(h, list) {
-    const d = new Map();
-    for (const z of list) d.set(z.id, edgeDist(h, z));
-    list.sort((a, b) => d.get(a.id) - d.get(b.id));
-    return list;
-  }
-
   function nearestByEdgeDist(h, list) {
     let best = null, bd = Infinity;
     for (const z of list) {
@@ -107,6 +99,27 @@
       if (d < bd || (d === bd && best && z.id < best.id)) { bd = d; best = z; }
     }
     return best;
+  }
+
+  // 一次遍历取最近 n 个，避免对整群排序（大群时显著更快）
+  function nearestNByEdgeDist(h, list, n) {
+    const best = [];
+    for (const z of list) {
+      const d = edgeDist(h, z);
+      if (best.length >= n) {
+        const w = best[n - 1];
+        if (d > w.d || (d === w.d && z.id > w.z.id)) continue;
+      }
+      let i = best.length;
+      while (i > 0) {
+        const p = best[i - 1];
+        if (p.d < d || (p.d === d && p.z.id < z.id)) break;
+        i--;
+      }
+      best.splice(i, 0, { z, d });
+      if (best.length > n) best.pop();
+    }
+    return best.map(e => e.z);
   }
 
   function faceToward(h, x, y) {
@@ -367,8 +380,8 @@
       return list[0];
     }
 
-    const st = ZG.Stats.human(state, h);
-    const list = zombiesInRange(state, h, st.range);
+    const range = ZG.Stats.range(state, h);
+    const list = zombiesInRange(state, h, range);
     if (!list.length) return null;
 
     const kind = h.attack.kind;
@@ -376,7 +389,7 @@
       const siege = list.filter(z => z.isSiege || z.isBoss);
       if (siege.length) return nearestByEdgeDist(h, siege);
       // 只对最近的一批候选做密度评估，避免大群时 O(n²)
-      const near = sortByEdgeDist(h, list.slice()).slice(0, 24);
+      const near = nearestNByEdgeDist(h, list, 24);
       let best = near[0], bestCount = -1;
       for (const z of near) {
         let count = 0;
@@ -389,7 +402,7 @@
     }
 
     if (kind === 'shotgun' || kind === 'flame') {
-      const near = sortByEdgeDist(h, list.slice()).slice(0, 24);
+      const near = nearestNByEdgeDist(h, list, 24);
       let best = near[0], bestCount = -1;
       for (const z of near) {
         let count = 0;
@@ -468,8 +481,10 @@
             target: z, amount: st.damage, damageKind: D.FIRE,
             fromX: h.x, fromY: h.y, sourceIsHuman: true
           });
-          z.burnT = 3;
+          z.burnT = a.burnTime || 3;
           z.burnDps = a.burnDps || 5;
+          z.burnFromX = h.x;
+          z.burnFromY = h.y;
         }
         h.flameT = 0.16;
         if (state.effects.length < 250) {
@@ -481,15 +496,16 @@
         return list.length > 0;
       }
       case 'rocket': {
-        const dmg = st.damage * ((target.isSiege || target.isBoss) ? (a.siegeBonus || 1) : 1);
         const interceptor = ZG.Combat.interceptRay(state, h.x, h.y, target.x, target.y,
           { excludeId: target.id, pad: 6 });
         const aim = interceptor || target;
         ZG.Projectiles.spawn(state, {
           typeId: 'rocket', x: h.x, y: h.y, tx: aim.x, ty: aim.y,
-          speed: a.speed || 420, splash: a.splash || 60, damage: dmg,
+          speed: a.speed || 420, splash: a.splash || 60, damage: st.damage,
           damageKind: D.EXPLOSION,
-          ownerId: h.id, color: '#CE93D8', targetId: aim.id
+          ownerId: h.id, color: '#CE93D8',
+          targetId: aim.id, directTargetId: aim.id,
+          siegeBonus: a.siegeBonus || 1, splashMul: 0.5
         });
         return true;
       }

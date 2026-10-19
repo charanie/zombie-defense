@@ -29,6 +29,8 @@
       sideStepped: false,
       alive: true,
       targetId: opts.targetId || 0,
+      directTargetId: opts.directTargetId || opts.targetId || 0,
+      splashMul: opts.splashMul,
       splash: opts.splash || opts.radius || 60
     };
     state.projectiles.push(p);
@@ -38,18 +40,41 @@
 
   function explode(state, x, y, radius, damage, damageKind, opts) {
     const o = opts || {};
+    const inRadius = (e) => ZG.Geom.dist2(e.x, e.y, x, y) <=
+      (radius + (e.radius || 0)) * (radius + (e.radius || 0));
+    let direct = null;
+    if (!o.hitsHumans && o.splashMul !== undefined) {
+      if (o.directTargetId) {
+        direct = state.zombies.find(z => z.alive && z.id === o.directTargetId && inRadius(z)) || null;
+      }
+      if (!direct) {
+        let bestD = Infinity;
+        for (const z of state.zombies) {
+          if (!z.alive || !inRadius(z)) continue;
+          const d = ZG.Geom.dist2(z.x, z.y, x, y);
+          if (d < bestD || (d === bestD && direct && z.id < direct.id)) {
+            bestD = d; direct = z;
+          }
+        }
+      }
+    }
     if (!o.hitsHumans) {
       for (const z of state.zombies.slice()) {
-        if (!z.alive) continue;
-        const d2 = ZG.Geom.dist2(z.x, z.y, x, y);
-        if (d2 <= (radius + z.radius) * (radius + z.radius)) {
-          let dmg = damage;
-          if (o.siegeBonus && z.isSiege) dmg *= o.siegeBonus;
-          ZG.Combat.applyDamage(state, {
-            target: z, amount: dmg, damageKind: damageKind || D.EXPLOSION,
-            fromX: x, fromY: y
-          });
+        if (!z.alive || !inRadius(z)) continue;
+        let dmg = damage;
+        if (o.splashMul !== undefined) {
+          if (direct && z.id === direct.id) {
+            if (o.siegeBonus && (z.isSiege || z.isBoss)) dmg *= o.siegeBonus;
+          } else {
+            dmg *= o.splashMul;
+          }
+        } else if (o.siegeBonus && z.isSiege) {
+          dmg *= o.siegeBonus;
         }
+        ZG.Combat.applyDamage(state, {
+          target: z, amount: dmg, damageKind: damageKind || D.EXPLOSION,
+          fromX: x, fromY: y
+        });
       }
     }
     if (o.hitsHumans) {
@@ -128,6 +153,7 @@
         }
         explode(state, p.tx, p.ty, p.splash || p.radius, p.damage, p.damageKind, {
           hitsHumans: false, hitsBuildings: false, siegeBonus: p.siegeBonus,
+          directTargetId: p.directTargetId, splashMul: p.splashMul,
           color: p.color, kind: p.typeId
         });
         continue;
