@@ -59,7 +59,7 @@
       const s = game();
       if (!s) return null;
       if (type && ZG.Data.heroes[type]) {
-        const c = ZG.Geom.deployCenter(s.map.deploy);
+        const c = ZG.Geom.humanCentroid(s) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
         return ZG.State.spawnHuman(s, type, c.x, c.y, { heroId: type });
       }
       return ZG.Heroes.grant(s);

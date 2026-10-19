@@ -26,10 +26,12 @@ test('人口上限与平民上限', () => {
   assert.deepEqual(ZG.Economy.recruit(s2, 'civilian', 900, 600), { ok: false, reason: 'civilian-cap' });
 });
 
-test('部署区外或重叠位置不能放置', () => {
+test('地图外、障碍或重叠位置不能放置', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
   s.money = 1000;
-  assert.equal(ZG.Economy.canPlace(s, 600, 100, 8).ok, false);
+  assert.equal(ZG.Economy.canPlace(s, 600, 100, 8).ok, true);
+  assert.equal(ZG.Economy.canPlace(s, 4, 100, 8).ok, false);
+  assert.equal(ZG.Economy.canPlace(s, 420, 300, 8).ok, false);
   ZG.Economy.recruit(s, 'pistol', 600, 600);
   assert.equal(ZG.Economy.canPlace(s, 602, 600, 8).ok, false);
   assert.equal(ZG.Economy.canPlace(s, 700, 600, 8).ok, true);

@@ -31,19 +31,36 @@
   }
 
   function canPlace(state, x, y, radius, ignoreId) {
-    if (!state.map || !ZG.Geom.pointInDeploy(x, y, state.map.deploy)) return { ok: false, reason: 'outside' };
+    if (!state.map) return { ok: false, reason: 'outside' };
+    const r = radius || 0;
+    const m = r + ZG.Const.PLACE_MARGIN;
+    if (x < m || y < m || x > ZG.Const.W - m || y > ZG.Const.H - m) {
+      return { ok: false, reason: 'outside' };
+    }
     for (const h of state.humans) {
       if (!h.alive || h.id === ignoreId) continue;
-      if (ZG.Geom.circleOverlapsCircle(x, y, radius, h.x, h.y, h.radius, 2)) return { ok: false, reason: 'overlap' };
+      if (ZG.Geom.circleOverlapsCircle(x, y, r, h.x, h.y, h.radius, ZG.Const.PLACE_GAP)) {
+        return { ok: false, reason: 'overlap' };
+      }
     }
     for (const b of state.buildings) {
       if (!b.alive) continue;
-      if (ZG.Geom.circleOverlapsCircle(x, y, radius, b.x, b.y, b.radius, 2)) return { ok: false, reason: 'overlap' };
+      if (b.shape === 'rect') {
+        const br = ZG.Geom.rectOfBuilding(b);
+        if (ZG.Geom.circleOverlapsRect(x, y, r, br.x, br.y, br.w, br.h, ZG.Const.PLACE_GAP)) {
+          return { ok: false, reason: 'overlap' };
+        }
+      } else if (ZG.Geom.circleOverlapsCircle(x, y, r, b.x, b.y, b.radius || 24, ZG.Const.PLACE_GAP)) {
+        return { ok: false, reason: 'overlap' };
+      }
     }
-    if (state.map.obstacles) {
-      for (const o of state.map.obstacles) {
-        if (o.kind !== 'circle') continue;
-        if (ZG.Geom.circleOverlapsCircle(x, y, radius, o.x, o.y, o.r, 0)) return { ok: false, reason: 'obstacle' };
+    for (const o of state.map.obstacles || []) {
+      if (o.kind === 'rect') {
+        if (ZG.Geom.circleOverlapsRect(x, y, r, o.x, o.y, o.w, o.h, 0)) {
+          return { ok: false, reason: 'obstacle' };
+        }
+      } else if (ZG.Geom.circleOverlapsCircle(x, y, r, o.x, o.y, o.r, 0)) {
+        return { ok: false, reason: 'obstacle' };
       }
     }
     return { ok: true };

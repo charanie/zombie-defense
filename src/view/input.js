@@ -61,7 +61,7 @@
       if (drag) {
         const h = s.humans.find(u => u.id === drag.id && u.alive);
         if (h) {
-          const c = ZG.Geom.clampPoint(p.x, p.y, s.map.deploy, h.radius);
+          const c = ZG.Geom.clampToWorld(p.x, p.y, h.radius);
           h.x = c.x; h.y = c.y;
         }
         return;
@@ -203,8 +203,8 @@
   function reasonText(reason) {
     const map = {
       money: '金钱不足', population: '人口已满', 'civilian-cap': '平民已满',
-      outside: '部署区外', overlap: '位置重叠', obstacle: '障碍阻挡',
-      occupied: '槽位已占用', rubble: '废墟冷却中', 'not-prep': '战斗中不能操作'
+      outside: '地图外', overlap: '位置重叠', obstacle: '障碍阻挡',
+      limit: '已达上限', 'not-prep': '战斗中不能操作'
     };
     return map[reason] || '无法执行';
   }
