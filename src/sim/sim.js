@@ -65,8 +65,16 @@
       h.nextGroupHealAt = undefined;
       h.serumCd = 0;
       h.dispelCd = 0;
+      h.squadId = null;
+      h.squadTier = 0;
+      h.squadDirty = false;
+      h.formationX = h.x;
+      h.formationY = h.y;
       if (h.classId === 'medic') h.serumLeft = ZG.Balance.serumCount(state.tech.serum);
     }
+    state.squads = [];
+    state.squadDirty = true;
+    state.squadTimer = 0;
     // 医疗站：范围内治疗兵每回合血清 +1（同类不叠加）
     for (const b of state.buildings) {
       if (!b.alive || b.typeId !== 'hospital') continue;

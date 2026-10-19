@@ -6,7 +6,7 @@
 
   const humans = {
     pistol: {
-      id: 'pistol', name: '手枪兵', cost: 60, hp: 140, pop: 1, radius: 8,
+      id: 'pistol', name: '手枪兵', role: 'rifle', cost: 60, hp: 140, pop: 1, radius: 8,
       color: C.pistol, symbol: '手', blurb: '均衡基础兵 · 自主走位',
       moveSpeed: 68, vision: 340, huntRadius: 420,
       attack: {
@@ -17,7 +17,7 @@
       weak: '盾尸正面、巨人、爆尸近身'
     },
     shotgun: {
-      id: 'shotgun', name: '霰弹兵', cost: 90, hp: 180, pop: 1, radius: 9,
+      id: 'shotgun', name: '霰弹兵', role: 'shotgun', cost: 90, hp: 180, pop: 1, radius: 9,
       color: C.shotgun, symbol: '霰', blurb: '近身清群 · 前压',
       moveSpeed: 80, vision: 280, huntRadius: 340,
       attack: {
@@ -29,7 +29,7 @@
       weak: '巨人、母体、远程 BOSS'
     },
     mg: {
-      id: 'mg', name: '机枪兵', cost: 140, hp: 220, pop: 1, radius: 9,
+      id: 'mg', name: '机枪兵', role: 'rifle', cost: 140, hp: 220, pop: 1, radius: 9,
       color: C.mg, symbol: '机', blurb: '持续单体输出 · 中排推进',
       moveSpeed: 56, vision: 360, huntRadius: 400,
       attack: {
@@ -41,7 +41,7 @@
       weak: '巨人、爆尸近身、BOSS 石块'
     },
     flame: {
-      id: 'flame', name: '喷火兵', cost: 130, hp: 200, pop: 1, radius: 9,
+      id: 'flame', name: '喷火兵', role: 'flame', cost: 130, hp: 200, pop: 1, radius: 9,
       color: C.flame, symbol: '火', blurb: '范围清群 / 穿透 · 贴脸推进',
       moveSpeed: 78, vision: 250, huntRadius: 320,
       attack: {
@@ -52,7 +52,7 @@
       weak: '巨人、远程 BOSS、爆尸'
     },
     rocket: {
-      id: 'rocket', name: '导弹兵', cost: 180, hp: 160, pop: 1, radius: 9,
+      id: 'rocket', name: '导弹兵', role: 'rocket', cost: 180, hp: 160, pop: 1, radius: 9,
       color: C.rocket, symbol: '导', blurb: '反大型 / 反集群 · 远程游走',
       moveSpeed: 50, vision: 480, huntRadius: 460,
       attack: {
@@ -64,7 +64,7 @@
       weak: '狂尸快速接近、爆尸近身'
     },
     shield: {
-      id: 'shield', name: '盾兵', cost: 100, hp: 500, pop: 1, radius: 11,
+      id: 'shield', name: '盾兵', role: 'tank', cost: 100, hp: 500, pop: 1, radius: 11,
       color: C.shield, symbol: '盾', blurb: '前排坦克 / 嘲讽 · 据守不闪避',
       moveSpeed: 64, vision: 220, huntRadius: 220, dodge: false,
       shieldHp: 250, shieldReduction: 0.4, tauntRadius: 90,
@@ -76,7 +76,7 @@
       weak: '巨人、爆尸、母体'
     },
     medic: {
-      id: 'medic', name: '治疗兵', cost: 120, hp: 150, pop: 1, radius: 8,
+      id: 'medic', name: '治疗兵', role: 'medic', cost: 120, hp: 150, pop: 1, radius: 8,
       color: C.medic, symbol: '疗', blurb: '治疗 / 驱散感染 · 主动迎向伤员',
       moveSpeed: 90, vision: 200, huntRadius: 240,
       healRate: 20, healRange: 160, serumLeft: 3, serumAmount: 50, serumCd: 8,
@@ -88,7 +88,7 @@
       weak: '狂尸/爆尸切后排、BOSS 石块'
     },
     civilian: {
-      id: 'civilian', name: '平民', cost: 40, hp: 80, pop: 1, radius: 7,
+      id: 'civilian', name: '平民', role: 'civilian', cost: 40, hp: 80, pop: 1, radius: 7,
       color: C.civilian, symbol: '民', blurb: '每回合 +12 金 · 遇袭撤离',
       moveSpeed: 96, vision: 0, huntRadius: 0,
       income: 12, attack: null,
@@ -119,7 +119,28 @@
     dodgeCooldown: 1.3,
     separationGap: 0.5,
     separationPush: 0.5,
-    homeEpsilon: 6
+    homeEpsilon: 6,
+    squad: {
+      joinRadius: 280,
+      keepRadiusMul: 1.35,
+      capacity: 6,
+      rebuildSec: 1.0,
+      arriveEps: 8,
+      shieldSpacing: 36,
+      lateralSpacing: 26,
+      overflowTierDepth: 28,
+      rowMax: 8,
+      rowSpacing: 28,
+      civilianExtraDepth: 60,
+      searchStopInset: 120,
+      squadSpeedCap: 58,
+      catchUpMul: 1.35,
+      catchUpDist: 120,
+      roleDepth: {
+        tank: 0, melee: 40, flame: 56, shotgun: 76,
+        rifle: 108, rocket: 144, medic: 144, civilian: 184
+      }
+    }
   };
 
   ZG.Data = ZG.Data || {};

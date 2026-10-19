@@ -6,7 +6,7 @@
 
   const heroes = {
     officer: {
-      id: 'officer', name: '长官', hp: 1200, pop: 0, radius: 10,
+      id: 'officer', name: '长官', role: 'rifle', hp: 1200, pop: 0, radius: 10,
       color: C.officer, symbol: '令', blurb: '后排输出 + 每回合导弹支援',
       hero: true, moveSpeed: 62, vision: 380, huntRadius: 400,
       attack: {
@@ -18,7 +18,7 @@
       weak: '狂尸/爆尸切后排、BOSS 石块'
     },
     samurai: {
-      id: 'samurai', name: '武士', hp: 1100, pop: 0, radius: 11,
+      id: 'samurai', name: '武士', role: 'melee', hp: 1100, pop: 0, radius: 11,
       color: C.samurai, symbol: '武', blurb: '近战爆发 + 剑气穿透',
       hero: true, moveSpeed: 70, vision: 300, huntRadius: 340,
       attack: {
@@ -30,7 +30,7 @@
       weak: '爆尸、巨人、远程 BOSS 石块'
     },
     gatling: {
-      id: 'gatling', name: '加特林士兵', hp: 1600, pop: 0, radius: 14,
+      id: 'gatling', name: '加特林士兵', role: 'rifle', hp: 1600, pop: 0, radius: 14,
       color: C.gatling, symbol: '加', blurb: '高血量持续输出 + 攻速光环',
       hero: true, moveSpeed: 54, vision: 340, huntRadius: 360,
       attack: {
@@ -42,7 +42,7 @@
       weak: '爆尸近身、BOSS 石块'
     },
     plague: {
-      id: 'plague', name: '疫医', hp: 800, pop: 0, radius: 8,
+      id: 'plague', name: '疫医', role: 'medic', hp: 800, pop: 0, radius: 8,
       color: C.plague, symbol: '疫', blurb: '治疗 + 感染控制 + 转化丧尸',
       hero: true, moveSpeed: 84, vision: 260, huntRadius: 300,
       attack: {

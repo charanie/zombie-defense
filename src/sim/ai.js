@@ -92,6 +92,23 @@
       e => e.kind === 'zombie' && e.alive).filter(z => edgeDist(h, z) <= range);
   }
 
+  // 排序/取最近时每只僵尸只算一次距离，避免比较器里重复开方
+  function sortByEdgeDist(h, list) {
+    const d = new Map();
+    for (const z of list) d.set(z.id, edgeDist(h, z));
+    list.sort((a, b) => d.get(a.id) - d.get(b.id));
+    return list;
+  }
+
+  function nearestByEdgeDist(h, list) {
+    let best = null, bd = Infinity;
+    for (const z of list) {
+      const d = edgeDist(h, z);
+      if (d < bd || (d === bd && best && z.id < best.id)) { bd = d; best = z; }
+    }
+    return best;
+  }
+
   function faceToward(h, x, y) {
     h.facing = Math.atan2(y - h.y, x - h.x);
   }
@@ -165,16 +182,6 @@
       if (d < bestD) { bestD = d; best = z; }
     }
     return best;
-  }
-
-  function leashPoint(h, x, y) {
-    const dx = x - h.homeX, dy = y - h.homeY;
-    const d = Math.hypot(dx, dy);
-    if (d <= h.huntRadius || d < 1e-6) return { x, y };
-    return {
-      x: h.homeX + (dx / d) * h.huntRadius,
-      y: h.homeY + (dy / d) * h.huntRadius
-    };
   }
 
   function stopDistance(state, h, z) {
@@ -344,17 +351,6 @@
     return true;
   }
 
-  function returnHome(state, h, dt) {
-    const d = ZG.Geom.dist(h.x, h.y, h.homeX, h.homeY);
-    if (d <= HAI.homeEpsilon) {
-      h.moveX = 0; h.moveY = 0;
-      h.aiState = 'guard';
-      return;
-    }
-    h.aiState = 'return';
-    moveHumanToward(state, h, h.homeX, h.homeY, h.moveSpeed * HAI.returnSpeedMul, dt);
-  }
-
   /* ---------------- 人类 ---------------- */
 
   function pickHumanTarget(state, h) {
@@ -377,14 +373,13 @@
     const kind = h.attack.kind;
     if (kind === 'rocket') {
       const siege = list.filter(z => z.isSiege || z.isBoss);
-      if (siege.length) {
-        siege.sort((a, b) => edgeDist(h, a) - edgeDist(h, b));
-        return siege[0];
-      }
-      let best = list[0], bestCount = -1;
-      for (const z of list) {
+      if (siege.length) return nearestByEdgeDist(h, siege);
+      // 只对最近的一批候选做密度评估，避免大群时 O(n²)
+      const near = sortByEdgeDist(h, list.slice()).slice(0, 24);
+      let best = near[0], bestCount = -1;
+      for (const z of near) {
         let count = 0;
-        for (const o of list) {
+        for (const o of near) {
           if (ZG.Geom.dist2(z.x, z.y, o.x, o.y) <= 60 * 60) count++;
         }
         if (count > bestCount) { bestCount = count; best = z; }
@@ -393,10 +388,11 @@
     }
 
     if (kind === 'shotgun' || kind === 'flame') {
-      let best = list[0], bestCount = -1;
-      for (const z of list) {
+      const near = sortByEdgeDist(h, list.slice()).slice(0, 24);
+      let best = near[0], bestCount = -1;
+      for (const z of near) {
         let count = 0;
-        for (const o of list) {
+        for (const o of near) {
           if (ZG.Geom.dist2(z.x, z.y, o.x, o.y) <= 70 * 70) count++;
         }
         if (count > bestCount) { bestCount = count; best = z; }
@@ -404,8 +400,7 @@
       return best;
     }
 
-    list.sort((a, b) => edgeDist(h, a) - edgeDist(h, b));
-    return list[0];
+    return nearestByEdgeDist(h, list);
   }
 
   function performHumanAttack(state, h, target) {
@@ -639,17 +634,6 @@
     }
   }
 
-  function samuraiMove(state, h, target, dt) {
-    const st = ZG.Stats.human(state, h);
-    if (!target) return;
-    const d = ZG.Geom.dist(h.x, h.y, target.x, target.y);
-    const stop = st.range + target.radius - 6;
-    if (d > stop) {
-      const p = leashPoint(h, target.x, target.y);
-      moveHumanToward(state, h, p.x, p.y, h.moveSpeed, dt);
-    }
-  }
-
   function samuraiSlash(state, h) {
     const ca = Math.cos(h.facing), sa = Math.sin(h.facing);
     for (const z of state.zombies.slice()) {
@@ -671,34 +655,38 @@
   }
 
   function stepShield(state, h, dt) {
+    const c = ZG.Data.humanAi.squad;
     const st = ZG.Stats.human(state, h);
-    const z = nearestZombie(state, h.x, h.y, h.vision);
-    if (!z) {
-      if (h.careTargetId) { h.aiState = 'heal'; h.moveX = 0; h.moveY = 0; return; }
-      returnHome(state, h, dt);
+    if (h.careTargetId && needsCare(state, h)) {
+      h.aiState = 'heal'; h.moveX = 0; h.moveY = 0;
       return;
     }
-    const d = ZG.Geom.dist(h.x, h.y, z.x, z.y);
-    const stop = Math.max(12, st.range + z.radius - 2);
-    faceToward(h, z.x, z.y);
-    if (d > stop && !h.careTargetId) {
-      const p = leashPoint(h, z.x, z.y);
-      if (ZG.Geom.dist(h.x, h.y, p.x, p.y) > 0.5) {
-        moveHumanToward(state, h, p.x, p.y, h.moveSpeed, dt);
-        h.aiState = 'advance';
-        return;
+    const slot = ZG.Squads.slotFor(state, h);
+    const dSlot = ZG.Geom.dist(h.x, h.y, slot.x, slot.y);
+    if (dSlot > c.arriveEps) {
+      const speed = h.moveSpeed * (dSlot > c.catchUpDist ? c.catchUpMul : 1);
+      moveHumanToward(state, h, slot.x, slot.y, speed, dt);
+      h.aiState = 'advance';
+    } else {
+      h.moveX = 0; h.moveY = 0;
+    }
+    const z = nearestZombie(state, h.x, h.y, st.range + 40);
+    if (z) {
+      faceToward(h, z.x, z.y);
+      const d = ZG.Geom.dist(h.x, h.y, z.x, z.y);
+      if (h.cd <= 0 && d <= st.range + z.radius - 2) {
+        ZG.Combat.applyDamage(state, {
+          target: z, amount: st.damage, damageKind: D.MELEE,
+          fromX: h.x, fromY: h.y, sourceIsHuman: true
+        });
+        h.cd = Math.max(-STEP, h.cd) + st.interval;
       }
+      h.aiState = 'engage';
+    } else if (dSlot <= c.arriveEps) {
+      const squad = state.squads.find(s => s.id === h.squadId);
+      if (squad) h.facing = squad.faceAngle;
       h.aiState = 'hold';
-      return;
     }
-    if (h.cd <= 0 && d <= stop) {
-      ZG.Combat.applyDamage(state, {
-        target: z, amount: st.damage,
-        damageKind: D.MELEE, fromX: h.x, fromY: h.y, sourceIsHuman: true
-      });
-      h.cd = Math.max(-STEP, h.cd) + st.interval;
-    }
-    h.aiState = h.careTargetId ? 'heal' : 'engage';
   }
 
   function stepMedic(state, h, dt) {
@@ -717,13 +705,8 @@
         const stop = healRangeOf(h) * HAI.medicStopRatio;
         const d = ZG.Geom.dist(h.x, h.y, patient.x, patient.y);
         if (d > stop) {
-          const p = leashPoint(h, patient.x, patient.y);
-          if (ZG.Geom.dist(h.x, h.y, p.x, p.y) > 0.5) {
-            moveHumanToward(state, h, p.x, p.y, h.moveSpeed, dt);
-            h.aiState = 'assist';
-            return;
-          }
-          h.aiState = 'hold';
+          moveHumanToward(state, h, patient.x, patient.y, h.moveSpeed, dt);
+          h.aiState = 'assist';
           return;
         }
       }
@@ -742,15 +725,36 @@
     }
 
     if (h.careTargetId) { h.aiState = 'heal'; h.moveX = 0; h.moveY = 0; return; }
-    returnHome(state, h, dt);
+    const c = ZG.Data.humanAi.squad;
+    const slot = ZG.Squads.slotFor(state, h);
+    const dSlot = ZG.Geom.dist(h.x, h.y, slot.x, slot.y);
+    if (dSlot > c.arriveEps) {
+      const speed = h.moveSpeed * (dSlot > c.catchUpDist ? c.catchUpMul : 1);
+      moveHumanToward(state, h, slot.x, slot.y, speed, dt);
+      h.aiState = 'advance';
+    } else {
+      h.moveX = 0; h.moveY = 0;
+      h.aiState = 'hold';
+    }
   }
 
   function stepFighter(state, h, dt) {
+    const c = ZG.Data.humanAi.squad;
+    const slot = ZG.Squads.slotFor(state, h);
+    let moved = false;
+    if (!h.careTargetId) {
+      const d = ZG.Geom.dist(h.x, h.y, slot.x, slot.y);
+      if (d > c.arriveEps) {
+        const speed = h.moveSpeed * (d > c.catchUpDist ? c.catchUpMul : 1);
+        moved = moveHumanToward(state, h, slot.x, slot.y, speed, dt);
+        h.aiState = 'advance';
+      } else {
+        h.moveX = 0; h.moveY = 0;
+        h.aiState = 'hold';
+      }
+    }
     const target = pickHumanTarget(state, h);
     if (target) {
-      if ((h.classId === 'samurai' || h.heroId === 'samurai') && !h.careTargetId) {
-        samuraiMove(state, h, target, dt);
-      }
       faceToward(h, target.x, target.y);
       if (h.cd <= 0 && target.alive) {
         const did = performHumanAttack(state, h, target);
@@ -762,33 +766,13 @@
           }
         }
       }
-      h.aiState = h.careTargetId ? 'heal' : 'engage';
+      h.aiState = moved ? 'advance' : 'engage';
       return;
     }
-
-    // 视野内有敌人 → 离开站位追击；追击半径以 home 为锚点
-    const z = nearestZombie(state, h.x, h.y, h.vision);
-    if (z) {
-      const d = ZG.Geom.dist(h.x, h.y, z.x, z.y);
-      const stop = stopDistance(state, h, z);
-      const p = leashPoint(h, z.x, z.y);
-      faceToward(h, z.x, z.y);
-      if (d > stop) {
-        if (!h.careTargetId && ZG.Geom.dist(h.x, h.y, p.x, p.y) > 0.5) {
-          moveHumanToward(state, h, p.x, p.y, h.moveSpeed, dt);
-          h.aiState = 'advance';
-          return;
-        }
-        h.aiState = h.careTargetId ? 'heal' : 'hold';
-        return;
-      }
-      // 已在射程内但 pickHumanTarget 未选中（例如刚进入），下一次 tick 会开火
-      h.aiState = h.careTargetId ? 'heal' : 'engage';
-      return;
+    if (!moved && !h.careTargetId) {
+      const squad = state.squads.find(s => s.id === h.squadId);
+      if (squad) h.facing = squad.faceAngle;
     }
-
-    if (h.careTargetId) { h.aiState = 'heal'; h.moveX = 0; h.moveY = 0; return; }
-    returnHome(state, h, dt);
   }
 
   function stepCivilian(state, h, dt) {
@@ -820,7 +804,16 @@
 
     if (stepCare(state, h, dt)) return;
     if (h.careTargetId) { h.aiState = 'heal'; h.moveX = 0; h.moveY = 0; return; }
-    returnHome(state, h, dt);
+    const c = ZG.Data.humanAi.squad;
+    const slot = ZG.Squads.slotFor(state, h);
+    const dSlot = ZG.Geom.dist(h.x, h.y, slot.x, slot.y);
+    if (dSlot > c.arriveEps) {
+      moveHumanToward(state, h, slot.x, slot.y, h.moveSpeed, dt);
+      h.aiState = 'advance';
+    } else {
+      h.moveX = 0; h.moveY = 0;
+      h.aiState = 'hold';
+    }
   }
 
   // 人类之间做轻微分离，避免全部挤在同一个目标/医疗点
@@ -851,6 +844,13 @@
   function stepHumans(state) {
     const dt = STEP;
     const chargers = collectChargers(state);
+
+    let dirty = false;
+    for (const h of state.humans) {
+      if (h.squadDirty) { dirty = true; h.squadDirty = false; }
+    }
+    if (dirty) ZG.Squads.markDirty(state);
+    ZG.Squads.update(state);
 
     for (const h of state.humans.slice()) {
       if (!h.alive) continue;
@@ -886,7 +886,7 @@
 
       if (isMedicClass(h)) {
         stepMedic(state, h, dt);
-      } else if (h.classId === 'shield') {
+      } else if (h.classId === 'shield' && !h.shieldBroken) {
         stepHeroAbilities(state, h, dt);
         stepShield(state, h, dt);
       } else {

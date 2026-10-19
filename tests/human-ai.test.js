@@ -22,7 +22,8 @@ test('人类离开初始位置并向目标推进', () => {
   ZG.Sim.tick(s, 60);
 
   assert.ok(h.y < 519, '应向目标推进，实际 y=' + h.y.toFixed(1));
-  assert.equal(h.aiState, 'engage');
+  assert.ok(h.aiState === 'engage' || h.aiState === 'advance',
+    '应处于交战/推进，实际 ' + h.aiState);
 });
 
 test('受伤单位前往治疗兵，治疗兵主动迎向伤员', () => {

@@ -26,11 +26,14 @@
       humans: [],
       zombies: [],
       buildings: [],
+      squads: [],
+      squadDirty: true,
+      squadTimer: 0,
       projectiles: [],
       effects: [],
       spawner: { batches: [], batchIndex: 0, timer: 0, remaining: 0, warning: 0, bossPending: false, portals: [] },
       battle: {
-        time: 0, killCount: 0, spawned: 0, berserkTier: 0, bossId: null,
+        time: 0, stepCount: 0, killCount: 0, spawned: 0, berserkTier: 0, bossId: null,
         deathConfirmT: 0, infectionTimer: 0, convertedThisRound: 0,
         minesTriggered: 0, reason: null, waveTotal: 0
       },
@@ -83,6 +86,9 @@
     const hpMul = armorMul(state) * (1 + 0.2 * stacks);
     const maxHp = (e.maxHp !== undefined ? e.maxHp : data.hp * hpMul);
     const converted = !!e.converted;
+    const baseAttack = data.attack ? Object.assign({}, data.attack) : null;
+    const fallbackAttack = data.fallbackAttack ? Object.assign({}, data.fallbackAttack) : null;
+    const role = data.role || 'rifle';
 
     const h = {
       id: nextId(state),
@@ -100,7 +106,18 @@
       alive: true,
       pop: isHero || converted ? 0 : (data.pop || 0),
       cost: data.cost || 0,
-      attack: data.attack ? Object.assign({}, data.attack) : null,
+      attack: baseAttack ? Object.assign({}, baseAttack) : null,
+      baseAttack,
+      fallbackAttack,
+      role,
+      baseRole: role,
+      shieldReduction: data.shieldReduction !== undefined ? data.shieldReduction : 0.4,
+      shieldBroken: false,
+      squadId: null,
+      squadTier: 0,
+      formationX: x,
+      formationY: y,
+      squadDirty: false,
       cd: 0,
       targetId: null,
       captain: false,
