@@ -57,8 +57,10 @@
         if (!h.alive) continue;
         const d2 = ZG.Geom.dist2(h.x, h.y, x, y);
         if (d2 <= (radius + h.radius) * (radius + h.radius)) {
+          let dmg = damage;
+          if (o.kind === 'boomer') dmg *= ZG.Combat.shieldGuardMul(state, h, x, y);
           ZG.Combat.applyDamage(state, {
-            target: h, amount: damage, damageKind: damageKind || D.EXPLOSION,
+            target: h, amount: dmg, damageKind: damageKind || D.EXPLOSION,
             fromX: x, fromY: y
           });
           if (h.alive && o.infection) ZG.Infection.add(state, h, o.infection);

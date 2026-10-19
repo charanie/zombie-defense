@@ -20,8 +20,11 @@
     let shieldDamage = 0, hpDamage = 0;
     if (target.shield > 0 && damageKind !== D.MELEE && shieldFacing(target, fromX, fromY)) {
       let reduction;
-      if (target.kind === 'human') reduction = 0.4;
-      else reduction = target.typeId === 'shield' ? 0.7 : 0;
+      if (target.kind === 'human') {
+        reduction = target.shieldReduction !== undefined ? target.shieldReduction : 0.4;
+      } else {
+        reduction = target.typeId === 'shield' ? 0.7 : 0;
+      }
       if (damageKind === D.FIRE || damageKind === D.EXPLOSION) reduction *= 0.5;
       const eff = amount * (1 - reduction);
       shieldDamage = Math.min(target.shield, eff);
@@ -33,12 +36,36 @@
           target.permSlow = Math.max(target.permSlow || 0, 0.2);
           target.shieldBroken = true;
         }
-        if (target.kind === 'human') target.shieldBroken = true;
+        if (target.kind === 'human' && !target.shieldBroken) {
+          target.shieldBroken = true;
+          if (target.fallbackAttack) target.attack = Object.assign({}, target.fallbackAttack);
+          target.role = 'rifle';
+          target.squadDirty = true;
+        }
       }
     } else {
       hpDamage = amount;
     }
     return { shieldDamage, hpDamage };
+  }
+
+  // 爆尸爆炸：盾兵盾值 >0 且面朝爆心时，背后扇形内的队友只受 50%
+  function shieldGuardMul(state, h, ex, ey) {
+    if (!h || h.classId === 'shield') return 1;
+    const g = ZG.Data.humans.shield.guard;
+    for (const s of state.humans) {
+      if (!s.alive || s.classId !== 'shield' || s.shield <= 0) continue;
+      if (ZG.Geom.dist(s.x, s.y, ex, ey) > g.maxDist) continue;
+      const toEx = Math.atan2(ey - s.y, ex - s.x);
+      if (Math.abs(ZG.Geom.angleDiff(toEx, s.facing)) > g.facingHalfAngle * Math.PI / 180) continue;
+      if (ZG.Geom.dist(s.x, s.y, h.x, h.y) > g.allyRadius) continue;
+      const toAlly = Math.atan2(h.y - s.y, h.x - s.x);
+      if (Math.abs(ZG.Geom.angleDiff(toAlly, s.facing + Math.PI)) >
+          g.allyHalfAngle * Math.PI / 180) continue;
+      if (ZG.Geom.dist(ex, ey, s.x, s.y) >= ZG.Geom.dist(ex, ey, h.x, h.y)) continue;
+      return g.mul;
+    }
+    return 1;
   }
 
   function applyDamage(state, opts) {
@@ -285,7 +312,7 @@
 
   ZG.Combat = {
     applyDamage, applyBuildingDamage, killZombie, killHuman, attack, zombieHit,
-    heal, earn, resolveShield, tryConvert, convertZombie, captainExplosion,
+    heal, earn, resolveShield, shieldGuardMul, tryConvert, convertZombie, captainExplosion,
     isImmuneToInfection
   };
 })();

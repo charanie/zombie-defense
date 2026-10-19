@@ -37,7 +37,7 @@ test('人类数据表精确', () => {
   assert.equal((45 * 9 / (45 / 9 + 2)).toFixed(1), '57.9');
   assert.deepEqual([h.flame.attack.damage, h.flame.attack.interval, h.flame.attack.coneDeg], [5, 0.125, 50]);
   assert.deepEqual([h.rocket.attack.damage, h.rocket.attack.interval, h.rocket.attack.siegeBonus], [130, 2, 1.25]);
-  assert.deepEqual([h.shield.shieldHp, h.shield.attack.range], [250, 50]);
+  assert.deepEqual([h.shield.hp, h.shield.shieldHp, h.shield.attack.range], [650, 400, 50]);
   assert.deepEqual([h.medic.healRate, h.medic.serumLeft, h.medic.serumAmount], [20, 3, 50]);
   assert.deepEqual([h.civilian.cost, h.civilian.income], [40, 12]);
   assert.equal(ZG.Data.humanOrder.length, 8);

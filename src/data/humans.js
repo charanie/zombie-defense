@@ -64,14 +64,19 @@
       weak: '狂尸快速接近、爆尸近身'
     },
     shield: {
-      id: 'shield', name: '盾兵', role: 'tank', cost: 100, hp: 500, pop: 1, radius: 11,
-      color: C.shield, symbol: '盾', blurb: '前排坦克 / 嘲讽 · 据守不闪避',
+      id: 'shield', name: '盾兵', role: 'tank', cost: 100, hp: 650, pop: 1, radius: 11,
+      color: C.shield, symbol: '盾', blurb: '前排坦克 / 嘲讽 · 破盾后换手枪',
       moveSpeed: 64, vision: 220, huntRadius: 220, dodge: false,
-      shieldHp: 250, shieldReduction: 0.4, tauntRadius: 90,
+      shieldHp: 400, shieldReduction: 0.4, tauntRadius: 90,
       attack: {
         kind: 'melee', damage: 12, interval: 1, range: 50,
         damageKind: 'melee', rangeBonusRadius: true
       },
+      fallbackAttack: {
+        kind: 'ranged', damage: 12, interval: 0.5, range: 200,
+        damageKind: 'ranged', projectile: 'bullet', pellets: 1, spread: 0
+      },
+      guard: { maxDist: 220, facingHalfAngle: 75, allyRadius: 180, allyHalfAngle: 60, mul: 0.5 },
       counters: '普通/狂尸（挡路吸怪）',
       weak: '巨人、爆尸、母体'
     },

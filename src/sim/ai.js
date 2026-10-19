@@ -354,7 +354,8 @@
   /* ---------------- 人类 ---------------- */
 
   function pickHumanTarget(state, h) {
-    if (!h.attack || h.classId === 'shield' || h.classId === 'civilian') return null;
+    if (!h.attack || h.classId === 'civilian') return null;
+    if (h.classId === 'shield' && !h.shieldBroken) return null;
     if (h.classId === 'samurai' || h.heroId === 'samurai') {
       const list = zombiesInRange(state, h, 180);
       if (!list.length) return null;

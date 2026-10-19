@@ -70,6 +70,9 @@
       h.squadDirty = false;
       h.formationX = h.x;
       h.formationY = h.y;
+      if (h.baseAttack) h.attack = Object.assign({}, h.baseAttack);
+      if (h.baseRole) h.role = h.baseRole;
+      if (h.maxShield > 0) { h.shield = h.maxShield; h.shieldBroken = false; }
       if (h.classId === 'medic') h.serumLeft = ZG.Balance.serumCount(state.tech.serum);
     }
     state.squads = [];
@@ -228,7 +231,13 @@
 
     // 7. 建筑：护盾恢复、地雷重布、废墟清理
     for (const h of state.humans) {
-      if (h.alive && h.maxShield > 0) h.shield = h.maxShield;
+      if (!h.alive) continue;
+      if (h.maxShield > 0) {
+        h.shield = h.maxShield;
+        h.shieldBroken = false;
+        if (h.baseAttack) h.attack = Object.assign({}, h.baseAttack);
+        if (h.baseRole) h.role = h.baseRole;
+      }
     }
     for (const b of state.buildings) {
       if (b.alive && b.typeId === 'mine') b.charges = ZG.Data.buildings.mine.mine.charges;
