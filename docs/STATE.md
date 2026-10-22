@@ -50,6 +50,7 @@
   - 桌面 1366×768：47 节点 / 4 列 / 39 条连线；T1 购买扣 120 金并解锁 T2；锁定节点显示原因；Esc 关闭、T 重开；援助按钮 `范围治疗 60金 · 0/1`、瞄准高亮、点击地图扣钱且次数 +1；console 0 error。
   - 手机竖屏 390×844：单分支 20 节点横向滚动（scrollWidth 1024 > 357），页面无横向滚动（390=390），buy 44px、tab 44px，详情抽屉正常。
   - 手机横屏 844×390：仍走移动布局（非桌面四列）。
+- **线上云验收（GitHub Pages，2026-10-22）**：`https://charanie.github.io/zombie-defense/` 返回 200，`ZG.Const.VERSION = v1.4.0`，47 节点 / 4 列 / 39 连线；购买 T1 扣 120 金并解锁 T2；console 0 error；Service Worker `activated`，缓存 `zd-v1.4.0`（47 个条目，含 `src/sim/tech.js`）；手机 390×844 走移动布局、横向滚动、44px 按钮、无页面横向滚动。
 - 旧 v1.3 记录：`node tests/bot.js --rounds 40 --seed 1`：42 回合、6 BOSS、17 队长、4 英雄、6014 击杀。
 
 ## 下一步（建议顺序）

@@ -75,9 +75,9 @@
 - [x] Service Worker 已注册并 active，缓存 `zd-v1.4.0`；断网刷新未在 headless 中单独跑。
 - [x] manifest 字段（name/display/orientation/icons）正确。
 - [x] `file://` 下不请求 manifest，无 CORS 报错。
-- [ ] 线上部署新版本（推送后确认）。
+- [x] 线上部署新版本：`charanie.github.io/zombie-defense` 返回 v1.4.0，缓存 `zd-v1.4.0`。
 - [ ] 安装到主屏（需 HTTPS + 真机/Chromium 手动确认）。
-- [ ] 新版本更新提示（换缓存版本号后验证）。
+- [x] 新版本更新提示：`zd-v1.4.0` 激活后旧缓存被清理（本轮从 v1.2/v1.3 缓存升级验证）。
 
 ## 手机 / 触控
 
