@@ -94,5 +94,8 @@ test('批次总量、时长与 BOSS 位置', () => {
   for (const b of w.batches) assert.ok(b.spawns.length >= 6 && b.spawns.length <= 12);
   assert.equal(w.batches[0].at, 5);
   assert.ok(w.batches.every((b, i) => i === 0 || b.at - w.batches[i - 1].at >= 5));
-  assert.ok(w.batches.some(b => b.spawns.some(s => s.type === 'boss')));
+  assert.ok(ZG.Data.bossOrder.includes(w.bossType));
+  const bosses = w.batches.flatMap(b => b.spawns).filter(s => ZG.Data.bossOrder.includes(s.type));
+  assert.equal(bosses.length, 1);
+  assert.equal(bosses[0].type, w.bossType);
 });

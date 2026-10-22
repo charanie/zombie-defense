@@ -1,16 +1,26 @@
 # 项目状态（SESSION HANDOFF）
 
-> 更新：2026-10-19
+> 更新：2026-10-22
 
 ## 当前状态
 
-- **版本**：v1.2.0，M1–M4 + v1.1 人类自主 AI + v1.2 小队/自由布阵/四面来袭/移动端已完成。
-- **阶段**：开发完成；自动化验证全绿，**待浏览器/真机 QA**（Task 12）。
+- **版本**：v1.3.0，M1–M4 + v1.1 人类自主 AI + v1.2 小队/自由布阵/四面来袭/移动端 + v1.3 BOSS 体系已完成。
+- **阶段**：开发完成；自动化验证全绿，**待浏览器/真机 QA**。
 - **在线地址**：<https://charanie.github.io/zombie-defense/>
 - **可运行**：双击 `index.html`；或 `python -m http.server 8765` 后访问 `http://127.0.0.1:8765/`。
-- **测试**：`npm test` → 161 项全部通过。
-- **性能**：300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 1.4`（预算 2.5）、`maxStepMs ≈ 13`。
-- **Bot**：郊区公路 seed 1 混合阵容到第 42 回合（R40 通关级）；纯火箭兵在 R7 失败（`--rocket-only`）。
+- **测试**：`npm test` → 188 项全部通过。
+- **性能**：300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 1.32`（预算 2.5）、`maxStepMs ≈ 13.4`。
+- **Bot**：郊区公路 seed 1 混合阵容到第 42 回合（R40 通关级）；四只 BOSS 跨 seed 均已出现并击杀；纯火箭兵在 R7 失败（`--rocket-only`）。
+
+## v1.3.0 已完成
+
+- **BOSS 池**：`bossOrder` 四只（坦克/裂爪/腐吐者/母巢），R7 起排除上一只等概率；独立 `rng.boss` 流，`lastBossType` 跨回合记忆。
+- **坦克调整**：投石 4s → 7s、首发 2.5s；参数迁入 `zombies.js` 的 `boss.rock/boss.stomp`。
+- **裂爪**：78 速度、45% 血量；260 内优先非盾；0.45s 直线预警 → 750 速冲刺 0.4s → 0.9s 硬直。
+- **腐吐者**：36% 血量、距离带移动；三弹 50/35/15；毒云 3.5s DOT 不吃盾、不叠层；爆炸弹直击/25% 溅射。
+- **母巢**：60% 血量；每 5s 孵 2 只、上限 8；半径 150 光环 +15% 速度/+20% 伤害；死亡爆 3 只幼体。
+- **通用**：`isBoss` 数据驱动；`bossHp(R,hpMul)`、`bossSkillDamage`、`bossPrimaryDamage`；毒伤管线与 `ignoreShield`。
+- **表现**：四套 BOSS 像素精灵、冲刺预警/残影、毒云、召唤脉冲、光环与增益光点、`dash/spit/summon` 音效。
 
 ## v1.2.0 已完成
 
@@ -25,23 +35,27 @@
 
 ## 验证记录
 
-- `npm test`：161/161 通过（2026-10-19，含评审修复回归）。
-- `node tests/bench.js`：`avgStepMs≈1.39 maxStepMs≈14`（多次运行）。
-- `node tests/bot.js --rounds 40 --seed 1`：42 回合、5 BOSS、20 队长、4 英雄、6048 击杀。
+- `npm test`：188/188 通过（2026-10-22，含 v1.3 BOSS 测试与本轮回归）。
+- `node tests/bench.js`：`avgStepMs≈1.32 maxStepMs≈13.4`。
+- `node tests/bot.js --rounds 40 --seed 1`：42 回合、6 BOSS、17 队长、4 英雄、6014 击杀。
+- 多 seed（1–4）：均到达 R42；裂爪/腐吐者/母巢均实际出现并被击杀。
 - `node tests/bot.js --rounds 40 --seed 1 --rocket-only`：7 回合失败。
 - 确定性：`tests/acceptance.test.js` 的同种子回放与两次 bot 输出一致。
-- 浏览器 QA（Playwright Chromium，2026-10-19）：
+- 浏览器 QA（Playwright Chromium，2026-10-19 v1.2 矩阵 + 2026-10-22 v1.3 复测）：
   - 桌面 1366×768：菜单/选图/招募/建造（围墙横竖）/开始回合/暂停均正常；canvas 1366×563、top 46、bottom 159，三段不重叠；console 0 error。
   - 手机横屏 844×390（触控模拟）：canvas 844×230、top 40、bottom 120；按钮高度 44px；指针落点准确。
   - 手机竖屏 390×844（触控模拟）：无阻断遮罩；竖屏提示条显示/可关闭/持久化；设置最后一项可见；指针落点精确（640,400 → 640,400）；无横向滚动。
   - 超宽屏 2844×1280：世界 scale 1.45、offsetX 494 居中；左右背景填充；无横向滚动。
-  - PWA：Service Worker active，缓存 `zd-v1.2.0`。
+  - **v1.3 桌面**：四只 BOSS 像素精灵、裂爪直线预警与箭头、腐吐者口部弹种高亮、毒云、母巢半径 150 光环均正常渲染；HUD 血条显示 `BOSS 母巢 711/1,580`；战斗 15 秒内孵化 5 只幼体、人类正常伤亡；console 0 error。
+  - **v1.3 移动端 390×844**：BOSS 名称单行（高 14px、宽 218px），无横向滚动（scrollWidth=390）。
+  - **v1.3 图鉴**：坦克/裂爪/腐吐者/母巢四条均显示。
+  - PWA：Service Worker active，缓存 `zd-v1.3.0`。
   - 修复：竖屏提示条中文逐字换行 → `white-space: nowrap` + `max-width`。
-  - 未覆盖：真实设备旋转/刘海安全区/微信内置浏览器；`screen.orientation.lock` 在 headless 中无法验证。
+  - 未覆盖：真实设备旋转/刘海安全区/微信内置浏览器；`screen.orientation.lock` 在 headless 中无法验证；毒云/冲刺在真机的可读性待试玩。
 
 ## 下一步（建议顺序）
 
-1. **浏览器/真机 QA**：按 `qa/checklist.md` 走查；重点看竖屏弹窗滚动、设置最后一项、触控落点、宽屏居中。
+1. **浏览器/真机 QA**：按 `qa/checklist.md` 走查；重点看四种 BOSS 的像素精灵、冲刺预警/残影、毒云、光环，以及竖屏弹窗滚动、设置最后一项、触控落点、宽屏居中。
 2. **平衡复测**：真人试玩 R1–20；多 seed 的 bot 结果波动较大，后续可继续调整 bot 策略或小队目标选择。
 3. **分享**：生成指向线上地址的二维码；发朋友试玩。
 4. 可选：Electron/Tauri 桌面壳、更多地图与成就。

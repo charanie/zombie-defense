@@ -7,6 +7,11 @@ function runBot(opts) {
   const o = opts || {};
   const maxRounds = o.maxRounds || 20;
   const s = ZG.Sim.createGame({ mapId: o.mapId || 'suburban', seed: o.seed || 1 });
+  const bossSeen = {};
+  s.bus.on(ZG.Events.BOSS_SPAWNED, p => {
+    const t = p.zombie.typeId;
+    bossSeen[t] = (bossSeen[t] || 0) + 1;
+  });
   const metrics = [];
   let over = false;
 
@@ -51,6 +56,7 @@ function runBot(opts) {
     rounds: metrics.length ? metrics[metrics.length - 1].round : 0,
     over,
     bossKills: s.stats.bossKills || 0,
+    bossSeen,
     captains: s.stats.captains || 0,
     heroes: s.stats.heroes || 0,
     kills: s.stats.totalKills || 0,
@@ -63,6 +69,7 @@ function format(r) {
   const lines = [];
   lines.push(`bot map=${r.mapId} seed=${r.seed} rounds=${r.rounds} over=${r.over} ` +
     `bossKills=${r.bossKills} captains=${r.captains} heroes=${r.heroes} kills=${r.kills}`);
+  lines.push('bossSeen ' + JSON.stringify(r.bossSeen));
   lines.push('round duration kills money humans pop buildings status');
   for (const m of r.metrics) {
     lines.push([m.round, m.durationSec, m.kills, m.money, m.humans, m.pop,

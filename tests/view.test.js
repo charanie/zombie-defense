@@ -78,9 +78,38 @@ test('音效名表与静音状态', () => {
   const A = ZG.Audio.create({ ctxFactory: () => null });
   assert.ok(A.names.includes('pistol'));
   assert.ok(A.names.includes('bossRoar'));
+  for (const n of ['dash', 'spit', 'summon']) assert.ok(A.names.includes(n), n);
   A.setMuted(true);
   assert.equal(A.isMuted(), true);
   A.play('pistol');
+});
+
+test('BOSS 血条名称来自实体，四种 BOSS 各自正确', () => {
+  for (const id of ZG.Data.bossOrder) {
+    const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+    s.round = 7;
+    const z = ZG.State.spawnZombie(s, id, 600, 300);
+    const bar = ZG.Model.topBar(s);
+    assert.equal(bar.boss.id, z.id, id);
+    assert.equal(bar.boss.name, ZG.Data.zombies[id].name, id);
+  }
+});
+
+test('图鉴 BOSS 血量只显示基础值，不重复乘 hpMul', () => {
+  for (const id of ZG.Data.bossOrder) {
+    const d = ZG.Data.zombies[id];
+    const text = ZG.Model.bossCodexText(id);
+    assert.ok(text.includes('HP ' + d.hp), id + ' → ' + text);
+    assert.ok(!text.includes('×'), id + ' 不应出现倍率：' + text);
+  }
+});
+
+test('波次预览 BOSS 显示为随机 BOSS', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
+  s.round = 7;
+  const p = ZG.Model.wavePreview(s);
+  const boss = p.formation.find(x => x.id === 'boss');
+  assert.equal(boss.name, '随机 BOSS');
 });
 
 test('世界等比居中', () => {

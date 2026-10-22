@@ -61,13 +61,69 @@
       id: 'boss', name: 'BOSS 坦克', hp: 1200, speed: 14, damage: 80, bounty: 400,
       radius: 30, unlock: 7, color: C.boss, symbol: '▲', attackInterval: 1.5,
       infection: { chance: 0, amount: 0 }, isBoss: true, isSiege: false,
-      rock: { interval: 4, radius: 70, warn: 2.0, infection: 30, sidestep: 60 },
-      stomp: { radius: 60, damage: 80, interval: 1.5 },
+      boss: {
+        kind: 'tank', hpMul: 1,
+        rock: {
+          interval: 7, firstDelay: 2.5, radius: 70, warn: 2.0,
+          damageBase: 80, damageGrowth: 6, infection: 30, sidestep: 60
+        },
+        stomp: { radius: 60, damage: 80, interval: 1.5 }
+      },
       special: '远程抛石 + 近身践踏；血量与奖励随回合成长'
+    },
+    boss_ripper: {
+      id: 'boss_ripper', name: 'BOSS 裂爪', hp: 540, speed: 78, damage: 60, bounty: 400,
+      radius: 19, unlock: 7, color: C.bossRipper, symbol: '爪', attackInterval: 1.1,
+      isBoss: true, isSiege: false, infection: { chance: 0, amount: 0 },
+      boss: {
+        kind: 'ripper', hpMul: 0.45,
+        melee: { damageBase: 60, damageGrowth: 6, interval: 1.1 },
+        dash: {
+          firstDelay: 2.0, cooldown: 5, windup: 0.45, duration: 0.4, speed: 750,
+          minRange: 80, maxRange: 320, hitRadius: 6,
+          damageBase: 85, damageGrowth: 7, stagger: 0.9
+        }
+      },
+      special: '高速近战；0.45 秒直线预警后冲刺，冲刺后硬直 0.9 秒'
+    },
+    boss_spitter: {
+      id: 'boss_spitter', name: 'BOSS 腐吐者', hp: 432, speed: 30, damage: 0, bounty: 400,
+      radius: 22, unlock: 7, color: C.bossSpitter, symbol: '吐', attackInterval: 1.5,
+      isBoss: true, isSiege: false, infection: { chance: 0, amount: 0 },
+      boss: {
+        kind: 'spitter', hpMul: 0.36, range: 240, stopRange: 200, retreatRange: 120,
+        firstDelay: 1.0, interval: 2.2, windup: 0.35,
+        bullets: [
+          { id: 'normal', chance: 0.50, speed: 420, radius: 5, splash: 16,
+            color: '#A5D6A7', damageBase: 14, damageGrowth: 2 },
+          { id: 'poison', chance: 0.35, speed: 380, radius: 6, splash: 65,
+            color: '#2E7D32', damageBase: 6, damageGrowth: 1,
+            dot: { duration: 3.5, dpsBase: 9, dpsGrowth: 0.9, radius: 65 } },
+          { id: 'explosive', chance: 0.15, speed: 360, radius: 7, splash: 60,
+            color: '#FF7043', damageBase: 45, damageGrowth: 4, splashMul: 0.25 }
+        ]
+      },
+      special: '短程吐弹：普通 50% / 毒液 35% / 爆炸 15%；毒云持续伤害'
+    },
+    boss_brood: {
+      id: 'boss_brood', name: 'BOSS 母巢', hp: 720, speed: 20, damage: 0, bounty: 400,
+      radius: 26, unlock: 7, color: C.bossBrood, symbol: '巢', attackInterval: 1.5,
+      isBoss: true, isSiege: false, infection: { chance: 0, amount: 0 },
+      boss: {
+        kind: 'brood', hpMul: 0.60,
+        summon: {
+          firstDelay: 2, interval: 5, count: 2, windup: 0.6, maxAlive: 8,
+          type: 'baby', waveCap: 30, radiusMin: 8, radiusMax: 40
+        },
+        aura: { radius: 150, speedMul: 1.15, damageMul: 1.2 },
+        deathBabies: 3, deathFxRadius: 100
+      },
+      special: '持续孵化幼体；周围僵尸移速 +15%、伤害 +20%；死亡爆 3 只幼体'
     }
   };
 
   ZG.Data = ZG.Data || {};
   ZG.Data.zombies = zombies;
   ZG.Data.zombieOrder = ['walker', 'runner', 'shield', 'boomer', 'mother', 'giant'];
+  ZG.Data.bossOrder = ['boss', 'boss_ripper', 'boss_spitter', 'boss_brood'];
 })();

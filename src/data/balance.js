@@ -24,11 +24,35 @@
     const lvl = econLevel || 0;
     return Math.floor((60 + 12 * R) * (1 + 0.08 * lvl));
   }
-  function bossHp(R) {
-    return 1200 * pow(1.14, R - 1);
+  function bossHp(R, hpMul) {
+    return 1200 * pow(1.14, R - 1) * (hpMul === undefined ? 1 : hpMul);
+  }
+  function bossSkillDamage(base, growth, R) {
+    return base + growth * R;
   }
   function bossRockDamage(R) {
-    return 80 + 6 * R;
+    return bossSkillDamage(80, 6, R);
+  }
+  // 图鉴/悬浮提示用：该 BOSS 当回合最具威胁的单次伤害
+  function bossPrimaryDamage(typeId, R) {
+    const data = ZG.Data.zombies[typeId];
+    const bd = data && data.boss;
+    if (!bd) return 0;
+    if (bd.kind === 'tank' && bd.rock) {
+      return bossSkillDamage(bd.rock.damageBase, bd.rock.damageGrowth, R);
+    }
+    if (bd.kind === 'ripper') {
+      const melee = bd.melee
+        ? bossSkillDamage(bd.melee.damageBase, bd.melee.damageGrowth, R) : 0;
+      const dash = bd.dash
+        ? bossSkillDamage(bd.dash.damageBase, bd.dash.damageGrowth, R) : 0;
+      return Math.max(melee, dash);
+    }
+    if (bd.kind === 'spitter') {
+      const boom = (bd.bullets || []).find(k => k.id === 'explosive');
+      return boom ? bossSkillDamage(boom.damageBase, boom.damageGrowth, R) : 0;
+    }
+    return 0;
   }
   function bossReward(R) {
     return 400 + 50 * R;
@@ -68,7 +92,8 @@
 
   ZG.Balance = {
     TECH_MAX, zombieHp, zombieDamage, zombieSpeed, bounty, roundReward,
-    bossHp, bossRockDamage, bossReward, populationCap, techCost, techMul,
+    bossHp, bossRockDamage, bossSkillDamage, bossPrimaryDamage, bossReward,
+    populationCap, techCost, techMul,
     econRewardMul, serumCount, zombieCount, mineDamage, slotSlowMax
   };
 })();

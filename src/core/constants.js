@@ -31,6 +31,9 @@
       giant: '#33691E',
       baby: '#AED581',
       boss: '#37474F',
+      bossRipper: '#8E1B1B',
+      bossSpitter: '#6B7F3A',
+      bossBrood: '#5E3A5E',
       turned: '#9CCC65'
     },
     infection: '#AB47BC',
@@ -45,7 +48,7 @@
   };
 
   ZG.Const = Object.freeze({
-    VERSION: 'v1.2.0',
+    VERSION: 'v1.3.0',
     W: 1280,
     H: 720,
     STEP_MS: 1000 / 60,
@@ -100,7 +103,8 @@
       RANGED: 'ranged',
       MELEE: 'melee',
       FIRE: 'fire',
-      EXPLOSION: 'explosion'
+      EXPLOSION: 'explosion',
+      POISON: 'poison'
     }),
 
     COLORS: Object.freeze(COLORS)

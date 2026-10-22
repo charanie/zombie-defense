@@ -131,7 +131,9 @@
 
     const amount = Math.max(0, opts.amount || 0);
     const damageKind = opts.damageKind || D.RANGED;
-    const r = resolveShield(target, amount, damageKind, opts.fromX, opts.fromY);
+    const r = opts.ignoreShield
+      ? { shieldDamage: 0, hpDamage: amount }
+      : resolveShield(target, amount, damageKind, opts.fromX, opts.fromY);
     target.hp -= r.hpDamage;
     if (!opts.silent) {
       target.flashT = 0.08;
@@ -168,6 +170,21 @@
       return { shieldDamage: 0, hpDamage: amount, killed: true };
     }
     return { shieldDamage: 0, hpDamage: amount, killed: false };
+  }
+
+  function spawnBabies(state, z, n, cap, minR, maxR) {
+    let spawned = 0;
+    for (let k = 0; k < n; k++) {
+      if ((state.battle.babyCount || 0) >= cap) break;
+      const a = state.rng.spawn.next() * Math.PI * 2;
+      const rr = minR + state.rng.spawn.next() * (maxR - minR);
+      const bz = ZG.State.spawnZombie(state, 'baby',
+        z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+      bz.wave = z.wave;
+      state.battle.babyCount = (state.battle.babyCount || 0) + 1;
+      spawned++;
+    }
+    return spawned;
   }
 
   function killZombie(state, z) {
@@ -212,9 +229,17 @@
       state.bus.emit('fx:explosion', { x: z.x, y: z.y, radius: R, color: '#8E24AA', kind: 'mother' });
     }
 
-    if (t === 'boss') {
+    if (z.isBoss) {
+      const bd = (ZG.Data.zombies[t] || {}).boss;
+      if (bd && bd.kind === 'brood') {
+        const s = bd.summon;
+        spawnBabies(state, z, bd.deathBabies, s.waveCap, s.radiusMin, s.radiusMax);
+        state.bus.emit('fx:explosion', {
+          x: z.x, y: z.y, radius: bd.deathFxRadius, color: '#8E24AA', kind: 'brood'
+        });
+      }
       state.stats.bossKills = (state.stats.bossKills || 0) + 1;
-      state.battle.bossId = null;
+      if (state.battle.bossId === z.id) state.battle.bossId = null;
       state.bus.emit('fx:explosion', { x: z.x, y: z.y, radius: 140, color: '#FF7043', kind: 'boss' });
       if (ZG.Heroes) ZG.Heroes.grant(state);
     }
