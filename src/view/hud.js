@@ -415,7 +415,7 @@
     for (const id of ZG.Data.bossOrder) {
       const d = ZG.Data.zombies[id];
       codexHtml.push('<div class="codex-item"><b style="color:' + d.color + '">' + d.name + '</b>' +
-        '　HP ' + d.hp + ' × ' + d.boss.hpMul + ' · ' + d.special + '</div>');
+        '　' + ZG.Model.bossCodexText(id) + '</div>');
     }
     codexHtml.push('</div>');
     codexHtml.push('<h4>英雄</h4><div class="codex-grid">');

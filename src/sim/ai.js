@@ -1298,8 +1298,10 @@
       z.summonWindupT = tickDown(z.summonWindupT, dt);
       if (z.summonWindupT <= 0) {
         const alive = state.zombies.filter(o => o.alive && o.typeId === s.type).length;
+        const room = ZG.Spawner.zombieCap(state) -
+          state.zombies.filter(o => o.alive).length;
         const n = Math.max(0, Math.min(s.count, s.maxAlive - alive,
-          s.waveCap - (state.battle.babyCount || 0)));
+          s.waveCap - (state.battle.babyCount || 0), room));
         for (let i = 0; i < n; i++) {
           const a = state.rng.spawn.next() * Math.PI * 2;
           const rr = s.radiusMin + state.rng.spawn.next() * (s.radiusMax - s.radiusMin);

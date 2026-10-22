@@ -53,6 +53,13 @@
     return { disabled: reason !== null, reason, cost: data.cost, count, limit };
   }
 
+  // 图鉴用：BOSS 的 d.hp 已经是 1200 × hpMul 的基础值，不能再乘一次
+  function bossCodexText(typeId) {
+    const d = ZG.Data.zombies[typeId];
+    if (!d) return '';
+    return 'HP ' + d.hp + ' · ' + d.special;
+  }
+
   function wavePreview(state) {
     const p = ZG.Waves.preview(state.round);
     p.formation = (ZG.Data.zombieOrder || []).map(id => ({
@@ -200,7 +207,7 @@
 
   ZG.Model = {
     topBar, cardState, buildingCard, wavePreview, humanInfo, zombieInfo,
-    buildingInfo, techRow, touchTargetSize, tutorialSteps
+    buildingInfo, techRow, touchTargetSize, tutorialSteps, bossCodexText
   };
   ZG.Tutorial = { create: createTutorial };
 })();

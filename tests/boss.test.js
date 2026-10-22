@@ -308,6 +308,18 @@ test('母巢：每 5 秒孵 2 只，自身上限 8 只', () => {
   assert.ok(babies(s) >= 7, '持续孵化，实际 ' + babies(s));
 });
 
+test('母巢孵化不超过同屏僵尸上限', () => {
+  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1, quality: 'mobile' });
+  ZG.State.spawnHuman(s, 'shield', 1200, 700);
+  ZG.State.spawnZombie(s, 'boss_brood', 400, 300);
+  while (s.zombies.length < ZG.Const.ZOMBIE_CAP_MOBILE) {
+    ZG.State.spawnZombie(s, 'walker', 1000 + (s.zombies.length % 10), 100);
+  }
+  tickAI(s, 180);
+  assert.ok(s.zombies.length <= ZG.Const.ZOMBIE_CAP_MOBILE,
+    '实际 ' + s.zombies.length);
+});
+
 test('母巢光环：半径内 +15% 移速 / +20% 伤害，离开恢复', () => {
   const s = setup(7);
   ZG.State.spawnHuman(s, 'shield', 1100, 600);

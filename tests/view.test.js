@@ -95,6 +95,15 @@ test('BOSS 血条名称来自实体，四种 BOSS 各自正确', () => {
   }
 });
 
+test('图鉴 BOSS 血量只显示基础值，不重复乘 hpMul', () => {
+  for (const id of ZG.Data.bossOrder) {
+    const d = ZG.Data.zombies[id];
+    const text = ZG.Model.bossCodexText(id);
+    assert.ok(text.includes('HP ' + d.hp), id + ' → ' + text);
+    assert.ok(!text.includes('×'), id + ' 不应出现倍率：' + text);
+  }
+});
+
 test('波次预览 BOSS 显示为随机 BOSS', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
   s.round = 7;
