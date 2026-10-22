@@ -3,12 +3,10 @@
   'use strict';
   const ZG = globalThis.ZG = globalThis.ZG || {};
 
-  const TECH_MAX = 10;
-
   function pow(base, n) { return Math.pow(base, n); }
 
   function zombieHp(base, R) {
-    return base * pow(1.06, R - 1);
+    return base * pow(1.062, R - 1);
   }
   function zombieDamage(base, R) {
     return base * Math.min(1.5, pow(1.01, R - 1));
@@ -25,7 +23,7 @@
     return Math.floor((60 + 12 * R) * mul);
   }
   function bossHp(R) {
-    return 1200 * pow(1.14, R - 1);
+    return 1200 * pow(1.143, R - 1);
   }
   function bossRockDamage(R) {
     return 80 + 6 * R;
@@ -35,24 +33,6 @@
   }
   function populationCap(R) {
     return Math.min(80, 8 + 2 * R);
-  }
-  function techCost(line, level) {
-    if (line === 'fire' || line === 'armor') return Math.floor(120 * pow(1.45, level));
-    return Math.floor(100 * pow(1.40, level));
-  }
-  function techMul(line, level) {
-    const lvl = Math.max(0, Math.min(TECH_MAX, level || 0));
-    if (line === 'fire') return 1 + 0.05 * lvl;
-    if (line === 'armor') return 1 + 0.06 * lvl;
-    if (line === 'econ') return 1 + 0.04 * lvl;
-    if (line === 'serum') return 1 + 0.05 * lvl;
-    return 1;
-  }
-  function econRewardMul(level) {
-    return 1 + 0.08 * Math.max(0, Math.min(TECH_MAX, level || 0));
-  }
-  function serumCount(level) {
-    return 3 + Math.max(0, Math.min(TECH_MAX, level || 0));
   }
   function zombieCount(R) {
     return 6 + 5 * R;
@@ -77,9 +57,9 @@
   }
 
   ZG.Balance = {
-    TECH_MAX, zombieHp, zombieDamage, zombieSpeed, bounty, roundReward,
-    bossHp, bossRockDamage, bossReward, populationCap, techCost, techMul,
-    econRewardMul, serumCount, zombieCount, mineDamage, slotSlowMax,
+    zombieHp, zombieDamage, zombieSpeed, bounty, roundReward,
+    bossHp, bossRockDamage, bossReward, populationCap,
+    zombieCount, mineDamage, slotSlowMax,
     treeNodeCost, bankDamageMul, supportDamage, deathBoomDamage
   };
 })();

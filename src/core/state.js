@@ -146,7 +146,6 @@
       healT: 0,
       inspireT: 0,
       warmup: data.attack && data.attack.warmup ? data.attack.warmup : 0,
-      abilityUsed: false,
       abilityT: 0,
       dispelCd: 0,
       groupHealCd: 0,

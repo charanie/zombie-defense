@@ -730,26 +730,6 @@
     }
   }
 
-  function samuraiSlash(state, h) {
-    const ca = Math.cos(h.facing), sa = Math.sin(h.facing);
-    for (const z of state.zombies.slice()) {
-      if (!z.alive) continue;
-      const dx = z.x - h.x, dy = z.y - h.y;
-      const along = dx * ca + dy * sa;
-      const lat = -dx * sa + dy * ca;
-      if (along >= -10 && along <= 320 && Math.abs(lat) <= 40) {
-        ZG.Combat.applyDamage(state, {
-          target: z, amount: 300, damageKind: D.MELEE,
-          fromX: h.x, fromY: h.y, sourceIsHuman: true
-        });
-      }
-    }
-    state.effects.push({
-      kind: 'slash', x: h.x, y: h.y, facing: h.facing,
-      length: 320, width: 80, life: 0.18, maxLife: 0.18
-    });
-  }
-
   function stepShield(state, h, dt) {
     const c = ZG.Data.humanAi.squad;
     const st = ZG.Stats.human(state, h);

@@ -4,7 +4,7 @@ const ZG = require('./load-sim.js')();
 
 test('难度公式与计划书一致', () => {
   assert.equal(ZG.Balance.zombieHp(90, 1), 90);
-  assert.equal(ZG.Balance.zombieHp(90, 7).toFixed(2), '127.67');
+  assert.equal(ZG.Balance.zombieHp(90, 7).toFixed(2), '129.12');
   assert.equal(ZG.Balance.zombieDamage(8, 51), 12);
   assert.equal(ZG.Balance.zombieSpeed(38, 60), 47.5);
   assert.equal(ZG.Balance.bounty(6, 7), 7);
@@ -12,22 +12,10 @@ test('难度公式与计划书一致', () => {
   assert.equal(ZG.Balance.populationCap(7), 22);
   assert.equal(ZG.Balance.populationCap(40), 80);
   assert.equal(ZG.Balance.roundReward(1), 72);
-  assert.equal(ZG.Balance.bossHp(7).toFixed(2), '2633.97');
+  assert.equal(ZG.Balance.bossHp(7).toFixed(2), '2675.83');
   assert.equal(ZG.Balance.bossRockDamage(7), 122);
   assert.equal(ZG.Balance.bossReward(7), 750);
   assert.equal(ZG.Balance.mineDamage(7).toFixed(2), (120 * Math.pow(1.06, 6)).toFixed(2));
-});
-
-test('科技费用与倍率', () => {
-  assert.equal(ZG.Balance.techCost('fire', 0), 120);
-  assert.equal(ZG.Balance.techCost('fire', 1), 174);
-  assert.equal(ZG.Balance.techCost('econ', 0), 100);
-  assert.equal(ZG.Balance.techCost('econ', 1), 140);
-  assert.equal(ZG.Balance.techMul('fire', 10), 1.5);
-  assert.equal(ZG.Balance.techMul('armor', 10).toFixed(2), '1.60');
-  assert.equal(ZG.Balance.techMul('econ', 10).toFixed(2), '1.40');
-  assert.equal(ZG.Balance.econRewardMul(1).toFixed(2), '1.08');
-  assert.equal(ZG.Balance.serumCount(3), 6);
 });
 
 test('人类数据表精确', () => {

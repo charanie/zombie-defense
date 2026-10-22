@@ -10,7 +10,7 @@
 | 模块 | 经典 `<script>` + `window.ZG` | `file://` 双击可玩 |
 | 渲染 | Canvas 2D 双层 + DOM/CSS HUD | 静态背景层 / 动态战场层 |
 | 模拟 | 固定步长 1/60s 累加器 | 每帧最多追 5 步 |
-| 随机 | mulberry32 命名流（spawn/promote/hero/jitter/fx） | 同种子可复现 |
+| 随机 | mulberry32 命名流（spawn/promote/hero/jitter/fx/tech/skills） | 同种子可复现 |
 | 寻路 | 32px 网格 + 人类源多源 BFS 流场 | 战斗中每 15 步重建；建造/摧毁立即重建 |
 | 空间查询 | 64px 空间哈希 | 索敌、AOE、分离 |
 | 存档 | `localStorage`（try/catch），`Platform` 抽象 | 预留 Electron/Tauri/Steam |
@@ -55,7 +55,16 @@ main.js 组装、主循环、输入回调、PWA
 index.html styles.css manifest.webmanifest sw.js icons/ src/
 ```
 
-Service Worker 版本号在 `sw.js` 的 `CACHE` 常量（当前 `zd-v1.2.0`）；发版时递增并清理旧缓存。部署使用 SSH 推送到 GitHub Pages（本机 `github.com:443` 被阻断）。
+Service Worker 版本号在 `sw.js` 的 `CACHE` 常量（当前 `zd-v1.4.0`）；发版时递增并清理旧缓存。部署使用 SSH 推送到 GitHub Pages（本机 `github.com:443` 被阻断）。
+
+## v1.4 新增模块
+
+- `src/data/tech.js`：47 节点、4 分支、层级价、援助/转化/技能参数；纯数据。
+- `src/sim/tech.js`：等级、前置、`buy`、`mods` 效果聚合缓存、建筑上限、援助费用/半径。
+- `src/sim/skills.js`：8 职业被动/主动、英雄强化后行为、复活/尸爆/再生、场外援助。
+- `src/view/techLayout.js`：纯函数树布局（纵向/横向、节点矩形、SVG 连线）。
+- `src/view/techPanel.js`：科技模态 DOM、节点状态、详情与购买、焦点锁；顶层不访问 document。
+- 状态新增 `tech.ranks`、`techMods`、`supports.uses`、`ui.showTech/techBranch/techNodeId/pendingSupport`，以及人类技能/焦点/复活字段、僵尸眩晕/嘲讽字段。
 
 ## v1.2 新增模块
 
