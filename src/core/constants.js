@@ -31,6 +31,9 @@
       giant: '#33691E',
       baby: '#AED581',
       boss: '#37474F',
+      bossRipper: '#8E1B1B',
+      bossSpitter: '#6B7F3A',
+      bossBrood: '#5E3A5E',
       turned: '#9CCC65'
     },
     infection: '#AB47BC',
@@ -100,7 +103,8 @@
       RANGED: 'ranged',
       MELEE: 'melee',
       FIRE: 'fire',
-      EXPLOSION: 'explosion'
+      EXPLOSION: 'explosion',
+      POISON: 'poison'
     }),
 
     COLORS: Object.freeze(COLORS)

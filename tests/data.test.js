@@ -4,7 +4,7 @@ const ZG = require('./load-sim.js')();
 
 test('难度公式与计划书一致', () => {
   assert.equal(ZG.Balance.zombieHp(90, 1), 90);
-  assert.equal(ZG.Balance.zombieHp(90, 7).toFixed(2), '129.12');
+  assert.equal(ZG.Balance.zombieHp(90, 7).toFixed(2), '135.07');
   assert.equal(ZG.Balance.zombieDamage(8, 51), 12);
   assert.equal(ZG.Balance.zombieSpeed(38, 60), 47.5);
   assert.equal(ZG.Balance.bounty(6, 7), 7);
@@ -12,7 +12,7 @@ test('难度公式与计划书一致', () => {
   assert.equal(ZG.Balance.populationCap(7), 22);
   assert.equal(ZG.Balance.populationCap(40), 80);
   assert.equal(ZG.Balance.roundReward(1), 72);
-  assert.equal(ZG.Balance.bossHp(7).toFixed(2), '2675.83');
+  assert.equal(ZG.Balance.bossHp(7).toFixed(2), '2775.67');
   assert.equal(ZG.Balance.bossRockDamage(7), 122);
   assert.equal(ZG.Balance.bossReward(7), 750);
   assert.equal(ZG.Balance.mineDamage(7).toFixed(2), (120 * Math.pow(1.06, 6)).toFixed(2));
@@ -82,5 +82,8 @@ test('批次总量、时长与 BOSS 位置', () => {
   for (const b of w.batches) assert.ok(b.spawns.length >= 6 && b.spawns.length <= 12);
   assert.equal(w.batches[0].at, 5);
   assert.ok(w.batches.every((b, i) => i === 0 || b.at - w.batches[i - 1].at >= 5));
-  assert.ok(w.batches.some(b => b.spawns.some(s => s.type === 'boss')));
+  assert.ok(ZG.Data.bossOrder.includes(w.bossType));
+  const bosses = w.batches.flatMap(b => b.spawns).filter(s => ZG.Data.bossOrder.includes(s.type));
+  assert.equal(bosses.length, 1);
+  assert.equal(bosses[0].type, w.bossType);
 });

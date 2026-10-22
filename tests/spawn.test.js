@@ -25,7 +25,7 @@ test('BOSS 回合也四面出生且 BOSS 在中间批次', () => {
   const edges = new Set();
   for (const b of w.batches) for (const s of b.spawns) edges.add(s.edge);
   assert.deepEqual([...edges].sort(), ['bottom', 'left', 'right', 'top']);
-  const bossBatch = w.batches.findIndex(b => b.spawns.some(s => s.type === 'boss'));
+  const bossBatch = w.batches.findIndex(b => b.spawns.some(s => s.type === w.bossType));
   assert.ok(Math.abs(bossBatch - Math.floor(w.batches.length / 2)) <= 1);
 });
 

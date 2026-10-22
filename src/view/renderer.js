@@ -511,6 +511,103 @@
     }
   }
 
+  // BOSS 像素精灵：按 typeId 的字符网格逐格绘制，水平翻转表现朝向
+  const BOSS_SPRITES = {
+    boss: {
+      palette: { '#': '#263238', '=': '#607D8B', e: '#FFEB3B' },
+      grid: [
+        '...#####...',
+        '..#######..',
+        '.##=====##.',
+        '.#==eee==#.',
+        '##=======##',
+        '##==###==##',
+        '##=======##',
+        '.#=======#.',
+        '.##=====##.',
+        '..#######..',
+        '...#####...'
+      ]
+    },
+    boss_ripper: {
+      palette: { '#': '#5D0F0F', '=': '#B71C1C', e: '#FFEB3B', c: '#FF8A80' },
+      grid: [
+        '.....cc....',
+        '...##.##...',
+        '..#######..',
+        '.##=====##.',
+        '.#==eee==#.',
+        '##=======##',
+        '.##=====##.',
+        '..##===##..',
+        '..##...##..',
+        '.###...###.',
+        '.cc.....cc.'
+      ]
+    },
+    boss_spitter: {
+      palette: { '#': '#37421F', '=': '#7A8F45', e: '#9CFF57' },
+      grid: [
+        '....###....',
+        '..#######..',
+        '.##=====##.',
+        '.#==###==#.',
+        '##==eee==##',
+        '##=======##',
+        '##==###==##',
+        '.##=====##.',
+        '..##===##..',
+        '..##...##..',
+        '.###...###.'
+      ]
+    },
+    boss_brood: {
+      palette: { '#': '#3E2340', '=': '#8E5A8E', e: '#E1BEE7' },
+      grid: [
+        '...#####...',
+        '..##===##..',
+        '.##=====##.',
+        '##==e=e==##',
+        '##=======##',
+        '##==e=e==##',
+        '##=======##',
+        '.##=====##.',
+        '..##===##..',
+        '...#####...',
+        '....###....'
+      ]
+    }
+  };
+
+  function drawBossSprite(ctx, z, r, alpha) {
+    const sp = BOSS_SPRITES[z.typeId] || BOSS_SPRITES.boss;
+    const rows = sp.grid.length;
+    const cols = sp.grid[0].length;
+    const cell = (r * 2) / Math.max(rows, cols);
+    const x0 = -cols * cell / 2;
+    const y0 = -rows * cell / 2;
+    ctx.save();
+    ctx.globalAlpha = alpha === undefined ? 1 : alpha;
+    ctx.translate(z.x, z.y);
+    if (Math.cos(z.facing) < 0) ctx.scale(-1, 1);
+    for (let y = 0; y < rows; y++) {
+      const row = sp.grid[y];
+      for (let x = 0; x < cols; x++) {
+        const ch = row[x];
+        const col = sp.palette[ch];
+        if (!col) continue;
+        ctx.fillStyle = col;
+        ctx.fillRect(x0 + x * cell, y0 + y * cell, cell + 0.6, cell + 0.6);
+      }
+    }
+    if (z.flashT > 0) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.fillRect(x0, y0, cols * cell, rows * cell);
+    }
+    ctx.restore();
+  }
+
   function drawZombie(ctx, z, state) {
     const data = ZG.Data.zombies[z.typeId] || {};
     let color = data.color || '#7CB342';
@@ -548,7 +645,62 @@
       ctx.restore();
     }
 
-    drawUnitBase(ctx, z.x, z.y, r, color, data.symbol || '·', z.isBoss);
+    if (z.isBoss) {
+      // 母巢光环
+      if (z.typeId === 'boss_brood') {
+        const bd = (ZG.Data.zombies.boss_brood || {}).boss;
+        const aura = bd && bd.aura ? bd.aura : { radius: 150 };
+        const pulse = 0.5 + 0.5 * Math.sin(state.battle.time * 3);
+        ctx.save();
+        ctx.fillStyle = 'rgba(142, 90, 142, ' + (0.06 + 0.06 * pulse) + ')';
+        ctx.strokeStyle = 'rgba(225, 190, 231, ' + (0.25 + 0.2 * pulse) + ')';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, aura.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      // 冲刺残影：2 帧
+      if (z.dashT > 0) {
+        const col = data.color || '#B71C1C';
+        for (let i = 1; i <= 2; i++) {
+          ctx.save();
+          ctx.globalAlpha = 0.22 * (3 - i);
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(z.x - z.dashDirX * 14 * i, z.y - z.dashDirY * 14 * i,
+            r * (1 - 0.12 * i), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      drawBossSprite(ctx, z, r);
+      // 腐吐者蓄力：口部按下一发弹种亮起
+      if (z.typeId === 'boss_spitter' && z.spitWindupT > 0 && z.nextBullet) {
+        const mx = z.x + Math.cos(z.facing) * r * 0.95;
+        const my = z.y + Math.sin(z.facing) * r * 0.95;
+        ctx.save();
+        ctx.fillStyle = z.nextBullet.color || '#9CFF57';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    } else {
+      drawUnitBase(ctx, z.x, z.y, r, color, data.symbol || '·', z.isBoss);
+      // 母巢光环受益标记
+      if (z.buffSpeed > 1) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(225, 190, 231, 0.9)';
+        ctx.beginPath();
+        ctx.arc(z.x + r * 0.75, z.y - r * 0.75, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
 
     // 盾尸护盾弧
     if (z.typeId === 'shield' && z.shield > 0) {
@@ -728,7 +880,7 @@
         ctx.shadowColor = p.color;
         ctx.shadowBlur = 8;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.typeId === 'missile' ? 4.5 : 4, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.radius || (p.typeId === 'missile' ? 4.5 : 4), 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
@@ -819,6 +971,62 @@
         ctx.arc(e.x, e.y, e.radius || 130, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
+        ctx.restore();
+      } else if (e.kind === 'dash_warn') {
+        ctx.save();
+        ctx.globalAlpha = 0.45 + 0.55 * a;
+        ctx.strokeStyle = 'rgba(239, 83, 80, 0.95)';
+        ctx.lineWidth = 5;
+        ctx.setLineDash([14, 8]);
+        ctx.beginPath();
+        ctx.moveTo(e.x1, e.y1);
+        ctx.lineTo(e.x2, e.y2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const ang = Math.atan2(e.y2 - e.y1, e.x2 - e.x1);
+        ctx.fillStyle = 'rgba(255, 138, 128, 0.95)';
+        ctx.beginPath();
+        ctx.moveTo(e.x2, e.y2);
+        ctx.lineTo(e.x2 - Math.cos(ang - 0.45) * 16, e.y2 - Math.sin(ang - 0.45) * 16);
+        ctx.lineTo(e.x2 - Math.cos(ang + 0.45) * 16, e.y2 - Math.sin(ang + 0.45) * 16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      } else if (e.kind === 'poison_cloud') {
+        ctx.save();
+        const grd = ctx.createRadialGradient(e.x, e.y, 4, e.x, e.y, e.radius);
+        grd.addColorStop(0, 'rgba(124, 179, 66, ' + (0.20 + 0.15 * a) + ')');
+        grd.addColorStop(0.7, 'rgba(46, 125, 50, ' + (0.14 + 0.10 * a) + ')');
+        grd.addColorStop(1, 'rgba(46, 125, 50, 0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(174, 213, 129, ' + (0.25 * a + 0.15) + ')';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        for (let i = 0; i < 5; i++) {
+          const t = state.battle.time * 1.7 + i * 1.26;
+          const rr = e.radius * (0.25 + 0.55 * ((i * 0.37) % 1));
+          ctx.fillStyle = 'rgba(213, 245, 184, ' + (0.35 * a) + ')';
+          ctx.beginPath();
+          ctx.arc(e.x + Math.cos(t) * rr, e.y + Math.sin(t * 1.3) * rr,
+            2.4 + 1.2 * Math.sin(t * 2), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      } else if (e.kind === 'summon') {
+        ctx.save();
+        ctx.globalAlpha = 0.35 + 0.55 * (1 - a);
+        ctx.strokeStyle = 'rgba(225, 190, 231, 0.95)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 12 + (1 - a) * 54, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(156, 255, 87, 0.7)';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 6 + (1 - a) * 36, 0, Math.PI * 2);
+        ctx.stroke();
         ctx.restore();
       }
     }

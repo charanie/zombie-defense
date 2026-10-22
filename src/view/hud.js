@@ -108,7 +108,7 @@
   function buildBossBar() {
     const wrap = el('div', 'boss-bar hidden');
     H.refs.bossWrap = wrap;
-    H.refs.bossName = el('div', 'boss-name', 'BOSS 坦克');
+    H.refs.bossName = el('div', 'boss-name', 'BOSS');
     const track = el('div', 'boss-track');
     H.refs.bossFill = el('div', 'boss-fill');
     track.appendChild(H.refs.bossFill);
@@ -405,7 +405,12 @@
       codexHtml.push('<div class="codex-item"><b style="color:' + d.color + '">' + d.name + '</b>' +
         '　HP ' + d.hp + ' · ' + d.special + '</div>');
     }
-    codexHtml.push('<div class="codex-item"><b style="color:#EF5350">BOSS 坦克</b>　每 7 回合出现；石块预警 2 秒，请分散站位。</div></div>');
+    for (const id of ZG.Data.bossOrder) {
+      const d = ZG.Data.zombies[id];
+      codexHtml.push('<div class="codex-item"><b style="color:' + d.color + '">' + d.name + '</b>' +
+        '　' + ZG.Model.bossCodexText(id) + '</div>');
+    }
+    codexHtml.push('</div>');
     codexHtml.push('<h4>英雄</h4><div class="codex-grid">');
     for (const id of ZG.Data.heroOrder) {
       const d = ZG.Data.heroes[id];
@@ -553,7 +558,7 @@
     if (bar.boss) {
       H.refs.bossWrap.classList.remove('hidden');
       H.refs.bossFill.style.width = Math.max(0, (bar.boss.hp / bar.boss.maxHp) * 100) + '%';
-      H.refs.bossName.textContent = 'BOSS 坦克　' + fmt(bar.boss.hp) + ' / ' + fmt(bar.boss.maxHp);
+      H.refs.bossName.textContent = bar.boss.name + '　' + fmt(bar.boss.hp) + ' / ' + fmt(bar.boss.maxHp);
     } else {
       H.refs.bossWrap.classList.add('hidden');
     }

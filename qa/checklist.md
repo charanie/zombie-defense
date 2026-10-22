@@ -4,10 +4,10 @@
 
 ## 自动化
 
-- [x] `npm test`：197/197 通过。
-- [x] `node tests/bench.js`：300/99/100 实体，`avgStepMs≈1.56`（预算 2.5）。
-- [x] `node tests/bot.js --rounds 42 --seed 1`：到达 R42，混合阵容通关级；seed 2–4 同样 R42。
-- [x] `node tests/bot.js --rounds 42 --seed 1 --rocket-only`：R7 失败。
+- [x] `npm test`：226/226 通过。
+- [x] `node tests/bench.js`：300/99/100 实体，`avgStepMs≈1.5`（预算 2.5）。
+- [x] `node tests/bot.js --rounds 42 --seed 1`：跑满 R44（`over=false`），6 BOSS；seed 2–4 同样跑满 R44。
+- [x] `node tests/bot.js --rounds 42 --seed 1 --rocket-only`：R6 失败。
 - [x] 同种子 + 同命令哈希一致（回放测试，含购买节点与施放援助）。
 - [x] 三张地图边缘格可达中心。
 - [x] `tests/shell.test.js`：`index.html` 全部脚本都在 `sw.js` SHELL；版本号 1.4.0 三处一致。
@@ -64,7 +64,7 @@
 
 ## 性能
 
-- [x] 300 僵尸 + 99 人类 + 100 投射物：`avgStepMs≈1.56`、`maxStepMs≈14`。
+- [x] 300 僵尸 + 99 人类 + 100 投射物：`avgStepMs≈1.5`、`maxStepMs≈15`。
 - [x] 粒子上限 250/120、伤害数字上限 50。
 - [x] 血条仅受伤单位显示；静态背景仅在地图/建筑变化时重绘。
 
@@ -96,7 +96,7 @@
 
 ## 已知问题
 
-- bot 对种子较敏感；v1.4 四 seed 均停在 R42。
+- bot 对种子较敏感；v1.4 四 seed 均清完测试上限 R44，强于 R42 目标线。
 - 科技树在 1024 宽度下节点文案会截断，靠详情条补全说明。
 - 援助瞄准在低端真机上的触控落点待复测。
 - 极窄竖屏视野较小；宽屏左右为背景装饰区。

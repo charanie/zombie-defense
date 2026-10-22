@@ -32,6 +32,7 @@
       spawner: { batches: [], batchIndex: 0, timer: 0, remaining: 0, warning: 0, bossPending: false, portals: [] },
       battle: {
         time: 0, stepCount: 0, killCount: 0, spawned: 0, berserkTier: 0, bossId: null,
+        lastBossType: null,
         deathConfirmT: 0, infectionTimer: 0, convertedThisRound: 0,
         minesTriggered: 0, reason: null, waveTotal: 0,
         regenT: 5, revives: 0
@@ -135,6 +136,8 @@
       expireRound: converted ? (e.expireRound !== undefined ? e.expireRound : state.round + 2) : 0,
       spawnRound: state.round,
       infection: 0,
+      poisonT: 0,
+      poisonDps: 0,
       burnT: 0,
       burnDps: 0,
       ammo: data.attack && data.attack.ammo ? data.attack.ammo : 0,
@@ -192,11 +195,15 @@
     const data = ZG.Data.zombies[typeId];
     if (!data) throw new Error('unknown zombie: ' + typeId);
     const R = state.round;
-    const isBoss = typeId === 'boss' || !!e.isBoss;
+    const isBoss = !!data.isBoss || !!e.isBoss;
+    const bd = data.boss || null;
+    const melee = bd && bd.melee ? bd.melee : null;
+    const bossDamage = isBoss && melee
+      ? ZG.Balance.bossSkillDamage(melee.damageBase, melee.damageGrowth, R) : 0;
 
     let maxHp;
     if (e.maxHp !== undefined) maxHp = e.maxHp;
-    else if (isBoss) maxHp = ZG.Balance.bossHp(R);
+    else if (isBoss) maxHp = ZG.Balance.bossHp(R, bd ? bd.hpMul : 1);
     else maxHp = ZG.Balance.zombieHp(data.hp, R);
 
     const z = {
@@ -213,10 +220,10 @@
       facing: Math.PI / 2,
       alive: true,
       speed: data.speed,
-      damage: isBoss ? 0 : data.damage,
+      damage: isBoss ? bossDamage : data.damage,
       speedBase: data.speed,
       speedScale: isBoss ? 1 : ZG.Balance.zombieSpeed(1, R),
-      damageBase: isBoss ? 0 : data.damage,
+      damageBase: isBoss ? bossDamage : data.damage,
       damageScale: isBoss ? 1 : ZG.Balance.zombieDamage(1, R),
       bountyBase: e.bounty !== undefined ? e.bounty : (isBoss ? ZG.Balance.bossReward(R) : data.bounty),
       attackInterval: data.attackInterval || 1,
@@ -240,15 +247,33 @@
       lastY: y,
       turnedFromHuman: !!e.turnedFromHuman,
       spawnRound: R,
-      rockCd: e.rockCd !== undefined ? e.rockCd : 0,
+      rockCd: e.rockCd !== undefined ? e.rockCd
+        : (bd && bd.rock ? bd.rock.firstDelay : 0),
       stompCd: 0,
+      dashCd: bd && bd.dash ? bd.dash.firstDelay : 0,
+      dashWindupT: 0,
+      dashT: 0,
+      dashToX: 0,
+      dashToY: 0,
+      dashDirX: 0,
+      dashDirY: 0,
+      dashHitIds: [],
+      staggerT: 0,
+      spitCd: bd && bd.kind === 'spitter' ? bd.firstDelay : 0,
+      spitWindupT: 0,
+      spitTargetId: 0,
+      nextBullet: null,
+      summonCd: bd && bd.summon ? bd.summon.firstDelay : 0,
+      summonWindupT: 0,
+      buffSpeed: 1,
+      buffDamage: 1,
       burnT: 0,
       burnDps: 0,
       flashT: 0,
       stunT: 0, tauntT: 0, tauntTargetId: 0,
       wave: e.wave || null
     };
-    if (isBoss) z.damageBase = 0;
+    if (isBoss && !melee) z.damageBase = 0;
     state.zombies.push(z);
     state.battle.spawned++;
     state.bus.emit(ZG.Events.ZOMBIE_SPAWNED, { zombie: z });

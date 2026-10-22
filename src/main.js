@@ -74,11 +74,12 @@
       ZG.Platform.saveBest(s.mapId, s.round);
       log('防线失守：第 ' + s.round + ' 回合', 'danger');
     });
-    bus.on(ZG.Events.BOSS_SPAWNED, () => {
-      ZG.HUD.toast('BOSS 坦克出现！', 'danger');
+    bus.on(ZG.Events.BOSS_SPAWNED, p => {
+      const name = p && p.zombie && p.zombie.name ? p.zombie.name : 'BOSS';
+      ZG.HUD.toast(name + ' 出现！', 'danger');
       ZG.Audio.play('bossRoar');
       ZG.Particles.shake(7);
-      log('BOSS 坦克出现', 'danger');
+      log(name + ' 出现', 'danger');
     });
     bus.on(ZG.Events.HUMAN_DIED, p => {
       if (p.human && p.human.hero) log(p.human.name + ' 重伤撤离', 'danger');
@@ -112,9 +113,12 @@
     bus.on('fx:hit', p => {
       if (s.settings.damageNumbers !== false) {
         ZG.Particles.addDamageNumber(p.x, p.y - 8, p.amount,
-          p.damageKind === 'fire' ? '#FFB74D' : (p.kind === 'human' ? '#FF8A80' : '#FFFFFF'));
+          p.damageKind === 'poison' ? '#B9F6CA'
+            : p.damageKind === 'fire' ? '#FFB74D'
+              : (p.kind === 'human' ? '#FF8A80' : '#FFFFFF'));
       }
       if (p.damageKind === 'fire') ZG.Audio.play('flame');
+      else if (p.damageKind === 'poison') ZG.Audio.play('infect');
       else if (p.damageKind === 'explosion') ZG.Audio.play('explosion');
       else ZG.Audio.play('pistol');
     });
@@ -131,6 +135,25 @@
     bus.on('fx:stomp', p => {
       ZG.Particles.explosion(p.x, p.y, p.radius, '#FF7043');
       ZG.Particles.shake(5);
+    });
+    bus.on('fx:dash', p => {
+      ZG.Particles.burst(p.x, p.y, '#FF8A80', 10);
+      ZG.Particles.shake(2);
+      ZG.Audio.play('dash');
+    });
+    bus.on('fx:spit', p => {
+      ZG.Particles.burst(p.x, p.y,
+        p.kind === 'poison' ? '#7CB342'
+          : (p.kind === 'explosive' ? '#FF7043' : '#A5D6A7'), 6);
+      ZG.Audio.play('spit');
+    });
+    bus.on('fx:summon', p => {
+      ZG.Particles.burst(p.x, p.y, '#E1BEE7', 14);
+      ZG.Audio.play('summon');
+    });
+    bus.on('fx:poison', p => {
+      ZG.Particles.burst(p.x, p.y, '#7CB342', 10);
+      ZG.Audio.play('infect');
     });
     bus.on('fx:convert', p => {
       ZG.Particles.burst(p.x, p.y, '#B39DDB', 12);

@@ -1007,6 +1007,17 @@
       const t = state.humans.find(u => u.alive && u.id === z.tauntTargetId);
       if (t) return { kind: 'human', target: t };
     }
+
+    const zd = z.isBoss ? (ZG.Data.zombies[z.typeId] || {}).boss : null;
+    // 裂爪：260 内优先非盾人类，绕过后排盾线
+    if (zd && zd.kind === 'ripper') {
+      const scan = humanScan(state, z.x, z.y);
+      if (scan.nonShield) return { kind: 'human', target: scan.nonShield };
+      if (scan.nearest) return { kind: 'human', target: scan.nearest };
+      const c = ZG.Geom.humanCentroid(state) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
+      return { kind: 'point', x: c.x, y: c.y, count: 0, target: null };
+    }
+
     if (z.typeId === 'boomer' || z.isBoss) {
       const p = densestHumanPoint(state);
       return { kind: 'point', x: p.x, y: p.y, count: p.count, target: null };
@@ -1134,8 +1145,241 @@
     return false;
   }
 
+  /* ---------------- BOSS 行为 ---------------- */
+
+  // 固定步长下 2.5 - 150/60 可能留下 1e-15 的正残差；统一吸收
+  function tickDown(t, dt) {
+    const v = t - dt;
+    return v > 1e-9 ? v : 0;
+  }
+
+  // 按 chance 累加抽取弹种；roll 由调用方提供以便测试
+  function pickSpitKind(kinds, roll) {
+    let r = roll;
+    for (const k of kinds) {
+      r -= k.chance;
+      if (r < 0) return k;
+    }
+    return kinds[kinds.length - 1];
+  }
+
+  // 腐吐者距离带：太远接近、带内停步、太近后撤
+  function spitterIntent(dist, spit) {
+    if (dist < spit.retreatRange) return 'retreat';
+    if (dist > spit.stopRange) return 'approach';
+    return 'hold';
+  }
+
+  function stepBossTank(state, z, dt, bd) {
+    const rock = bd.rock;
+    if (z.rockCd > 0) z.rockCd = tickDown(z.rockCd, dt);
+    if (z.stompCd > 0) z.stompCd = tickDown(z.stompCd, dt);
+
+    if (z.rockCd <= 0) {
+      const p = densestHumanPoint(state);
+      ZG.Projectiles.spawn(state, {
+        typeId: 'rock', x: p.x, y: p.y, tx: p.x, ty: p.y,
+        radius: rock.radius, splash: rock.radius,
+        damage: ZG.Balance.bossSkillDamage(rock.damageBase, rock.damageGrowth, state.round),
+        warnT: rock.warn, infection: rock.infection,
+        hitsHumans: true, ownerId: z.id, color: '#EF5350'
+      });
+      z.rockCd = rock.interval;
+    }
+
+    if (z.stompCd <= 0) {
+      const stomp = bd.stomp;
+      const near = state.humans.some(h => h.alive &&
+        ZG.Geom.dist(z.x, z.y, h.x, h.y) <= stomp.radius + h.radius);
+      if (near) {
+        for (const h of state.humans.slice()) {
+          if (!h.alive) continue;
+          if (ZG.Geom.dist(z.x, z.y, h.x, h.y) <= stomp.radius + h.radius) {
+            ZG.Combat.applyDamage(state, {
+              target: h, amount: stomp.damage, damageKind: D.MELEE,
+              fromX: z.x, fromY: z.y
+            });
+          }
+        }
+        z.stompCd = stomp.interval;
+        state.bus.emit('fx:stomp', { x: z.x, y: z.y, radius: stomp.radius });
+      }
+    }
+  }
+
+  // 返回 true 表示本 tick 由状态机接管，跳过通用移动/攻击
+  function stepBossRipper(state, z, dt, speed, bd) {
+    const d = bd.dash;
+    if (z.staggerT > 0) {
+      z.staggerT = tickDown(z.staggerT, dt);
+      return true;
+    }
+    if (z.dashWindupT > 0) {
+      z.dashWindupT = tickDown(z.dashWindupT, dt);
+      if (z.dashWindupT <= 0) {
+        z.dashT = d.duration;
+        z.dashHitIds = [];
+        const a = Math.atan2(z.dashToY - z.y, z.dashToX - z.x);
+        z.dashDirX = Math.cos(a);
+        z.dashDirY = Math.sin(a);
+        z.facing = a;
+        state.bus.emit('fx:dash', {
+          x: z.x, y: z.y,
+          x2: z.x + z.dashDirX * 400, y2: z.y + z.dashDirY * 400
+        });
+      }
+      return true;
+    }
+    if (z.dashT > 0) {
+      z.dashT = tickDown(z.dashT, dt);
+      moveZombie(state, z, z.x + z.dashDirX * 400, z.y + z.dashDirY * 400,
+        d.speed * (1 - z.slowFactor), dt);
+      for (const h of state.humans) {
+        if (!h.alive || z.dashHitIds.indexOf(h.id) >= 0) continue;
+        if (ZG.Geom.dist(z.x, z.y, h.x, h.y) > z.radius + h.radius + d.hitRadius) continue;
+        z.dashHitIds.push(h.id);
+        ZG.Combat.applyDamage(state, {
+          target: h,
+          amount: ZG.Balance.bossSkillDamage(d.damageBase, d.damageGrowth, state.round),
+          damageKind: D.MELEE, fromX: z.x, fromY: z.y
+        });
+      }
+      if (z.dashT <= 0) {
+        z.staggerT = d.stagger;
+        z.dashCd = d.cooldown;
+      }
+      return true;
+    }
+
+    if (z.dashCd > 0) z.dashCd = tickDown(z.dashCd, dt);
+    const t = nearestHuman(state, z.x, z.y, d.maxRange);
+    if (z.dashCd <= 0 && t) {
+      const dist = ZG.Geom.dist(z.x, z.y, t.x, t.y);
+      if (dist >= d.minRange && dist <= d.maxRange) {
+        z.dashWindupT = d.windup;
+        z.dashToX = t.x;
+        z.dashToY = t.y;
+        z.facing = Math.atan2(t.y - z.y, t.x - z.x);
+        state.effects.push({
+          kind: 'dash_warn', x1: z.x, y1: z.y, x2: t.x, y2: t.y,
+          life: d.windup, maxLife: d.windup
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function fireSpit(state, z, bd) {
+    const k = z.nextBullet;
+    const t = state.humans.find(h => h.alive && h.id === z.spitTargetId);
+    if (!k || !t) { z.spitCd = bd.interval; return; }
+    const poison = k.id === 'poison' && k.dot ? {
+      dps: ZG.Balance.bossSkillDamage(k.dot.dpsBase, k.dot.dpsGrowth, state.round),
+      duration: k.dot.duration
+    } : null;
+    ZG.Projectiles.spawn(state, {
+      typeId: 'spit', spitKind: k.id,
+      x: z.x, y: z.y, tx: t.x, ty: t.y,
+      targetId: t.id, speed: k.speed, life: 4,
+      radius: k.radius, splash: k.splash,
+      damage: ZG.Balance.bossSkillDamage(k.damageBase, k.damageGrowth, state.round),
+      splashMul: k.splashMul, poison,
+      damageKind: k.id === 'poison' ? D.POISON : D.RANGED,
+      hitsHumans: true, ownerId: z.id, color: k.color
+    });
+    z.spitCd = bd.interval;
+    state.bus.emit('fx:spit', { x: z.x, y: z.y, kind: k.id });
+  }
+
+  function stepBossSpitter(state, z, dt, speed, bd) {
+    if (z.spitCd > 0) z.spitCd = tickDown(z.spitCd, dt);
+    if (z.spitWindupT > 0) {
+      z.spitWindupT = tickDown(z.spitWindupT, dt);
+      if (z.spitWindupT <= 0) fireSpit(state, z, bd);
+      return;
+    }
+    const t = nearestHuman(state, z.x, z.y, bd.range + 60);
+    if (!t) {
+      const p = densestHumanPoint(state);
+      moveZombie(state, z, p.x, p.y, speed, dt);
+      return;
+    }
+    z.facing = Math.atan2(t.y - z.y, t.x - z.x);
+    const dist = ZG.Geom.dist(z.x, z.y, t.x, t.y);
+    const intent = spitterIntent(dist, bd);
+    if (intent === 'retreat') {
+      const a = Math.atan2(z.y - t.y, z.x - t.x);
+      moveZombie(state, z, z.x + Math.cos(a) * 200, z.y + Math.sin(a) * 200, speed, dt);
+    } else if (intent === 'approach') {
+      moveZombie(state, z, t.x, t.y, speed, dt);
+    }
+    if (z.spitCd <= 0 && dist <= bd.range) {
+      z.spitWindupT = bd.windup;
+      z.nextBullet = pickSpitKind(bd.bullets, state.rng.jitter.next());
+      z.spitTargetId = t.id;
+    }
+  }
+
+  function stepBossBrood(state, z, dt, bd) {
+    const s = bd.summon;
+    if (z.summonWindupT > 0) {
+      z.summonWindupT = tickDown(z.summonWindupT, dt);
+      if (z.summonWindupT <= 0) {
+        const alive = state.zombies.filter(o => o.alive && o.typeId === s.type).length;
+        const room = ZG.Spawner.zombieCap(state) -
+          state.zombies.filter(o => o.alive).length;
+        const n = Math.max(0, Math.min(s.count, s.maxAlive - alive,
+          s.waveCap - (state.battle.babyCount || 0), room));
+        for (let i = 0; i < n; i++) {
+          const a = state.rng.spawn.next() * Math.PI * 2;
+          const rr = s.radiusMin + state.rng.spawn.next() * (s.radiusMax - s.radiusMin);
+          const b = ZG.State.spawnZombie(state, s.type,
+            z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+          b.wave = z.wave;
+          state.battle.babyCount = (state.battle.babyCount || 0) + 1;
+        }
+        z.summonCd = s.interval;
+        state.bus.emit('fx:summon', { x: z.x, y: z.y, count: n });
+      }
+      return true;
+    }
+    if (z.summonCd > 0) { z.summonCd = tickDown(z.summonCd, dt); return false; }
+    const alive = state.zombies.filter(o => o.alive && o.typeId === s.type).length;
+    if (alive < s.maxAlive) {
+      z.summonWindupT = s.windup;
+      state.effects.push({
+        kind: 'summon', x: z.x, y: z.y, life: s.windup, maxLife: s.windup
+      });
+      return true;
+    }
+    z.summonCd = s.interval;
+    return false;
+  }
+
+  function applyBroodAuras(state) {
+    for (const z of state.zombies) {
+      if (!z.alive) continue;
+      z.buffSpeed = 1;
+      z.buffDamage = 1;
+    }
+    for (const b of state.zombies) {
+      if (!b.alive || !b.isBoss) continue;
+      const bd = (ZG.Data.zombies[b.typeId] || {}).boss;
+      if (!bd || !bd.aura) continue;
+      const r2 = bd.aura.radius * bd.aura.radius;
+      for (const o of state.zombies) {
+        if (!o.alive || o.isBoss) continue;
+        if (ZG.Geom.dist2(o.x, o.y, b.x, b.y) > r2) continue;
+        o.buffSpeed = Math.max(o.buffSpeed, bd.aura.speedMul);
+        o.buffDamage = Math.max(o.buffDamage, bd.aura.damageMul);
+      }
+    }
+  }
+
   function stepZombies(state) {
     const dt = STEP;
+    applyBroodAuras(state);
 
     // 盾尸 vanguard：预计算每只僵尸到最近人类的距离，避免循环内重复全扫
     let humanDistOf = null;
@@ -1155,8 +1399,6 @@
       if (!z.alive) continue;
       if (z.cd > 0) z.cd -= dt;
       if (z.flashT > 0) z.flashT -= dt;
-      if (z.rockCd > 0) z.rockCd -= dt;
-      if (z.stompCd > 0) z.stompCd -= dt;
       if (z.tauntT > 0) z.tauntT -= dt;
       if (z.stunT > 0) {
         z.stunT -= dt;
@@ -1194,34 +1436,18 @@
         }
       }
 
-      // BOSS 技能
+      // BOSS 行为分派
       if (z.isBoss) {
-        if (z.rockCd <= 0) {
-          const p = densestHumanPoint(state);
-          const dmg = ZG.Balance.bossRockDamage(state.round);
-          ZG.Projectiles.spawn(state, {
-            typeId: 'rock', x: p.x, y: p.y, tx: p.x, ty: p.y,
-            radius: 70, splash: 70, damage: dmg, warnT: 2.0,
-            infection: 30, hitsHumans: true, ownerId: z.id, color: '#EF5350'
-          });
-          z.rockCd = 4;
-        }
-        if (z.stompCd <= 0) {
-          const near = state.humans.find(h => h.alive &&
-            ZG.Geom.dist(z.x, z.y, h.x, h.y) <= 60 + h.radius);
-          if (near) {
-            for (const h of state.humans.slice()) {
-              if (!h.alive) continue;
-              if (ZG.Geom.dist(z.x, z.y, h.x, h.y) <= 60 + h.radius) {
-                ZG.Combat.applyDamage(state, {
-                  target: h, amount: 80, damageKind: D.MELEE,
-                  fromX: z.x, fromY: z.y
-                });
-              }
-            }
-            z.stompCd = 1.5;
-            state.bus.emit('fx:stomp', { x: z.x, y: z.y, radius: 60 });
-          }
+        const bd = (ZG.Data.zombies[z.typeId] || {}).boss;
+        if (bd && bd.kind === 'tank') {
+          stepBossTank(state, z, dt, bd);
+        } else if (bd && bd.kind === 'ripper') {
+          if (stepBossRipper(state, z, dt, speed, bd)) continue;
+        } else if (bd && bd.kind === 'spitter') {
+          stepBossSpitter(state, z, dt, speed, bd);
+          continue;
+        } else if (bd && bd.kind === 'brood') {
+          if (stepBossBrood(state, z, dt, bd)) continue;
         }
       }
 
@@ -1397,6 +1623,7 @@
   ZG.AI = {
     step, stepHumans, stepZombies, stepBuildings,
     pickHumanTarget, pickZombieTarget, usesFlowField,
-    densestHumanPoint, densestZombieCluster, nearestHuman
+    densestHumanPoint, densestZombieCluster, nearestHuman,
+    pickSpitKind, spitterIntent
   };
 })();

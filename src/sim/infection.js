@@ -35,6 +35,14 @@
     return before - human.infection;
   }
 
+  // 毒云 DOT：刷新持续时间与较高 DPS，不叠层
+  function poison(state, human, dps, duration) {
+    if (!human || !human.alive) return 0;
+    human.poisonT = Math.max(human.poisonT || 0, duration);
+    human.poisonDps = Math.max(human.poisonDps || 0, dps);
+    return human.poisonDps;
+  }
+
   function tick(state) {
     const dt = ZG.Const.STEP_SEC;
 
@@ -47,6 +55,18 @@
         if (h.hp <= 0) {
           h.hp = 0;
           ZG.Combat.killHuman(state, h);
+        }
+      }
+      if (h.alive && h.poisonT > 0) {
+        h.poisonT = h.poisonT - dt > 1e-9 ? h.poisonT - dt : 0;
+        ZG.Combat.applyDamage(state, {
+          target: h, amount: (h.poisonDps || 0) * dt,
+          damageKind: ZG.Const.DAMAGE.POISON,
+          silent: true, ignoreShield: true
+        });
+        if (h.poisonT <= 0) {
+          h.poisonT = 0;
+          h.poisonDps = 0;
         }
       }
     }
@@ -76,5 +96,5 @@
     }
   }
 
-  ZG.Infection = { add, dispel, tick, settlementClamp, terrainMul, anyMedic };
+  ZG.Infection = { add, dispel, poison, tick, settlementClamp, terrainMul, anyMedic };
 })();

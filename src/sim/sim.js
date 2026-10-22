@@ -65,6 +65,8 @@
       h.dodgeCd = 0;
       h.cd = 0;
       h.reloadT = 0;
+      h.poisonT = 0;
+      h.poisonDps = 0;
       if (h.attack && h.attack.ammo) h.ammo = h.attack.ammo;
       if (h.attack && h.attack.warmup) h.warmup = h.attack.warmup;
       h.serumCd = 0;
