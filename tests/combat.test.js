@@ -264,6 +264,8 @@ test('BOSS：石块预警、击杀奖励 400+50R', () => {
   const h = ZG.State.spawnHuman(s, 'shield', 600, 600);
   ZG.Sim.startRound(s); s.spawner.batches = [];
   ZG.Sim.tick(s, 1);
+  assert.equal(s.projectiles.filter(p => p.typeId === 'rock').length, 0, '首次投石有 2.5s 延迟');
+  ZG.Sim.tick(s, 150);
   const rock = s.projectiles.find(p => p.typeId === 'rock');
   assert.ok(rock && rock.warnT > 0);
 

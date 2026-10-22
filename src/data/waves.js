@@ -83,6 +83,12 @@
     };
   }
 
+  // BOSS 池：排除上一只后等概率；第一只无历史则全池等概率
+  function pickBossType(lastBoss, rng) {
+    const pool = ZG.Data.bossOrder.filter(t => t !== lastBoss);
+    return rng.pick(pool.length ? pool : ZG.Data.bossOrder);
+  }
+
   function pickWeightedType(counts, rng) {
     let sum = 0;
     for (const t of ORDER) sum += counts[t] || 0;
@@ -95,17 +101,21 @@
     return 'walker';
   }
 
-  function build(R, rng) {
+  function build(R, rng, opts) {
+    const o = opts || {};
     const counts = composition(R);
     const types = [];
     for (const t of ORDER) for (let i = 0; i < counts[t]; i++) types.push(t);
 
     const bossRound = isBossRound(R);
     const escort = escortCount(R);
+    const bossType = bossRound
+      ? (o.bossType || pickBossType(o.lastBoss, o.bossRng || rng))
+      : null;
     if (bossRound) {
       // BOSS 占一个护卫名额
       for (let i = 0; i < escort - 1; i++) types.push(pickWeightedType(counts, rng));
-      types.push('boss');
+      types.push(bossType);
     }
 
     rng.shuffle(types);
@@ -143,7 +153,7 @@
     if (bossRound) {
       let bossBatch = -1, bossIdx = -1;
       for (let i = 0; i < batches.length; i++) {
-        const idx = batches[i].spawns.findIndex(s => s.type === 'boss');
+        const idx = batches[i].spawns.findIndex(s => s.type === bossType);
         if (idx >= 0) { bossBatch = i; bossIdx = idx; break; }
       }
       if (bossBatch >= 0) {
@@ -171,8 +181,14 @@
       b.warned = false;
     }
 
-    return { batches, bossRound, total: totalLen, bossBatchIndex: Math.floor(batches.length / 2) };
+    return {
+      batches, bossRound, bossType, total: totalLen,
+      bossBatchIndex: Math.floor(batches.length / 2)
+    };
   }
 
-  ZG.Waves = { composition, total, isBossRound, escortCount, newTypes, preview, build, spawnPoint, ORDER };
+  ZG.Waves = {
+    composition, total, isBossRound, escortCount, newTypes, preview, build,
+    spawnPoint, pickBossType, ORDER
+  };
 })();
