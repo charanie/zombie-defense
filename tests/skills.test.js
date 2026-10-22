@@ -245,3 +245,63 @@ test('援助命令回放一致', () => {
   };
   assert.equal(run(), run());
 });
+
+test('转化平民不产金、不占平民上限', () => {
+  const s = fresh();
+  const c = ZG.State.spawnHuman(s, 'civilian', 600, 600, { converted: true });
+  ZG.State.spawnHuman(s, 'pistol', 640, 600);
+  assert.equal(c.converted, true);
+  assert.equal(ZG.Economy.civilianCount(s), 0);
+  ZG.Sim.settleRound(s);
+  assert.equal(s.lastSettlement.civilianIncome, 0);
+});
+
+test('导弹双联对单一目标也发第二枚', () => {
+  const s = fresh();
+  const h = ZG.State.spawnHuman(s, 'rocket', 600, 600);
+  for (const id of ['fire_dmg', 'pistol_passive', 'mg_passive', 'rocket_active']) ZG.Tech.buy(s, id);
+  const z = ZG.State.spawnZombie(s, 'walker', 600, 450);
+  z.hp = z.maxHp = 999999; z.speed = 0;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 1);
+  const rockets = s.projectiles.filter(p => p.typeId === 'rocket' && p.ownerId === h.id).length;
+  assert.equal(rockets, 2);
+});
+
+test('长官每回合只齐射一次，导弹数 = officerUses', () => {
+  const s = fresh();
+  ZG.State.spawnHuman(s, 'officer', 600, 600, { heroId: 'officer' });
+  for (const id of ['hero_dmg', 'officer_range', 'officer_uses']) ZG.Tech.buy(s, id);
+  for (let i = 0; i < 10; i++) {
+    const z = ZG.State.spawnZombie(s, 'walker', 500 + i * 20, 300);
+    z.hp = z.maxHp = 999999; z.speed = 0;
+  }
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 60 * 20);
+  assert.equal(s.stats.missilesFired, 5);
+});
+
+test('英雄重伤期间购买生命节点也会补足', () => {
+  const s = fresh();
+  const hero = ZG.State.spawnHuman(s, 'officer', 600, 600, { heroId: 'officer' });
+  ZG.Combat.applyDamage(s, { target: hero, amount: 99999, damageKind: 'melee' });
+  assert.equal(hero.wounded, true);
+  assert.equal(s.woundedHeroes.indexOf(hero) >= 0, true);
+  ZG.Tech.buy(s, 'hero_hp');
+  assert.equal(hero.maxHp.toFixed(4), (1200 * 1.06).toFixed(4));
+});
+
+test('医疗体系提升疫医单体驱散量', () => {
+  const s = fresh();
+  ZG.State.spawnHuman(s, 'plague', 600, 600, { heroId: 'plague' });
+  for (const id of ['hero_dmg', 'officer_range', 'samurai_chain', 'gatling_heal', 'plague_cap', 'medical_system']) {
+    ZG.Tech.buy(s, id);
+  }
+  ZG.Tech.buy(s, 'medical_system');
+  ZG.Tech.buy(s, 'medical_system');
+  const ally = ZG.State.spawnHuman(s, 'pistol', 640, 600);
+  ally.infection = 100;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 1);
+  assert.ok(Math.abs(ally.infection - 0.8) < 1e-6);
+});

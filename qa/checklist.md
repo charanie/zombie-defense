@@ -4,7 +4,7 @@
 
 ## 自动化
 
-- [x] `npm test`：226/226 通过。
+- [x] `npm test`：231/231 通过。
 - [x] `node tests/bench.js`：300/99/100 实体，`avgStepMs≈1.5`（预算 2.5）。
 - [x] `node tests/bot.js --rounds 42 --seed 1`：跑满 R44（`over=false`），6 BOSS；seed 2–4 同样跑满 R44。
 - [x] `node tests/bot.js --rounds 42 --seed 1 --rocket-only`：R6 失败。

@@ -69,7 +69,7 @@ python -m http.server 8765
 ## 开发
 
 ```bash
-npm test                    # Node 内置测试（226 项）
+npm test                    # Node 内置测试（231 项）
 node tests/bench.js         # 300 僵尸 + 99 人类 + 100 投射物基准
 node tests/bot.js --rounds 42 --seed 1
 node tests/bot.js --rounds 42 --seed 1 --rocket-only   # 纯火箭兵平衡回归

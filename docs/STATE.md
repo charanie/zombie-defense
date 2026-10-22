@@ -8,7 +8,7 @@
 - **阶段**：开发完成；自动化验证全绿，桌面/手机浏览器 QA 已走查，**待真机/线上缓存复测**。
 - **在线地址**：<https://charanie.github.io/zombie-defense/>
 - **可运行**：双击 `index.html`；或 `python -m http.server 8765` 后访问 `http://127.0.0.1:8765/`。
-- **测试**：`npm test` → 226 项全部通过。
+- **测试**：`npm test` → 231 项全部通过。
 - **性能**：300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 1.5`（预算 2.5）、`maxStepMs ≈ 15`。
 - **Bot**：难度上调到 `1.07 / 1.15` 后，seed 1–4 均跑满测试上限 R44（`over=false`），每局 6 个 BOSS；纯火箭兵在 R6 失败（`--rocket-only`）。bot 强于 R42 目标线，真人平衡以试玩为准。
 
@@ -41,9 +41,9 @@
 
 ## 验证记录
 
-- `npm test`：226/226 通过（2026-10-22，含 v1.4 科技/技能/布局/Shell 测试与回归）。
+- `npm test`：231/231 通过（2026-10-22，含 v1.4 科技/技能/布局/Shell 测试与回归）。
 - `node tests/bench.js`：`avgStepMs≈1.5 maxStepMs≈15`。
-- `node tests/bot.js --rounds 42 --seed 1`：跑满 R44、`over=false`、6 BOSS、6,431 击杀；seed 2/3/4 同样跑满 R44（6,488 / 6,445 / 6,438 击杀）。
+- `node tests/bot.js --rounds 42 --seed 1`：跑满 R44、`over=false`、6 BOSS、6,421 击杀；seed 2/3/4 同样跑满 R44（6,463 / 6,423 / 6,439 击杀）。
 - `node tests/bot.js --rounds 42 --seed 1 --rocket-only`：R6 失败。
 - 确定性：`tests/acceptance.test.js` 的同种子回放与两次 bot 输出一致；`tests/tech.test.js` / `tests/skills.test.js` 覆盖购买与援助命令回放。
 - **v1.4 浏览器 QA（Playwright Chromium，本地 `?dev=1`）**：

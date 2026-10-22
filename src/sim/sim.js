@@ -201,7 +201,7 @@
     const mods = ZG.Tech.mods(state);
     const civBonus = mods.classPassives.civilian ? mods.classPassives.civilian.incomeBonus : 0;
     for (const h of state.humans) {
-      if (h.alive && h.classId === 'civilian') {
+      if (h.alive && h.classId === 'civilian' && !h.converted) {
         civilianIncome += (ZG.Data.humans.civilian.income || 12) + civBonus;
       }
     }

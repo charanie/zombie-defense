@@ -137,6 +137,11 @@
 
       // 援助瞄准：点击地图即施放
       if (ui.pendingSupport) {
+        if (s.status !== 'battle' || ui.paused) {
+          ui.pendingSupport = null;
+          ui.supportAim = null;
+          return;
+        }
         const r = ZG.Sim.applyCommand(s, {
           op: 'castSupport', skillId: ui.pendingSupport, x: p.x, y: p.y
         });

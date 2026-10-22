@@ -33,7 +33,8 @@
       h.reviveRound = 0;
       h.skillAtkMul = 1;
       if (h.heroId === 'officer') {
-        h.skillUses = m.hero.officerUses;
+        // 每回合只齐射一次；officerUses 决定这一轮的导弹总数（3/5 发）
+        h.skillUses = 1;
         h.skillCd = 0;
       } else if (h.heroId === 'gatling') {
         h.skillUses = 0;

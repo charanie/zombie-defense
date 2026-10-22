@@ -49,6 +49,7 @@
 
   function subscribe(s) {
     const bus = s.bus;
+    let lastSkillFxAt = 0;
     bus.on(ZG.Events.UI_TOAST, p => {
       log(p.text, p.kind);
       ZG.HUD.toast(p.text, p.kind);
@@ -160,6 +161,11 @@
       ZG.HUD.toast('疫医转化了一只丧尸', 'hero');
     });
     bus.on('fx:ability', p => {
+      // 职业主动技每步都可能触发；提示与音效按 1.5 秒节流，避免刷屏
+      const isSkill = p.kind && p.kind.indexOf('skill-') === 0;
+      const now = Date.now();
+      if (isSkill && now - lastSkillFxAt < 1500) return;
+      if (isSkill) lastSkillFxAt = now;
       if (p.text) { ZG.HUD.toast(p.text, 'hero'); log(p.text, 'hero'); }
       ZG.Audio.play('horn');
     });
@@ -316,6 +322,7 @@
     },
     onSupport(skillId) {
       if (!state || state.status !== 'battle') return;
+      if (state.ui.paused) { ZG.HUD.toast('暂停中不能施放援助', 'warn'); return; }
       const m = ZG.Tech.mods(state).support;
       const unlocked = skillId === 'areaHeal' ? m.healUnlocked : m.bombUnlocked;
       if (!unlocked) return;
@@ -371,6 +378,10 @@
       if (!state) return;
       if (state.status === 'battle') {
         state.ui.paused = !state.ui.paused;
+        if (state.ui.paused) {
+          state.ui.pendingSupport = null;
+          state.ui.supportAim = null;
+        }
         ZG.Audio.play('click');
       }
     },
@@ -482,6 +493,13 @@
 
     if (state && state.status === 'prep') {
       ZG.Heroes.returnWounded(state);
+    }
+
+    // 战斗结束或暂停时，清掉瞄准残留，避免吞掉下一次地图点击
+    if (state && state.ui.pendingSupport &&
+        (state.status !== 'battle' || state.ui.paused)) {
+      state.ui.pendingSupport = null;
+      state.ui.supportAim = null;
     }
 
     if (state && !loopStopped && state.status === 'battle' && !state.ui.paused) {

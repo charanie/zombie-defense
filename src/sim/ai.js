@@ -549,6 +549,7 @@
             const d = ZG.Geom.dist2(h.x, h.y, z.x, z.y);
             if (d < bestD) { bestD = d; second = z; }
           }
+          second = second || aim;
           if (second) {
             ZG.Projectiles.spawn(state, {
               typeId: 'rocket', x: h.x, y: h.y, tx: second.x, ty: second.y,
@@ -639,7 +640,7 @@
       return best;
     }
     if (isPlague && best.infection >= 40 && h.dispelCd <= 0) {
-      ZG.Infection.dispel(state, best, 80);
+      ZG.Infection.dispel(state, best, 80 * serumMul);
       h.dispelCd = 8;
       emitHeal(h, best);
       return best;

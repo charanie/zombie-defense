@@ -209,6 +209,14 @@
         b.hp *= buildRatio;
       }
     }
+    if (state.woundedHeroes && (hpRatio !== 1 || heroHpRatio !== 1)) {
+      const woundedRatio = hpRatio * heroHpRatio;
+      for (const h of state.woundedHeroes) {
+        if (h.alive) continue;
+        h.maxHp *= woundedRatio;
+        h.hp *= woundedRatio;
+      }
+    }
     const medDelta = after.hero.medicalRank - before.hero.medicalRank;
     if (medDelta > 0) {
       for (const h of state.humans) {

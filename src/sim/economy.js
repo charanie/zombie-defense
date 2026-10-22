@@ -27,7 +27,7 @@
   }
 
   function civilianCount(state) {
-    return state.humans.filter(h => h.alive && h.classId === 'civilian').length;
+    return state.humans.filter(h => h.alive && h.classId === 'civilian' && !h.converted).length;
   }
 
   function canPlace(state, x, y, radius, ignoreId) {

@@ -33,10 +33,10 @@ BOSS 奖励 = 400 + 50R
 
 | 命令 | 结果 |
 |---|---|
-| `bot --rounds 42 --seed 1` | 跑满 R44（`over=false`），6 BOSS，6,431 击杀 |
-| `bot --rounds 42 --seed 2` | 跑满 R44，6 BOSS，6,488 击杀 |
-| `bot --rounds 42 --seed 3` | 跑满 R44，6 BOSS，6,445 击杀 |
-| `bot --rounds 42 --seed 4` | 跑满 R44，6 BOSS，6,438 击杀 |
+| `bot --rounds 42 --seed 1` | 跑满 R44（`over=false`），6 BOSS，6,421 击杀 |
+| `bot --rounds 42 --seed 2` | 跑满 R44，6 BOSS，6,463 击杀 |
+| `bot --rounds 42 --seed 3` | 跑满 R44，6 BOSS，6,423 击杀 |
+| `bot --rounds 42 --seed 4` | 跑满 R44，6 BOSS，6,439 击杀 |
 | `bot --rounds 42 --seed 1 --rocket-only` | R6 失败（单一兵种不可通关） |
 | `node tests/bench.js` | `avgStepMs≈1.5 / maxStepMs≈15`（预算 2.5） |
 
