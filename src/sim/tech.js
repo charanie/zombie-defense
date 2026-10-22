@@ -176,10 +176,46 @@
     const node = data().nodes[nodeId];
     const r = rank(state, nodeId);
     const cost = ZG.Balance.treeNodeCost(node.tier, r);
+    const before = mods(state);
     ZG.Economy.spend(state, cost);
     state.tech.ranks[nodeId] = r + 1;
     const newRank = r + 1;
-    state.techMods = rebuild(state);
+    const after = rebuild(state);
+    state.techMods = after;
+
+    // 购买生命/护盾/建筑生命后，按购买前后的倍率补足现有目标
+    const hpRatio = after.hpMul / before.hpMul;
+    const heroHpRatio = after.hero.hpMul / before.hero.hpMul;
+    const shieldRatio = after.shieldMul / before.shieldMul;
+    const buildRatio = after.buildHpMul / before.buildHpMul;
+    if (hpRatio !== 1 || heroHpRatio !== 1 || shieldRatio !== 1) {
+      for (const h of state.humans) {
+        if (!h.alive) continue;
+        const ratio = hpRatio * (h.hero ? heroHpRatio : 1);
+        if (ratio !== 1) {
+          h.maxHp *= ratio;
+          h.hp *= ratio;
+        }
+        if (shieldRatio !== 1 && h.maxShield > 0) {
+          h.maxShield *= shieldRatio;
+          h.shield *= shieldRatio;
+        }
+      }
+    }
+    if (buildRatio !== 1) {
+      for (const b of state.buildings) {
+        if (!b.alive) continue;
+        b.maxHp *= buildRatio;
+        b.hp *= buildRatio;
+      }
+    }
+    const medDelta = after.hero.medicalRank - before.hero.medicalRank;
+    if (medDelta > 0) {
+      for (const h of state.humans) {
+        if (h.alive && h.classId === 'medic') h.serumLeft += medDelta;
+      }
+    }
+
     return {
       ok: true, nodeId, rank: newRank, cost,
       nextCost: newRank >= node.maxRank ? null : ZG.Balance.treeNodeCost(node.tier, newRank)

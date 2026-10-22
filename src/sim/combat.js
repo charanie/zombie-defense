@@ -129,8 +129,23 @@
       return applyBuildingDamage(state, target, opts.amount);
     }
 
-    const amount = Math.max(0, opts.amount || 0);
+    let amount = Math.max(0, opts.amount || 0);
     const damageKind = opts.damageKind || D.RANGED;
+    if (target.kind === 'human' && amount > 0) {
+      const m = ZG.Tech ? ZG.Tech.mods(state) : null;
+      if (m) {
+        let mul = 1 - m.dmgReduction;
+        if (target.classId === 'shield' && target.shield > 0 && m.classPassives.shield) {
+          mul *= m.classPassives.shield.dmgMul;
+        }
+        if (target.guardT > 0) mul *= (target.guardMul || 1);
+        if (mul < 1) {
+          const original = amount;
+          amount *= mul;
+          if (original >= 1 && amount < 1) amount = 1;
+        }
+      }
+    }
     const r = resolveShield(target, amount, damageKind, opts.fromX, opts.fromY);
     target.hp -= r.hpDamage;
     if (!opts.silent) {
@@ -224,8 +239,8 @@
       let amount;
       if (z.isBoss) amount = Math.floor(z.bountyBase);
       else {
-        const econ = state.tech.econ || 0;
-        amount = ZG.Balance.bounty(z.bountyBase, state.round, econ);
+        const econMul = ZG.Tech ? ZG.Tech.mods(state).econKillMul : 1;
+        amount = ZG.Balance.bounty(z.bountyBase, state.round, econMul);
       }
       if (amount > 0) {
         state.money += amount;

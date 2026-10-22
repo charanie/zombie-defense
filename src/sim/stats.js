@@ -40,10 +40,21 @@
     if (h.captain) {
       dmg *= 1.3 * (1 + 0.10 * (state.stats.captainOverflow || 0));
     }
+    if (m) {
+      if (m.lastStandActive) dmg *= 1.25;
+      if (m.bankActive) {
+        dmg *= 1 + ZG.Balance.bankDamageMul(state.money, m.bankCap, m.bankPer500);
+      }
+      const passive = h.classId === 'pistol' ? m.classPassives.pistol
+        : (h.classId === 'mg' ? m.classPassives.mg : null);
+      if (passive) dmg *= 1 + passive.perStack * (h.focusStacks || 0);
+    }
     const buff = ammoBuff(state, h);
     let aspd = h.atkSpeedMul * buff.speed * (m ? m.atkSpeedMul : 1);
     if (h.captain) aspd *= 1.4;
-    if (h.inspireT > 0) aspd *= 1.3;
+    if (h.inspireT > 0) aspd *= (h.inspireMul || 1.3);
+    if (h.skillT > 0) aspd *= (h.skillAtkMul || 1);
+    if (m && m.lastStandActive) aspd *= 1.2;
     const interval = a.interval / Math.max(0.1, aspd);
     const range = a.range * buff.range;
     const pellets = a.pellets || 1;
@@ -61,15 +72,5 @@
     return { damage, speed, maxHp: z.maxHp, slow, berserk };
   }
 
-  function recomputeMaxHp(state, h) {
-    if (!h.baseMaxHp) h.baseMaxHp = h.maxHp;
-    const ratio = ZG.Tech ? ZG.Tech.mods(state).hpMul : 1;
-    const target = h.baseMaxHp * ratio;
-    if (target > 0) {
-      h.hp = h.hp * (target / h.maxHp);
-      h.maxHp = target;
-    }
-  }
-
-  ZG.Stats = { human, range, zombie, recomputeMaxHp, ammoBuff };
+  ZG.Stats = { human, range, zombie, ammoBuff };
 })();

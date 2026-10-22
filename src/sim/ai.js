@@ -1315,12 +1315,11 @@
           const z = ZG.Spatial.queryNearest(state.spatial, b.x, b.y, data.attack.range,
             e => e.kind === 'zombie' && e.alive);
           if (z) {
-            const tech = ZG.Balance.techMul('fire', state.tech.fire);
             const inter = ZG.Combat.interceptRay(state, b.x, b.y, z.x, z.y,
               { excludeId: z.id });
             const hit = inter || z;
             ZG.Combat.applyDamage(state, {
-              target: hit, amount: data.attack.damage * tech,
+              target: hit, amount: data.attack.damage,
               damageKind: D.RANGED, fromX: b.x, fromY: b.y, sourceIsHuman: true
             });
             ZG.Projectiles.tracer(state, b.x, b.y, hit.x, hit.y, '#B0BEC5');
@@ -1332,8 +1331,8 @@
           if (!h.alive) continue;
           if (ZG.Geom.dist2(h.x, h.y, b.x, b.y) <= data.heal.radius * data.heal.radius) {
             if (h.hp < h.maxHp) {
-              ZG.Combat.heal(state, h,
-                data.heal.rate * ZG.Balance.techMul('serum', state.tech.serum) * dt);
+              const medMul = 1 + 0.08 * ZG.Tech.mods(state).hero.medicalRank;
+              ZG.Combat.heal(state, h, data.heal.rate * medMul * dt);
             }
             if (h.infection > 0) ZG.Infection.dispel(state, h, data.heal.infection * dt);
           }

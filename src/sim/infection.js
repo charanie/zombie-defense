@@ -18,8 +18,10 @@
     if (!human || !human.alive) return 0;
     if (ZG.Combat.isImmuneToInfection(human)) return 0;
     const mul = terrainMul(state, human);
+    const resist = ZG.Tech ? ZG.Tech.mods(state).infectResist : 0;
     const before = human.infection;
-    human.infection = Math.max(0, Math.min(100, human.infection + amount * mul));
+    human.infection = Math.max(0, Math.min(100,
+      human.infection + amount * mul * (1 - resist)));
     return human.infection - before;
   }
 

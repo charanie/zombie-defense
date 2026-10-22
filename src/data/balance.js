@@ -16,13 +16,13 @@
   function zombieSpeed(base, R) {
     return base * Math.min(1.25, 1 + 0.005 * (R - 1));
   }
-  function bounty(base, R, econLevel) {
-    const lvl = econLevel || 0;
-    return Math.floor(base * (1 + 0.03 * (R - 1)) * (1 + 0.04 * lvl));
+  function bounty(base, R, econMul) {
+    const mul = econMul === undefined ? 1 : econMul;
+    return Math.floor(base * (1 + 0.03 * (R - 1)) * mul);
   }
-  function roundReward(R, econLevel) {
-    const lvl = econLevel || 0;
-    return Math.floor((60 + 12 * R) * (1 + 0.08 * lvl));
+  function roundReward(R, econMul) {
+    const mul = econMul === undefined ? 1 : econMul;
+    return Math.floor((60 + 12 * R) * mul);
   }
   function bossHp(R) {
     return 1200 * pow(1.14, R - 1);

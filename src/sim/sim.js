@@ -113,6 +113,7 @@
     state.battle.stepCount = (state.battle.stepCount || 0) + 1;
     if (state.battle.stepCount % ZG.Const.PATH_REFRESH_STEPS === 0) {
       state.pathing = ZG.Pathing.build(state);
+      ZG.Tech.updateDynamic(state);
     }
 
     // 狂暴与 240 秒强制结算
@@ -196,9 +197,11 @@
     ZG.Infection.settlementClamp(state);
 
     // 3. 平民收入
+    const mods = ZG.Tech.mods(state);
+    const civBonus = mods.classPassives.civilian ? mods.classPassives.civilian.incomeBonus : 0;
     for (const h of state.humans) {
       if (h.alive && h.classId === 'civilian') {
-        civilianIncome += (ZG.Data.humans.civilian.income || 12);
+        civilianIncome += (ZG.Data.humans.civilian.income || 12) + civBonus;
       }
     }
     if (civilianIncome) {
@@ -207,7 +210,7 @@
     }
 
     // 4. 通关奖励
-    passReward = ZG.Balance.roundReward(settledRound, state.tech.econ);
+    passReward = ZG.Balance.roundReward(settledRound, mods.econRewardMul);
     state.money += passReward;
     state.stats.totalEarned += passReward;
 
