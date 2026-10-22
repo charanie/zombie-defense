@@ -67,6 +67,7 @@
     buildModals();
     buildTutorial();
     buildOrientation();
+    if (ZG.TechPanel) ZG.TechPanel.init(state, H.cb);
     return H;
   }
 
@@ -635,6 +636,7 @@
     // 悬停 tooltip
     renderHoverTooltip(state);
     renderLog(state);
+    if (ZG.TechPanel) ZG.TechPanel.render(state);
   }
 
   function updateCards(state) {

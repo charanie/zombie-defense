@@ -264,7 +264,32 @@
     onTechOpen() {
       if (!state) return;
       if (state.status !== 'prep') { ZG.HUD.toast('只能在整备期打开科技树', 'warn'); return; }
-      ZG.HUD.toast('科技树界面开发中', 'info');
+      state.ui.showTech = true;
+      if (!state.ui.techBranch) state.ui.techBranch = 'fire';
+      if (ZG.TechPanel) ZG.TechPanel.open(state);
+      ZG.Audio.play('click');
+    },
+    onTechBuy(nodeId) {
+      if (!state || !nodeId) return;
+      const name = ZG.Data.tech.nodes[nodeId] ? ZG.Data.tech.nodes[nodeId].name : nodeId;
+      const r = ZG.Sim.applyCommand(state, { op: 'buyTechNode', nodeId });
+      if (r.ok) {
+        ZG.Audio.play('coin');
+        ZG.HUD.toast('已购买：' + name + ' Lv ' + r.rank, 'ok');
+      } else {
+        const map = {
+          money: '金钱不足', locked: '需要上一层节点', maxed: '已满级',
+          'not-prep': '仅整备期可购买', unknown: '节点不存在'
+        };
+        ZG.HUD.toast(map[r.reason] || '无法购买', 'warn');
+      }
+    },
+    onTechClose() {
+      if (!state) return;
+      state.ui.showTech = false;
+      state.ui.techNodeId = null;
+      ZG.Audio.play('click');
+      if (ZG.TechPanel) ZG.TechPanel.close(state);
     },
     onSupport(skillId) {
       if (!state || state.status !== 'battle') return;

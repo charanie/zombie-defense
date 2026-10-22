@@ -249,6 +249,11 @@
       const tag = (ev.target && ev.target.tagName) || '';
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
+      if (s.ui.showTech) {
+        if (ev.key === 'Escape') cb.onTechClose && cb.onTechClose();
+        return;
+      }
+
       if (ev.code === 'Space') {
         ev.preventDefault();
         cb.onPause && cb.onPause();
@@ -261,6 +266,8 @@
         cb.onMute && cb.onMute();
       } else if (ev.key === 'h' || ev.key === 'H') {
         cb.onHelp && cb.onHelp();
+      } else if (ev.key === 't' || ev.key === 'T') {
+        cb.onTechOpen && cb.onTechOpen();
       } else if (ev.key === 'r' || ev.key === 'R') {
         if (s.ui.selectedBuilding === 'barricade') {
           s.ui.wallVertical = !s.ui.wallVertical;
@@ -270,7 +277,8 @@
         if (s.ui.pendingSupport) {
           s.ui.pendingSupport = null;
           s.ui.supportAim = null;
-        } else if (s.ui.showHelp || s.ui.showSettings) cb.onCloseModal && cb.onCloseModal();
+        } else if (s.ui.showTech) cb.onTechClose && cb.onTechClose();
+        else if (s.ui.showHelp || s.ui.showSettings) cb.onCloseModal && cb.onCloseModal();
         else cancelSelection();
       }
     });
