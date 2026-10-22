@@ -53,6 +53,7 @@
     const s = seed >>> 0;
     return {
       spawn: stream(s, 'spawn'),
+      boss: stream(s, 'boss'),
       promote: stream(s, 'promote'),
       hero: stream(s, 'hero'),
       jitter: stream(s, 'jitter'),

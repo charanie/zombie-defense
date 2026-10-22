@@ -60,7 +60,7 @@
       name: ZG.Data.zombies[id].name,
       count: p.counts[id] || 0
     })).filter(x => x.count > 0);
-    if (p.boss) p.formation.push({ id: 'boss', name: 'BOSS 坦克', count: 1 });
+    if (p.boss) p.formation.push({ id: 'boss', name: '随机 BOSS', count: 1 });
     return p;
   }
 
@@ -125,7 +125,8 @@
       shield: z.shield,
       maxShield: z.maxShield,
       speed: st.speed,
-      damage: z.isBoss ? ZG.Balance.bossRockDamage(state.round) : st.damage,
+      damage: z.isBoss
+        ? ZG.Balance.bossPrimaryDamage(z.typeId, state.round) : st.damage,
       bounty: z.isBoss ? ZG.Balance.bossReward(state.round) : z.bountyBase,
       radius: z.radius,
       special: data ? data.special : '',

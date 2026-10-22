@@ -31,7 +31,10 @@
       targetId: opts.targetId || 0,
       directTargetId: opts.directTargetId || opts.targetId || 0,
       splashMul: opts.splashMul,
-      splash: opts.splash || opts.radius || 60
+      splash: opts.splash || opts.radius || 60,
+      spitKind: opts.spitKind || null,
+      poison: opts.poison || null,
+      ignoreShield: !!opts.ignoreShield
     };
     state.projectiles.push(p);
     if (opts.effect) state.effects.push(opts.effect);
@@ -78,15 +81,25 @@
       }
     }
     if (o.hitsHumans) {
+      // 仅带 splashMul 的爆炸区分直击目标与溅射；旧调用行为不变
+      let direct = null;
+      if (o.splashMul !== undefined) {
+        direct = state.humans.find(h => h.alive && h.id === o.directTargetId) || null;
+        if (direct && ZG.Geom.dist2(direct.x, direct.y, x, y) >
+            (radius + direct.radius) * (radius + direct.radius)) direct = null;
+      }
       for (const h of state.humans.slice()) {
         if (!h.alive) continue;
         const d2 = ZG.Geom.dist2(h.x, h.y, x, y);
         if (d2 <= (radius + h.radius) * (radius + h.radius)) {
           let dmg = damage;
+          if (o.splashMul !== undefined && (!direct || h.id !== direct.id)) {
+            dmg *= o.splashMul;
+          }
           if (o.kind === 'boomer') dmg *= ZG.Combat.shieldGuardMul(state, h, x, y);
           ZG.Combat.applyDamage(state, {
             target: h, amount: dmg, damageKind: damageKind || D.EXPLOSION,
-            fromX: x, fromY: y
+            fromX: x, fromY: y, ignoreShield: !!o.ignoreShield
           });
           if (h.alive && o.infection) ZG.Infection.add(state, h, o.infection);
         }
@@ -102,6 +115,48 @@
       }
     }
     state.bus.emit('fx:explosion', { x, y, radius, color: o.color || '#FF7043', kind: o.kind || 'normal' });
+  }
+
+  // 腐吐者子弹到达结算：毒弹不走 explode（无爆炸音效/震屏）
+  function impactSpit(state, p) {
+    if (p.spitKind === 'normal') {
+      const h = state.humans.find(x => x.alive && x.id === p.targetId);
+      const r = p.splash || 16;
+      if (h && ZG.Geom.dist2(h.x, h.y, p.x, p.y) <= (r + h.radius) * (r + h.radius)) {
+        ZG.Combat.applyDamage(state, {
+          target: h, amount: p.damage, damageKind: D.RANGED,
+          fromX: p.x, fromY: p.y
+        });
+      }
+      return;
+    }
+
+    if (p.spitKind === 'poison') {
+      const r = p.splash || p.radius;
+      for (const h of state.humans.slice()) {
+        if (!h.alive) continue;
+        if (ZG.Geom.dist2(h.x, h.y, p.x, p.y) > (r + h.radius) * (r + h.radius)) continue;
+        ZG.Combat.applyDamage(state, {
+          target: h, amount: p.damage, damageKind: D.POISON,
+          fromX: p.x, fromY: p.y, ignoreShield: true
+        });
+        if (h.alive && p.poison) {
+          ZG.Infection.poison(state, h, p.poison.dps, p.poison.duration);
+        }
+      }
+      const life = p.poison ? p.poison.duration : 3.5;
+      state.effects.push({
+        kind: 'poison_cloud', x: p.x, y: p.y, radius: r,
+        color: '#7CB342', life, maxLife: life
+      });
+      state.bus.emit('fx:poison', { x: p.x, y: p.y, radius: r });
+      return;
+    }
+
+    explode(state, p.x, p.y, p.splash || p.radius, p.damage, D.EXPLOSION, {
+      hitsHumans: true, directTargetId: p.targetId,
+      splashMul: p.splashMul, color: p.color, kind: 'spitter_boom'
+    });
   }
 
   function step(state) {
@@ -147,13 +202,21 @@
       const move = p.speed * dt;
       if (dist <= move || p.life <= 0) {
         p.alive = false;
+        p.x = p.tx;
+        p.y = p.ty;
         if (p.typeId === 'vial' && p.targetId) {
           const z = state.zombies.find(q => q.id === p.targetId && q.alive);
           if (z) ZG.Combat.tryConvert(state, z);
         }
+        if (p.typeId === 'spit') {
+          impactSpit(state, p);
+          continue;
+        }
         explode(state, p.tx, p.ty, p.splash || p.radius, p.damage, p.damageKind, {
-          hitsHumans: false, hitsBuildings: false, siegeBonus: p.siegeBonus,
+          hitsHumans: p.hitsHumans, hitsBuildings: p.hitsBuildings,
+          siegeBonus: p.siegeBonus,
           directTargetId: p.directTargetId, splashMul: p.splashMul,
+          ignoreShield: p.ignoreShield,
           color: p.color, kind: p.typeId
         });
         continue;

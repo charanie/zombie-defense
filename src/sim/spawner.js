@@ -4,7 +4,11 @@
   const ZG = globalThis.ZG = globalThis.ZG || {};
 
   function prepare(state) {
-    const w = ZG.Waves.build(state.round, state.rng.spawn);
+    const bossRound = ZG.Waves.isBossRound(state.round);
+    const bossType = bossRound
+      ? ZG.Waves.pickBossType(state.battle.lastBossType, state.rng.boss)
+      : null;
+    const w = ZG.Waves.build(state.round, state.rng.spawn, { bossType });
     state.spawner = {
       batches: w.batches,
       batchIndex: 0,
@@ -14,8 +18,10 @@
       bossPending: false,
       portals: [],
       bossBatchIndex: w.bossBatchIndex,
+      bossType,
       total: w.total
     };
+    if (bossRound) state.battle.lastBossType = bossType;
     state.battle.waveTotal = w.total;
     state.battle.waveId = state.round;
     state.battle.babyCount = 0;

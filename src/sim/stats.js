@@ -55,8 +55,10 @@
     const berserk = Math.pow(1.3, state.battle.berserkTier || 0);
     const baseSpeed = (z.speed !== undefined ? z.speed : z.speedBase);
     const baseDamage = (z.damage !== undefined ? z.damage : z.damageBase);
-    const speed = baseSpeed * (z.speedScale || 1) * slow * berserk;
-    const damage = baseDamage * (z.damageScale || 1) * berserk;
+    const speed = baseSpeed * (z.speedScale || 1) * slow * berserk *
+      (z.buffSpeed || 1);
+    const damage = baseDamage * (z.damageScale || 1) * berserk *
+      (z.buffDamage || 1);
     return { damage, speed, maxHp: z.maxHp, slow, berserk };
   }
 
