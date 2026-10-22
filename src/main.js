@@ -140,6 +140,15 @@
       if (p.text) { ZG.HUD.toast(p.text, 'hero'); log(p.text, 'hero'); }
       ZG.Audio.play('horn');
     });
+    bus.on('fx:support_heal', p => {
+      ZG.Particles.burst(p.x, p.y, '#66BB6A', 18);
+      ZG.Audio.play('horn');
+    });
+    bus.on('fx:support_bomb', p => {
+      ZG.Particles.explosion(p.x, p.y, p.radius, '#FF7043');
+      ZG.Particles.shake(5);
+      ZG.Audio.play('explosion');
+    });
     bus.on('fx:teleport', p => ZG.Particles.burst(p.x, p.y, '#90CAF9', 6));
     bus.on('fx:shieldbreak', p => ZG.Particles.burst(p.x, p.y, '#42A5F5', 8));
   }
@@ -257,6 +266,27 @@
       if (state.status !== 'prep') { ZG.HUD.toast('只能在整备期打开科技树', 'warn'); return; }
       ZG.HUD.toast('科技树界面开发中', 'info');
     },
+    onSupport(skillId) {
+      if (!state || state.status !== 'battle') return;
+      const m = ZG.Tech.mods(state).support;
+      const unlocked = skillId === 'areaHeal' ? m.healUnlocked : m.bombUnlocked;
+      if (!unlocked) return;
+      if (state.ui.pendingSupport === skillId) {
+        state.ui.pendingSupport = null;
+        state.ui.supportAim = null;
+        ZG.HUD.toast('已取消施放', 'info');
+        return;
+      }
+      state.ui.pendingSupport = skillId;
+      state.ui.supportAim = state.ui.mouse || null;
+      ZG.HUD.toast('点击地图选点施放', 'info');
+      ZG.Audio.play('click');
+    },
+    onSupportCancel() {
+      if (!state) return;
+      state.ui.pendingSupport = null;
+      state.ui.supportAim = null;
+    },
     onStartRound() {
       if (!state || state.status !== 'prep') return;
       state.ui.showSettlement = false;
@@ -264,6 +294,8 @@
       state.ui.selectedBuilding = null;
       state.ui.selectedHumanId = null;
       state.ui.drag = null;
+      state.ui.pendingSupport = null;
+      state.ui.supportAim = null;
       const r = ZG.Sim.applyCommand(state, { op: 'startRound' });
       if (!r.ok) ZG.HUD.toast(r.reason === 'no-humans' ? '至少需要一名人类' : '无法开始', 'warn');
       ZG.Audio.init();
@@ -318,6 +350,8 @@
       state.ui.selectedCard = null;
       state.ui.selectedBuilding = null;
       state.ui.selectedHumanId = null;
+      state.ui.pendingSupport = null;
+      state.ui.supportAim = null;
       state.ui.tutorialStep = -1;
       ZG.Audio.play('click');
     },

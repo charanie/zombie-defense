@@ -178,3 +178,70 @@ test('英雄强化：长官 5 发、半径 210；医疗体系 3 级', () => {
   assert.equal(ZG.Sim.startRound(s2).ok, true);
   assert.equal(m.serumLeft, 6);
 });
+
+test('援助校验：未解锁 / 非战斗 / 次数 / 金钱 / 地图外', () => {
+  const s = fresh();
+  assert.deepEqual(ZG.Skills.castSupport(s, 'areaHeal', 600, 400),
+    { ok: false, reason: 'locked' });
+  for (const id of ['econ_gold', 'build_hp', 'bank_power', 'support_heal']) ZG.Tech.buy(s, id);
+  ZG.State.spawnHuman(s, 'pistol', 600, 600);
+  assert.deepEqual(ZG.Skills.castSupport(s, 'areaHeal', 600, 400),
+    { ok: false, reason: 'not-battle' });
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  assert.deepEqual(ZG.Skills.castSupport(s, 'areaHeal', -1, 400),
+    { ok: false, reason: 'outside' });
+  s.money = 0;
+  assert.deepEqual(ZG.Skills.castSupport(s, 'areaHeal', 600, 400),
+    { ok: false, reason: 'money' });
+  s.money = 1000;
+  assert.equal(ZG.Skills.castSupport(s, 'areaHeal', 600, 400).ok, true);
+  assert.equal(ZG.Skills.castSupport(s, 'areaHeal', 600, 400).reason, 'uses');
+});
+
+test('范围治疗：150 半径、120 HP、驱散 40；强化后 187.5 / 150 / 54 金', () => {
+  const s = fresh();
+  for (const id of ['econ_gold','build_hp','bank_power','support_heal','support_bomb','support_power']) {
+    ZG.Tech.buy(s, id);
+  }
+  const a = ZG.State.spawnHuman(s, 'pistol', 600, 600);
+  a.maxHp = 1000; a.hp = 50; a.infection = 80;
+  const out = ZG.State.spawnHuman(s, 'pistol', 900, 600);
+  out.maxHp = 1000; out.hp = 50; out.infection = 80;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  const r = ZG.Skills.castSupport(s, 'areaHeal', 600, 600);
+  assert.equal(r.ok, true);
+  assert.equal(r.cost, 54);
+  assert.equal(a.hp, 200);
+  assert.equal(a.infection, 40);
+  assert.equal(out.hp, 50);
+});
+
+test('导弹轰炸：2 发、固定偏移、伤害 300+12R', () => {
+  const s = fresh();
+  for (const id of ['econ_gold','build_hp','bank_power','support_heal','support_bomb']) ZG.Tech.buy(s, id);
+  ZG.State.spawnHuman(s, 'pistol', 600, 600);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  s.round = 10;
+  const z = ZG.State.spawnZombie(s, 'walker', 600, 400);
+  z.hp = z.maxHp = 9999;
+  ZG.Skills.castSupport(s, 'missileBombardment', 600, 400);
+  assert.equal(s.projectiles.length, 2);
+  assert.deepEqual(s.projectiles.map(p => [p.tx, p.ty]), [[576, 388], [624, 412]]);
+  ZG.Sim.tick(s, 30);
+  assert.ok(9999 - z.hp > 0);
+});
+
+test('援助命令回放一致', () => {
+  const run = () => {
+    const s = fresh();
+    for (const id of ['econ_gold','build_hp','bank_power','support_heal']) {
+      ZG.Sim.applyCommand(s, { op: 'buyTechNode', nodeId: id });
+    }
+    ZG.State.spawnHuman(s, 'pistol', 600, 600);
+    ZG.Sim.applyCommand(s, { op: 'startRound' });
+    ZG.Sim.applyCommand(s, { op: 'castSupport', skillId: 'areaHeal', x: 600, y: 500 });
+    ZG.Sim.tick(s, 120);
+    return ZG.State.hash(s);
+  };
+  assert.equal(run(), run());
+});

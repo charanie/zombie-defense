@@ -689,3 +689,13 @@ html, body {
 
 .orientation-hint { max-width: calc(100vw - 24px); white-space: nowrap; }
 .orientation-hint span { white-space: nowrap; }
+
+/* v1.4 战斗期援助条 */
+.support-bar { display: flex; align-items: center; gap: 6px; }
+.support-btn { height: 32px; padding: 0 10px; font-size: 12px; white-space: nowrap; }
+.support-btn.hidden { display: none; }
+.support-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.support-btn.aiming { outline: 2px solid #FFD54F; outline-offset: 1px; }
+@media (max-width: 900px), (pointer: coarse) {
+  .support-btn { height: 44px; padding: 0 12px; font-size: 12px; }
+}

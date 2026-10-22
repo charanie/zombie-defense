@@ -300,6 +300,9 @@
       case 'buyTechNode':
         r = ZG.Tech.buy(state, cmd.nodeId);
         break;
+      case 'castSupport':
+        r = ZG.Skills.castSupport(state, cmd.skillId, cmd.x, cmd.y);
+        break;
       case 'moveHuman':
         r = ZG.Economy.moveHuman(state, cmd.humanId, cmd.x, cmd.y);
         break;

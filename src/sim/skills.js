@@ -312,8 +312,65 @@
       state.rng.skills.chance(m.hero.samuraiChain));
   }
 
-  // 场外援助：Task 6 接入。
-  function castSupport() { return { ok: false, reason: 'locked' }; }
+  function castSupport(state, skillId, x, y) {
+    const base = ZG.Data.tech.support[skillId];
+    if (!base) return { ok: false, reason: 'unknown' };
+    const m = mods(state);
+    const unlocked = skillId === 'areaHeal' ? m.support.healUnlocked : m.support.bombUnlocked;
+    if (!unlocked) return { ok: false, reason: 'locked' };
+    if (state.status !== 'battle') return { ok: false, reason: 'not-battle' };
+    if (!(x >= 0 && y >= 0 && x <= ZG.Const.W && y <= ZG.Const.H)) {
+      return { ok: false, reason: 'outside' };
+    }
+    const maxUses = ZG.Tech.supportUsesMax(state, skillId);
+    const used = state.supports.uses[skillId] || 0;
+    if (used >= maxUses) return { ok: false, reason: 'uses' };
+    const cost = ZG.Tech.supportCost(state, skillId);
+    if (state.money < cost) return { ok: false, reason: 'money' };
+
+    state.supports.uses[skillId] = used + 1;
+    ZG.Economy.spend(state, cost);
+    const radius = base.radius * m.support.radiusMul;
+
+    if (skillId === 'areaHeal') {
+      const heal = base.heal * m.support.powerMul;
+      for (const h of state.humans) {
+        if (!h.alive) continue;
+        if (ZG.Geom.dist2(h.x, h.y, x, y) > radius * radius) continue;
+        ZG.Combat.heal(state, h, heal);
+        ZG.Infection.dispel(state, h, base.dispel);
+      }
+      if (state.effects.length < 250) {
+        state.effects.push({
+          kind: 'support_heal', x, y, radius, life: 0.6, maxLife: 0.6
+        });
+      }
+      state.bus.emit('fx:support_heal', { x, y, radius });
+    } else {
+      const damage = ZG.Balance.supportDamage(state.round) * m.support.powerMul;
+      const shells = base.shells;
+      for (let i = 0; i < shells; i++) {
+        const off = base.offsets[i % base.offsets.length];
+        const tx = x + off.x;
+        const ty = y + off.y;
+        const delay = base.warnT + i * base.shellGap;
+        ZG.Projectiles.spawn(state, {
+          typeId: 'support_bomb', x: tx, y: ty, tx, ty,
+          speed: 900, splash: radius, damage, damageKind: D.EXPLOSION,
+          delay, life: 1, color: '#FF7043'
+        });
+        if (state.effects.length < 250) {
+          state.effects.push({
+            kind: 'support_warn', x: tx, y: ty, radius,
+            life: delay, maxLife: delay
+          });
+        }
+      }
+      state.bus.emit('fx:support_bomb', { x, y, radius });
+    }
+
+    return { ok: true, skillId, cost, remaining: maxUses - used - 1 };
+  }
 
   ZG.Skills = {
     resetRound, stepHuman, onAttack, onSamuraiAttack, onDeath, castSupport, stepRegen

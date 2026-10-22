@@ -571,6 +571,21 @@
       ctx.restore();
     }
 
+    // 眩晕标记
+    if (z.stunT > 0) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 213, 79, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(z.x, z.y - r - 6, 4.5, state.battle.time * 8, state.battle.time * 8 + Math.PI * 1.4);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255, 213, 79, 0.95)';
+      ctx.font = 'bold 9px "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('晕', z.x, z.y - r - 14);
+      ctx.restore();
+    }
+
     // 护盾值条 / 血条（仅受伤）
     if (z.shield > 0 && z.maxShield > 0) {
       drawBar(ctx, z.x, z.y + r + 6, 22, 3, z.shield / z.maxShield, 'rgba(66, 165, 245, 0.95)');
@@ -758,8 +773,78 @@
         ctx.fillStyle = g;
         ctx.fillRect(0, -e.width / 2, e.length, e.width);
         ctx.restore();
+      } else if (e.kind === 'fire_ring' || e.kind === 'heal_ring' ||
+                 e.kind === 'taunt_ring' || e.kind === 'support_heal') {
+        const isHeal = e.kind === 'heal_ring' || e.kind === 'support_heal';
+        const isTaunt = e.kind === 'taunt_ring';
+        const color = isHeal ? '102, 187, 106' : (isTaunt ? '255, 213, 79' : '255, 112, 67');
+        ctx.save();
+        ctx.globalAlpha = a * 0.75;
+        ctx.strokeStyle = 'rgba(' + color + ', 0.9)';
+        ctx.fillStyle = 'rgba(' + color + ', 0.18)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, (e.radius || 60) * (1 - a * 0.35), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      } else if (e.kind === 'mg_sweep') {
+        ctx.save();
+        ctx.globalAlpha = a * 0.5;
+        ctx.strokeStyle = '#FFE082';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius || 150, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      } else if (e.kind === 'shockwave') {
+        ctx.save();
+        ctx.globalAlpha = a * 0.7;
+        ctx.translate(e.x, e.y);
+        ctx.rotate(e.facing);
+        ctx.fillStyle = 'rgba(255, 204, 128, 0.35)';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, e.range, -(e.coneDeg * Math.PI) / 360, (e.coneDeg * Math.PI) / 360);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      } else if (e.kind === 'support_warn') {
+        ctx.save();
+        ctx.globalAlpha = 0.35 + 0.35 * (1 - a);
+        ctx.strokeStyle = '#FF7043';
+        ctx.setLineDash([8, 6]);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius || 130, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
       }
     }
+  }
+
+  function drawSupportAim(ctx, state) {
+    const ui = state.ui;
+    if (!ui.pendingSupport || !ui.supportAim) return;
+    const radius = ZG.Tech.supportRadius(state, ui.pendingSupport);
+    const heal = ui.pendingSupport === 'areaHeal';
+    const color = heal ? '102, 187, 106' : '255, 112, 67';
+    const p = ui.supportAim;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = 'rgba(' + color + ', 0.16)';
+    ctx.strokeStyle = 'rgba(' + color + ', 0.95)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.x - 14, p.y); ctx.lineTo(p.x + 14, p.y);
+    ctx.moveTo(p.x, p.y - 14); ctx.lineTo(p.x, p.y + 14);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawPlacement(ctx, state) {
@@ -889,6 +974,7 @@
     drawProjectiles(ctx, state);
     drawEffects(ctx, state);
     drawPlacement(ctx, state);
+    drawSupportAim(ctx, state);
 
     ZG.Particles.draw(ctx, state.settings);
     ctx.restore();

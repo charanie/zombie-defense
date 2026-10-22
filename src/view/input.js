@@ -92,6 +92,11 @@
       s.ui.mouse = p;
       if (!p) { s.ui.hover = null; return; }
 
+      if (s.ui.pendingSupport) {
+        s.ui.supportAim = p;
+        return;
+      }
+
       const drag = s.ui.drag;
       if (drag) {
         if (s.status !== 'prep') { cancelDrag(s); return; }
@@ -124,8 +129,26 @@
       const s = state();
       if (!s || s.ui.showMenu) return;
       const p = toWorld(canvas, ev);
-      if (!p) return;
+      if (!p) {
+        if (s.ui.pendingSupport) ZG.HUD.toast('请在地图内选点', 'warn');
+        return;
+      }
       const ui = s.ui;
+
+      // 援助瞄准：点击地图即施放
+      if (ui.pendingSupport) {
+        const r = ZG.Sim.applyCommand(s, {
+          op: 'castSupport', skillId: ui.pendingSupport, x: p.x, y: p.y
+        });
+        if (r.ok) {
+          ZG.HUD.toast('援助已施放', 'ok');
+          ui.pendingSupport = null;
+          ui.supportAim = null;
+        } else {
+          ZG.HUD.toast(reasonText(r.reason), 'warn');
+        }
+        return;
+      }
 
       // 放置人类
       if (ui.selectedCard && ZG.Data.humans[ui.selectedCard]) {
@@ -211,6 +234,12 @@
 
     canvas.addEventListener('contextmenu', ev => {
       ev.preventDefault();
+      const s = state();
+      if (s && s.ui.pendingSupport) {
+        s.ui.pendingSupport = null;
+        s.ui.supportAim = null;
+        return;
+      }
       cancelSelection();
     });
 
@@ -238,7 +267,10 @@
           ZG.HUD.toast(s.ui.wallVertical ? '竖墙' : '横墙', 'info');
         }
       } else if (ev.key === 'Escape') {
-        if (s.ui.showHelp || s.ui.showSettings) cb.onCloseModal && cb.onCloseModal();
+        if (s.ui.pendingSupport) {
+          s.ui.pendingSupport = null;
+          s.ui.supportAim = null;
+        } else if (s.ui.showHelp || s.ui.showSettings) cb.onCloseModal && cb.onCloseModal();
         else cancelSelection();
       }
     });
@@ -248,7 +280,8 @@
     const map = {
       money: '金钱不足', population: '人口已满', 'civilian-cap': '平民已满',
       outside: '地图外', overlap: '位置重叠', obstacle: '障碍阻挡',
-      limit: '已达上限', 'not-prep': '战斗中不能操作'
+      limit: '已达上限', 'not-prep': '战斗中不能操作',
+      locked: '尚未解锁', uses: '本回合次数已用完', 'not-battle': '仅战斗中可用'
     };
     return map[reason] || '无法执行';
   }

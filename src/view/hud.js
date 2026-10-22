@@ -142,7 +142,15 @@
     const progress = el('div', 'wave-progress');
     H.refs.waveFill = el('div', 'wave-fill');
     progress.appendChild(H.refs.waveFill);
-    battleStrip.append(H.refs.battleText, progress);
+    const supportBar = el('div', 'support-bar');
+    H.refs.supportBtns = {};
+    for (const [id, label] of [['areaHeal', '范围治疗'], ['missileBombardment', '导弹轰炸']]) {
+      const b = el('button', 'btn support-btn hidden', label);
+      b.onclick = () => { H.cb.onSupport && H.cb.onSupport(id); };
+      H.refs.supportBtns[id] = b;
+      supportBar.appendChild(b);
+    }
+    battleStrip.append(H.refs.battleText, progress, supportBar);
 
     const body = el('div', 'panel-body');
     H.refs.panelBody = body;
@@ -570,6 +578,7 @@
       const killedOrLeft = Math.max(0, total - ZG.Spawner.remaining(state));
       H.refs.battleText.textContent = '战斗进行中 · 剩余僵尸 ' + bar.zombies + ' · 击杀 ' + state.battle.killCount;
       H.refs.waveFill.style.width = Math.min(100, (killedOrLeft / total) * 100) + '%';
+      updateSupport(state);
     } else {
       updateCards(state);
       updateWavePreview(state);
@@ -660,6 +669,28 @@
       } else {
         ref.reason.classList.add('hidden');
       }
+    }
+  }
+
+  function updateSupport(state) {
+    if (!H.refs.supportBtns || !ZG.Tech) return;
+    const m = ZG.Tech.mods(state).support;
+    const names = { areaHeal: '范围治疗', missileBombardment: '导弹轰炸' };
+    for (const id of ['areaHeal', 'missileBombardment']) {
+      const btn = H.refs.supportBtns[id];
+      if (!btn) continue;
+      const unlocked = id === 'areaHeal' ? m.healUnlocked : m.bombUnlocked;
+      btn.classList.toggle('hidden', !unlocked);
+      if (!unlocked) continue;
+      const max = ZG.Tech.supportUsesMax(state, id);
+      const used = state.supports.uses[id] || 0;
+      const cost = ZG.Tech.supportCost(state, id);
+      btn.textContent = names[id] + ' ' + cost + '金 · ' + used + '/' + max;
+      const outOfUses = used >= max;
+      const poor = state.money < cost;
+      btn.disabled = outOfUses || poor;
+      btn.title = outOfUses ? '本回合次数已用完' : (poor ? '金钱不足' : '点击后在地图上选点施放');
+      btn.classList.toggle('aiming', state.ui.pendingSupport === id);
     }
   }
 

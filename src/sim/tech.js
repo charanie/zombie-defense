@@ -273,7 +273,7 @@
   function supportCost(state, skillId) {
     const base = supportBase(skillId);
     if (!base) return 0;
-    return Math.floor(base.baseCost * (1 + mods(state).support.costMul));
+    return Math.floor(base.baseCost * mods(state).support.costMul);
   }
 
   function supportUsesMax(state, skillId) {
