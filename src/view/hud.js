@@ -10,7 +10,6 @@
     root: null,
     refs: {},
     cardEls: {},
-    techEls: {},
     buildEls: {},
     panelBuilt: '',
     lastLogCount: 0
@@ -54,7 +53,6 @@
     H.root = document.getElementById('hud');
     H.root.innerHTML = '';
     H.cardEls = {};
-    H.techEls = {};
     H.buildEls = {};
     H.panelBuilt = '';
 
@@ -123,7 +121,7 @@
 
     const tabs = el('div', 'hud-tabs');
     H.refs.tabEls = {};
-    for (const [id, label] of [['recruit', '招募'], ['building', '建筑'], ['tech', '科技']]) {
+    for (const [id, label] of [['recruit', '招募'], ['building', '建筑']]) {
       const b = el('button', 'tab-btn', label);
       b.onclick = () => {
         H.cb.onPanel && H.cb.onPanel(id);
@@ -131,6 +129,10 @@
       H.refs.tabEls[id] = b;
       tabs.appendChild(b);
     }
+    const techBtn = el('button', 'tab-btn tab-tech', '科技树 (T)');
+    techBtn.onclick = () => { H.cb.onTechOpen && H.cb.onTechOpen(); };
+    H.refs.techOpenBtn = techBtn;
+    tabs.appendChild(techBtn);
     H.refs.tabLine = el('span', 'tab-line');
     tabs.appendChild(H.refs.tabLine);
 
@@ -146,11 +148,10 @@
     H.refs.panelBody = body;
     H.refs.recruitGrid = el('div', 'card-grid');
     H.refs.buildGrid = el('div', 'card-grid');
-    H.refs.techGrid = el('div', 'tech-grid');
-    for (const g of [H.refs.recruitGrid, H.refs.buildGrid, H.refs.techGrid]) {
+    for (const g of [H.refs.recruitGrid, H.refs.buildGrid]) {
       g.classList.add('hidden');
     }
-    body.append(H.refs.recruitGrid, H.refs.buildGrid, H.refs.techGrid);
+    body.append(H.refs.recruitGrid, H.refs.buildGrid);
 
     const footer = el('div', 'hud-footer');
     H.refs.sellBtn = el('button', 'btn btn-sell hidden', '出售选中单位');
@@ -173,7 +174,6 @@
 
     buildRecruitCards();
     buildBuildingCards();
-    buildTechRows();
   }
 
   function buildRecruitCards() {
@@ -211,7 +211,7 @@
     info.push(d.name + '　' + d.cost + ' 金 / ' + d.pop + ' 人口');
     info.push('HP ' + d.hp + (d.shieldHp ? ' + ' + d.shieldHp + ' 盾' : ''));
     if (d.attack) info.push('伤害 ' + d.attack.damage + ' × ' + (d.attack.pellets || 1) + ' / ' + d.attack.interval.toFixed(2) + 's');
-    if (d.healRate) info.push('治疗 ' + d.healRate + '/s · 血清 ' + ZG.Balance.serumCount(st.tech.serum) + ' 次');
+    if (d.healRate) info.push('治疗 ' + d.healRate + '/s · 血清 ' + (3 + ZG.Tech.mods(st).hero.medicalRank) + ' 次');
     if (d.income) info.push('每回合 +' + d.income + ' 金');
     info.push('克制：' + d.counters);
     info.push('弱点：' + d.weak);
@@ -244,22 +244,6 @@
       card.onmouseleave = hideTip;
       grid.appendChild(card);
       H.buildEls[id] = { card, reason, stats };
-    }
-  }
-
-  function buildTechRows() {
-    const grid = H.refs.techGrid;
-    grid.innerHTML = '';
-    for (const line of ['fire', 'armor', 'econ', 'serum']) {
-      const row = el('div', 'tech-row');
-      const name = el('span', 'tech-name', '');
-      const lvl = el('span', 'tech-level', '');
-      const effect = el('span', 'tech-effect', '');
-      const btn = el('button', 'btn btn-buy', '');
-      btn.onclick = () => { if (!btn.disabled) H.cb.onTech && H.cb.onTech(line); };
-      row.append(name, lvl, effect, btn);
-      grid.appendChild(row);
-      H.techEls[line] = { row, name, lvl, effect, btn };
     }
   }
 
@@ -429,7 +413,8 @@
       '<tr><td>右键 / Esc</td><td>取消选卡或放置</td></tr>' +
       '<tr><td>空格</td><td>暂停 / 继续</td></tr>' +
       '<tr><td>1 / 2 / 3</td><td>1x / 2x / 3x 速度</td></tr>' +
-      '<tr><td>Tab</td><td>切换招募 / 建筑 / 科技</td></tr>' +
+      '<tr><td>Tab</td><td>切换招募 / 建筑</td></tr>' +
+      '<tr><td>T</td><td>打开科技树（仅整备期）</td></tr>' +
       '<tr><td>M</td><td>静音</td></tr>' +
       '<tr><td>H</td><td>图鉴 / 帮助</td></tr>' +
       '<tr><td>R</td><td>围墙横 / 竖切换</td></tr></table>' +
@@ -574,12 +559,11 @@
     H.refs.wavePreview.classList.toggle('hidden', battle);
     H.refs.log.classList.toggle('hidden', !battle);
 
-    for (const id of ['recruit', 'building', 'tech']) {
+    for (const id of ['recruit', 'building']) {
       H.refs.tabEls[id].classList.toggle('active', ui.panel === id);
     }
     H.refs.recruitGrid.classList.toggle('hidden', ui.panel !== 'recruit');
     H.refs.buildGrid.classList.toggle('hidden', ui.panel !== 'building');
-    H.refs.techGrid.classList.toggle('hidden', ui.panel !== 'tech');
 
     if (battle) {
       const total = state.battle.waveTotal || 1;
@@ -588,7 +572,6 @@
       H.refs.waveFill.style.width = Math.min(100, (killedOrLeft / total) * 100) + '%';
     } else {
       updateCards(state);
-      updateTech(state);
       updateWavePreview(state);
       H.refs.startBtn.disabled = state.humans.filter(h => h.alive).length === 0;
     }
@@ -676,24 +659,6 @@
         ref.reason.textContent = reasonText(battle ? 'not-prep' : cs.reason);
       } else {
         ref.reason.classList.add('hidden');
-      }
-    }
-  }
-
-  function updateTech(state) {
-    for (const line of ['fire', 'armor', 'econ', 'serum']) {
-      const ref = H.techEls[line];
-      if (!ref) continue;
-      const row = ZG.Model.techRow(state, line);
-      ref.name.textContent = row.name;
-      ref.lvl.textContent = 'Lv ' + row.level + '/' + row.max;
-      ref.effect.textContent = row.effect;
-      if (row.maxed) {
-        ref.btn.textContent = '已满级';
-        ref.btn.disabled = true;
-      } else {
-        ref.btn.textContent = row.cost + ' 金';
-        ref.btn.disabled = state.money < row.cost || state.status !== 'prep';
       }
     }
   }

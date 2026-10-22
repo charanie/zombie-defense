@@ -25,6 +25,7 @@ const SHELL = [
   './src/data/waves.js',
   './src/data/tech.js',
   './src/sim/spatial.js',
+  './src/sim/tech.js',
   './src/sim/stats.js',
   './src/sim/pathing.js',
   './src/sim/squads.js',

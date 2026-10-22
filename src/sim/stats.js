@@ -34,13 +34,14 @@
   function human(state, h) {
     const a = h.attack;
     if (!a) return { damage: 0, interval: 1, range: 0, attackSpeed: 1, maxHp: h.maxHp, dps: 0 };
-    const tech = ZG.Balance.techMul('fire', state.tech.fire);
-    let dmg = a.damage * tech * h.dmgMul;
+    const m = ZG.Tech ? ZG.Tech.mods(state) : null;
+    let dmg = a.damage * (m ? m.dmgMul : 1) * h.dmgMul;
+    if (h.hero && m) dmg *= m.hero.dmgMul;
     if (h.captain) {
       dmg *= 1.3 * (1 + 0.10 * (state.stats.captainOverflow || 0));
     }
     const buff = ammoBuff(state, h);
-    let aspd = h.atkSpeedMul * buff.speed;
+    let aspd = h.atkSpeedMul * buff.speed * (m ? m.atkSpeedMul : 1);
     if (h.captain) aspd *= 1.4;
     if (h.inspireT > 0) aspd *= 1.3;
     const interval = a.interval / Math.max(0.1, aspd);
@@ -62,7 +63,7 @@
 
   function recomputeMaxHp(state, h) {
     if (!h.baseMaxHp) h.baseMaxHp = h.maxHp;
-    const ratio = 1 + 0.06 * state.tech.armor;
+    const ratio = ZG.Tech ? ZG.Tech.mods(state).hpMul : 1;
     const target = h.baseMaxHp * ratio;
     if (target > 0) {
       h.hp = h.hp * (target / h.maxHp);

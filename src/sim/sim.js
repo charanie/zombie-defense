@@ -13,6 +13,7 @@
     });
     state.map = ZG.Data.maps[state.mapId];
     state.spatial = ZG.Spatial.create();
+    ZG.Tech.init(state);
     state.pathing = ZG.Pathing.build(state);
     state.status = 'prep';
     return state;
@@ -32,6 +33,12 @@
     state.battle.minesTriggered = 0;
     state.battle.killIncome = 0;
     state.battle.reason = null;
+    state.battle.regenT = 5;
+    state.battle.revives = 0;
+    if (state.supports) {
+      state.supports.uses.areaHeal = 0;
+      state.supports.uses.missileBombardment = 0;
+    }
     state.projectiles.length = 0;
     state.effects.length = 0;
     state.stats.missilesFired = 0;
@@ -73,7 +80,7 @@
       if (h.baseAttack) h.attack = Object.assign({}, h.baseAttack);
       if (h.baseRole) h.role = h.baseRole;
       if (h.maxShield > 0) { h.shield = h.maxShield; h.shieldBroken = false; }
-      if (h.classId === 'medic') h.serumLeft = ZG.Balance.serumCount(state.tech.serum);
+      if (h.classId === 'medic') h.serumLeft = 3 + ZG.Tech.mods(state).hero.medicalRank;
     }
     state.squads = [];
     state.squadDirty = true;
@@ -288,8 +295,8 @@
       case 'demolish':
         r = ZG.Economy.demolish(state, cmd.buildingId);
         break;
-      case 'buyTech':
-        r = ZG.Economy.buyTech(state, cmd.line);
+      case 'buyTechNode':
+        r = ZG.Tech.buy(state, cmd.nodeId);
         break;
       case 'moveHuman':
         r = ZG.Economy.moveHuman(state, cmd.humanId, cmd.x, cmd.y);

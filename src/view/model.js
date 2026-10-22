@@ -45,7 +45,7 @@
     const data = ZG.Data.buildings[classId];
     if (!data) return { disabled: true, reason: 'unknown', cost: 0, count: 0, limit: 0 };
     const count = state.buildings.filter(b => b.alive && b.typeId === classId).length;
-    const limit = data.limit === undefined ? Infinity : data.limit;
+    const limit = ZG.Tech ? ZG.Tech.buildingLimit(state, classId) : (data.limit === undefined ? Infinity : data.limit);
     let reason = null;
     if (state.status !== 'prep') reason = 'not-prep';
     else if (count >= limit) reason = 'limit';
@@ -145,29 +145,6 @@
     };
   }
 
-  function techRow(state, line) {
-    const lvl = state.tech[line] || 0;
-    const max = ZG.Balance.TECH_MAX;
-    const names = { fire: '火力', armor: '护甲', econ: '经济', serum: '血清' };
-    const effects = {
-      fire: '+5% 全体伤害 / 级',
-      armor: '+6% 最大生命 / 级',
-      econ: '击杀 +4%，通关 +8% / 级',
-      serum: '+1 血清，治疗 +5% / 级'
-    };
-    return {
-      line,
-      name: names[line],
-      level: lvl,
-      max,
-      maxed: lvl >= max,
-      cost: lvl >= max ? null : ZG.Balance.techCost(line, lvl),
-      effect: effects[line],
-      current: lvl > 0 ? ZG.Balance.techMul(line, lvl) : 1,
-      next: lvl >= max ? null : ZG.Balance.techMul(line, lvl + 1)
-    };
-  }
-
   function touchTargetSize() {
     return 44;
   }
@@ -199,7 +176,7 @@
 
   ZG.Model = {
     topBar, cardState, buildingCard, wavePreview, humanInfo, zombieInfo,
-    buildingInfo, techRow, touchTargetSize, tutorialSteps
+    buildingInfo, touchTargetSize, tutorialSteps
   };
   ZG.Tutorial = { create: createTutorial };
 })();

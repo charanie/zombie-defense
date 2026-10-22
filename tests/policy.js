@@ -89,17 +89,20 @@ function prep(state, opts) {
     tryBuild(state, 'mine', 700, 420, null, 120);
   }
 
-  // 科技
-  const techPlan = ['econ', 'fire', 'econ', 'armor', 'fire', 'armor', 'econ', 'fire', 'serum', 'armor'];
+  // 科技（平衡用策略，不是玩家最优解）
+  const TECH_QUEUE = [
+    'econ_gold', 'fire_dmg', 'hp_all', 'econ_gold', 'fire_rate', 'build_hp',
+    'bank_power', 'fire_dmg', 'hp_all', 'pistol_passive', 'regen', 'revive',
+    'mg_passive', 'dmg_res', 'support_heal', 'rocket_passive', 'last_stand',
+    'support_bomb', 'cap_dmg', 'cap_speed'
+  ];
   for (let buy = 0; R >= 4 && buy < 2; buy++) {
     let bought = false;
-    for (const line of techPlan) {
-      const lvl = state.tech[line];
-      if (lvl >= 10) continue;
-      const cost = ZG.Balance.techCost(line, lvl);
-      if (state.money >= cost + 420) {
-        ZG.Economy.buyTech(state, line);
-        bought = true;
+    for (const id of TECH_QUEUE) {
+      const v = ZG.Tech.nodeView(state, id);
+      if (v.locked || v.maxed) continue;
+      if (state.money >= v.cost + 420) {
+        if (ZG.Tech.buy(state, id).ok) bought = true;
         break;
       }
     }

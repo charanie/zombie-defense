@@ -3,10 +3,6 @@
   'use strict';
   const ZG = globalThis.ZG = globalThis.ZG || {};
 
-  function armorMul(state) {
-    return ZG.Balance.techMul('armor', state.tech.armor);
-  }
-
   function create(opts) {
     const o = opts || {};
     const seed = o.seed === undefined ? 1 : (o.seed >>> 0);
@@ -15,14 +11,16 @@
     const streams = ZG.Rng.createStreams(seed);
 
     const state = {
-      version: 1,
+      version: 2,
       status: 'prep',
       mapId,
       map,
       seed,
       round: 1,
       money: ZG.Const.INITIAL_MONEY,
-      tech: { fire: 0, armor: 0, econ: 0, serum: 0 },
+      tech: { ranks: {} },
+      techMods: null,
+      supports: { uses: { areaHeal: 0, missileBombardment: 0 } },
       humans: [],
       zombies: [],
       buildings: [],
@@ -35,7 +33,8 @@
       battle: {
         time: 0, stepCount: 0, killCount: 0, spawned: 0, berserkTier: 0, bossId: null,
         deathConfirmT: 0, infectionTimer: 0, convertedThisRound: 0,
-        minesTriggered: 0, reason: null, waveTotal: 0
+        minesTriggered: 0, reason: null, waveTotal: 0,
+        regenT: 5, revives: 0
       },
       stats: {
         totalKills: 0, totalEarned: 0, bestRound: 1, captains: 0, heroes: 0,
@@ -48,6 +47,8 @@
         panel: 'recruit', tooltip: null, speed: 1, paused: false, drag: null,
         wallVertical: false,
         mapHover: null, showCodex: false, showHelp: false, showSettings: false,
+        showTech: false, techBranch: 'fire', techNodeId: null,
+        pendingSupport: null, supportAim: null,
         tutorialStep: -1
       },
       settings: {
@@ -86,7 +87,9 @@
     const isHero = !!(data.hero || e.heroId || (ZG.Data.heroes && ZG.Data.heroes[classId]));
     const heroId = data.hero ? data.id : (e.heroId || null);
     const stacks = heroId ? heroStacksOf(state, heroId) : 0;
-    const hpMul = armorMul(state) * (1 + 0.2 * stacks);
+    const mods = ZG.Tech ? ZG.Tech.mods(state) : null;
+    const hpMul = (mods ? mods.hpMul * (isHero ? mods.hero.hpMul : 1) : 1) *
+      (1 + 0.2 * stacks);
     const maxHp = (e.maxHp !== undefined ? e.maxHp : data.hp * hpMul);
     const converted = !!e.converted;
     const baseAttack = data.attack ? Object.assign({}, data.attack) : null;
@@ -136,7 +139,9 @@
       burnDps: 0,
       ammo: data.attack && data.attack.ammo ? data.attack.ammo : 0,
       reloadT: 0,
-      serumLeft: data.serumLeft !== undefined ? ZG.Balance.serumCount(state.tech.serum) : 0,
+      serumLeft: data.serumLeft !== undefined
+        ? (data.serumLeft || 0) + (mods ? mods.hero.medicalRank : 0)
+        : 0,
       serumCd: 0,
       healT: 0,
       inspireT: 0,
@@ -163,11 +168,14 @@
       wounded: false,
       woundedUntilRound: 0,
       dmgMul: 1 + 0.15 * stacks,
-      atkSpeedMul: 1
+      atkSpeedMul: 1,
+      skillCd: 0, skillT: 0, skillUses: 0, skillTickT: 0, skillTickN: 0,
+      skillAtkMul: 1, focusTargetId: 0, focusStacks: 0, focusT: 0,
+      rocketDouble: 0, guardT: 0, guardMul: 1, reviveRound: 0, inspireMul: 1
     };
 
     if (data.shieldHp) {
-      h.shield = h.maxShield = data.shieldHp * armorMul(state);
+      h.shield = h.maxShield = data.shieldHp * (mods ? mods.shieldMul : 1);
     }
     if (e.converted) {
       h.pop = 0;
@@ -238,6 +246,7 @@
       burnT: 0,
       burnDps: 0,
       flashT: 0,
+      stunT: 0, tauntT: 0, tauntTargetId: 0,
       wave: e.wave || null
     };
     if (isBoss) z.damageBase = 0;
@@ -260,14 +269,15 @@
     const w = shape === 'rect' ? (vertical ? data.h : data.w) : (data.radius || 24) * 2;
     const h = shape === 'rect' ? (vertical ? data.w : data.h) : (data.radius || 24) * 2;
     const radius = data.radius || Math.max(w, h) / 2;
+    const buildHpMul = ZG.Tech ? ZG.Tech.mods(state).buildHpMul : 1;
     const b = {
       id: nextId(state),
       kind: 'building',
       typeId,
       name: data.name,
       x, y, shape, w, h, vertical, radius,
-      hp: data.hp,
-      maxHp: data.hp,
+      hp: data.hp * buildHpMul,
+      maxHp: data.hp * buildHpMul,
       alive: true,
       cd: 0,
       charges: data.mine ? data.mine.charges : 0,
@@ -303,14 +313,21 @@
         id: h.id, c: h.classId, x: round4(h.x), y: round4(h.y),
         hp: round4(h.hp), inf: round4(h.infection), cap: h.captain ? 1 : 0,
         conv: h.converted ? 1 : 0, sh: round4(h.shield || 0),
-        sb: h.shieldBroken ? 1 : 0
+        sb: h.shieldBroken ? 1 : 0,
+        sc: round4(h.skillCd || 0), st: round4(h.skillT || 0),
+        su: h.skillUses || 0, stt: round4(h.skillTickT || 0), stn: h.skillTickN || 0,
+        sam: round4(h.skillAtkMul || 1), ft: h.focusTargetId || 0,
+        fs: h.focusStacks || 0, fr: h.reviveRound || 0, rd: h.rocketDouble || 0,
+        gt: round4(h.guardT || 0), gm: round4(h.guardMul || 1),
+        insp: round4(h.inspireT || 0), insm: round4(h.inspireMul || 1)
       }))
       .sort((a, b) => a.id - b.id);
     const zombies = state.zombies
       .filter(z => z.alive)
       .map(z => ({
         id: z.id, t: z.typeId, x: round4(z.x), y: round4(z.y),
-        hp: round4(z.hp), sh: round4(z.shield)
+        hp: round4(z.hp), sh: round4(z.shield),
+        stun: round4(z.stunT || 0), taunt: round4(z.tauntT || 0), tt: z.tauntTargetId || 0
       }))
       .sort((a, b) => a.id - b.id);
     const buildings = state.buildings
@@ -323,7 +340,14 @@
       round: state.round,
       money: state.money,
       time: round4(state.battle.time),
-      tech: state.tech,
+      tech: Object.keys(state.tech && state.tech.ranks ? state.tech.ranks : {})
+        .filter(id => state.tech.ranks[id] > 0).sort()
+        .map(id => [id, state.tech.ranks[id]]),
+      supports: state.supports
+        ? [state.supports.uses.areaHeal, state.supports.uses.missileBombardment]
+        : [0, 0],
+      regenT: round4(state.battle.regenT || 0),
+      revives: state.battle.revives || 0,
       humans, zombies, buildings,
       proj: state.projectiles.filter(p => p.alive).map(p => ({
         id: p.id, t: p.typeId, x: round4(p.x), y: round4(p.y), ttl: round4(p.life || 0)

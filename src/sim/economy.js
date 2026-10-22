@@ -158,7 +158,8 @@
     const data = ZG.Data.buildings[typeId];
     if (!data) return { ok: false, reason: 'unknown' };
     const count = state.buildings.filter(b => b.alive && b.typeId === typeId).length;
-    if (data.limit !== undefined && count >= data.limit) {
+    const limit = ZG.Tech ? ZG.Tech.buildingLimit(state, typeId) : data.limit;
+    if (limit !== undefined && limit !== Infinity && count >= limit) {
       return { ok: false, reason: 'limit' };
     }
     if (!canAfford(state, data.cost)) return { ok: false, reason: 'money' };
@@ -185,37 +186,6 @@
     return { ok: true, refund };
   }
 
-  function buyTech(state, line) {
-    if (state.status !== 'prep') return { ok: false, reason: 'not-prep' };
-    if (['fire', 'armor', 'econ', 'serum'].indexOf(line) < 0) return { ok: false, reason: 'unknown' };
-    const lvl = state.tech[line] || 0;
-    if (lvl >= ZG.Balance.TECH_MAX) return { ok: false, reason: 'max-level' };
-    const cost = ZG.Balance.techCost(line, lvl);
-    if (!canAfford(state, cost)) return { ok: false, reason: 'money' };
-    spend(state, cost);
-    state.tech[line] = lvl + 1;
-
-    if (line === 'armor') {
-      const oldMul = 1 + 0.06 * lvl;
-      const newMul = 1 + 0.06 * (lvl + 1);
-      const ratio = newMul / oldMul;
-      for (const h of state.humans) {
-        if (!h.alive) continue;
-        h.maxHp *= ratio;
-        h.hp *= ratio;
-        if (h.maxShield > 0) { h.maxShield *= ratio; h.shield *= ratio; }
-      }
-    }
-    if (line === 'serum') {
-      for (const h of state.humans) {
-        if (h.alive && (h.classId === 'medic' || h.heroId === 'plague')) {
-          h.serumLeft = Math.max(h.serumLeft || 0, 0) + 1;
-        }
-      }
-    }
-    return { ok: true, level: state.tech[line] };
-  }
-
   function moveHuman(state, humanId, x, y) {
     if (state.status !== 'prep') return { ok: false, reason: 'not-prep' };
     const h = state.humans.find(u => u.id === humanId && u.alive);
@@ -228,6 +198,6 @@
 
   ZG.Economy = {
     canAfford, spend, earn, populationUsed, heroesUsed, civilianCount,
-    canPlace, canPlaceBuilding, buildingDims, recruit, sell, build, demolish, buyTech, moveHuman
+    canPlace, canPlaceBuilding, buildingDims, recruit, sell, build, demolish, moveHuman
   };
 })();

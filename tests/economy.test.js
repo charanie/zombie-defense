@@ -96,36 +96,3 @@ test('地雷阵 3 次触发并按回合成长', () => {
   assert.equal(ZG.Balance.mineDamage(7).toFixed(2), (120 * Math.pow(1.06, 6)).toFixed(2));
 });
 
-test('科技：购买扣钱、立即生效、护甲按比例补血', () => {
-  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
-  s.money = 1000;
-  const h = ZG.State.spawnHuman(s, 'pistol', 600, 600);
-  assert.equal(ZG.Economy.buyTech(s, 'fire').level, 1);
-  assert.equal(s.money, 880);
-  assert.equal(ZG.Stats.human(s, h).damage.toFixed(2), '12.60');
-
-  h.hp = 70;
-  ZG.Economy.buyTech(s, 'armor');
-  assert.equal(h.maxHp.toFixed(4), (140 * 1.06).toFixed(4));
-  assert.equal(h.hp.toFixed(4), (70 * 1.06).toFixed(4));
-
-  assert.equal(ZG.Balance.roundReward(1, 1), 77);
-});
-
-test('科技满级不能再买', () => {
-  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
-  s.money = 9999999;
-  for (let i = 0; i < 10; i++) assert.equal(ZG.Economy.buyTech(s, 'serum').ok, true);
-  assert.deepEqual(ZG.Economy.buyTech(s, 'serum'), { ok: false, reason: 'max-level' });
-});
-
-test('经济科技作用于击杀与通关奖励', () => {
-  const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
-  s.money = 9999;
-  ZG.Economy.buyTech(s, 'econ');
-  const z = ZG.State.spawnZombie(s, 'walker', 600, 500);
-  const before = s.money;
-  ZG.Combat.applyDamage(s, { target: z, amount: 999, damageKind: 'ranged' });
-  assert.equal(s.money - before, 6); // floor(6 * 1 * 1.04) = 6
-  assert.equal(ZG.Balance.roundReward(1, 1), 77);
-});

@@ -165,7 +165,7 @@
 
   function nextPanel() {
     if (!state) return;
-    const order = ['recruit', 'building', 'tech'];
+    const order = ['recruit', 'building'];
     const i = order.indexOf(state.ui.panel);
     state.ui.panel = order[(i + 1) % order.length];
     state.ui.selectedCard = null;
@@ -252,15 +252,10 @@
       state.ui.wallVertical = !state.ui.wallVertical;
       ZG.HUD.toast(state.ui.wallVertical ? '竖墙' : '横墙', 'info');
     },
-    onTech(line) {
+    onTechOpen() {
       if (!state) return;
-      const r = ZG.Sim.applyCommand(state, { op: 'buyTech', line });
-      if (r.ok) {
-        ZG.Audio.play('coin');
-        ZG.HUD.toast(ZG.Model.techRow(state, line).name + ' 升到 Lv ' + r.level, 'ok');
-      } else {
-        ZG.HUD.toast(r.reason === 'money' ? '金钱不足' : (r.reason === 'max-level' ? '已满级' : '无法购买'), 'warn');
-      }
+      if (state.status !== 'prep') { ZG.HUD.toast('只能在整备期打开科技树', 'warn'); return; }
+      ZG.HUD.toast('科技树界面开发中', 'info');
     },
     onStartRound() {
       if (!state || state.status !== 'prep') return;

@@ -5,7 +5,7 @@ const ZG = require('./load-sim.js')();
 test('模块加载完整', () => {
   for (const name of ['Const', 'Rng', 'EventBus', 'Geom', 'State', 'Balance', 'Waves',
     'Spatial', 'Pathing', 'Squads', 'Combat', 'Projectiles', 'Economy', 'Spawner', 'AI',
-    'Captains', 'Heroes', 'Sim', 'Platform', 'Model', 'Particles', 'Audio', 'Renderer', 'HUD', 'Input']) {
+    'Captains', 'Heroes', 'Sim', 'Platform', 'Model', 'Particles', 'Audio', 'Renderer', 'HUD', 'Input', 'Tech']) {
     assert.ok(ZG[name], 'missing ZG.' + name);
   }
   assert.equal(ZG.Const.W, 1280);

@@ -25,16 +25,16 @@ test('顶栏与波次预览', () => {
   assert.equal(p.boss, false);
 });
 
-test('建筑卡与科技行', () => {
+test('建筑卡与科技节点视图', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
   s.money = 1000;
   const c = ZG.Model.buildingCard(s, 'turret');
   assert.deepEqual({ cost: c.cost, disabled: c.disabled }, { cost: 200, disabled: false });
   s.money = 10;
   assert.equal(ZG.Model.buildingCard(s, 'turret').reason, 'money');
-  const row = ZG.Model.techRow(s, 'fire');
-  assert.equal(row.level, 0);
-  assert.equal(row.cost, 120);
+  const row = ZG.Tech.nodeView(s, 'fire_dmg');
+  assert.equal(row.rank, 0);
+  assert.equal(row.maxRank, 5);
   assert.equal(row.maxed, false);
 });
 

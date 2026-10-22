@@ -56,7 +56,9 @@
       promote: stream(s, 'promote'),
       hero: stream(s, 'hero'),
       jitter: stream(s, 'jitter'),
-      fx: stream(s, 'fx')
+      fx: stream(s, 'fx'),
+      tech: stream(s, 'tech'),
+      skills: stream(s, 'skills')
     };
   }
 
