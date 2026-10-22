@@ -60,6 +60,16 @@
   function mineDamage(R) {
     return 120 * pow(1.06, R - 1);
   }
+  function treeNodeCost(tier, rank) {
+    const base = ZG.Data.tech.tierCost[tier - 1];
+    return Math.round(base * pow(ZG.Data.tech.costGrowth, rank));
+  }
+  function bankDamageMul(money, cap, per500) {
+    if (!cap) return 0;
+    return Math.min(cap, Math.floor(money / 500) * per500);
+  }
+  function supportDamage(R) { return 300 + 12 * R; }
+  function deathBoomDamage(R) { return 80 + 8 * R; }
   function slotSlowMax(list) {
     let m = 0;
     for (let i = 0; i < list.length; i++) if (list[i] > m) m = list[i];
@@ -69,6 +79,7 @@
   ZG.Balance = {
     TECH_MAX, zombieHp, zombieDamage, zombieSpeed, bounty, roundReward,
     bossHp, bossRockDamage, bossReward, populationCap, techCost, techMul,
-    econRewardMul, serumCount, zombieCount, mineDamage, slotSlowMax
+    econRewardMul, serumCount, zombieCount, mineDamage, slotSlowMax,
+    treeNodeCost, bankDamageMul, supportDamage, deathBoomDamage
   };
 })();

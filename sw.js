@@ -23,6 +23,7 @@ const SHELL = [
   './src/data/buildings.js',
   './src/data/maps.js',
   './src/data/waves.js',
+  './src/data/tech.js',
   './src/sim/spatial.js',
   './src/sim/stats.js',
   './src/sim/pathing.js',
