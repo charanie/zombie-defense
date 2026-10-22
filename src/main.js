@@ -168,9 +168,9 @@
       ZG.Audio.play('horn');
     });
     bus.on('fx:support_bomb', p => {
-      ZG.Particles.explosion(p.x, p.y, p.radius, '#FF7043');
-      ZG.Particles.shake(5);
-      ZG.Audio.play('explosion');
+      // 发射提示：真正的爆炸/震屏由落点的 fx:explosion 负责
+      ZG.Particles.burst(p.x, p.y, '#FF7043', 8);
+      ZG.Audio.play('horn');
     });
     bus.on('fx:teleport', p => ZG.Particles.burst(p.x, p.y, '#90CAF9', 6));
     bus.on('fx:shieldbreak', p => ZG.Particles.burst(p.x, p.y, '#42A5F5', 8));
