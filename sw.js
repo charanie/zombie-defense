@@ -33,6 +33,7 @@ const SHELL = [
   './src/sim/combat.js',
   './src/sim/projectiles.js',
   './src/sim/economy.js',
+  './src/sim/skills.js',
   './src/sim/spawner.js',
   './src/sim/ai.js',
   './src/sim/captains.js',

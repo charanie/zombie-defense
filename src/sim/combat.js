@@ -268,6 +268,8 @@
 
   function killHuman(state, h) {
     if (!h.alive) return;
+    const death = ZG.Skills ? ZG.Skills.onDeath(state, h) : null;
+    if (death && death.revived) return;
     h.alive = false;
     if (h.classId === 'shield') state.squadDirty = true;
 
@@ -356,9 +358,14 @@
 
   function tryConvert(state, z, roll) {
     if (!z || !z.alive || z.isBoss) return false;
-    const r = roll === undefined ? state.rng.jitter.next() : roll;
-    if (r >= 0.15) return false;
-    if ((state.battle.convertedThisRound || 0) >= ZG.Const.CONVERT_PER_ROUND) return false;
+    const m = ZG.Tech ? ZG.Tech.mods(state) : null;
+    const chance = m ? m.hero.plagueChance : 0.15;
+    const perRound = m ? m.hero.plagueCap : ZG.Const.CONVERT_PER_ROUND;
+    const r = roll === undefined
+      ? (chance > 0 ? state.rng.tech.next() : 1)
+      : roll;
+    if (r >= chance) return false;
+    if ((state.battle.convertedThisRound || 0) >= perRound) return false;
     const totalConverted = state.humans.filter(h => h.alive && h.converted).length;
     if (totalConverted >= ZG.Const.MAX_CONVERTED) return false;
     convertZombie(state, z);
@@ -370,7 +377,11 @@
     z.alive = false;
     const i = state.zombies.indexOf(z);
     if (i >= 0) state.zombies.splice(i, 1);
-    const h = ZG.State.spawnHuman(state, 'pistol', z.x, z.y, {
+    const m = ZG.Tech ? ZG.Tech.mods(state) : null;
+    const classId = m && m.hero.plagueRandom
+      ? state.rng.tech.pick(ZG.Data.tech.convertClasses)
+      : 'pistol';
+    const h = ZG.State.spawnHuman(state, classId, z.x, z.y, {
       converted: true,
       expireRound: state.round + 2
     });

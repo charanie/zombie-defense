@@ -67,9 +67,6 @@
       h.reloadT = 0;
       if (h.attack && h.attack.ammo) h.ammo = h.attack.ammo;
       if (h.attack && h.attack.warmup) h.warmup = h.attack.warmup;
-      h.abilityUsed = false;
-      h.nextInspireAt = undefined;
-      h.nextGroupHealAt = undefined;
       h.serumCd = 0;
       h.dispelCd = 0;
       h.squadId = null;
@@ -82,6 +79,7 @@
       if (h.maxShield > 0) { h.shield = h.maxShield; h.shieldBroken = false; }
       if (h.classId === 'medic') h.serumLeft = 3 + ZG.Tech.mods(state).hero.medicalRank;
     }
+    ZG.Skills.resetRound(state);
     state.squads = [];
     state.squadDirty = true;
     state.squadTimer = 0;
@@ -135,6 +133,7 @@
     ZG.AI.step(state);
     ZG.Projectiles.step(state);
     ZG.Infection.tick(state);
+    ZG.Skills.stepRegen(state);
 
     checkRoundEnd(state);
   }
