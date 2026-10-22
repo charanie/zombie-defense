@@ -136,7 +136,7 @@ test('长官导弹、武士剑气、加特林鼓舞', () => {
   for (let i = 0; i < 10; i++) ZG.State.spawnZombie(s, 'walker', 500 + i * 20, 300);
   ZG.Sim.startRound(s); s.spawner.batches = [];
   ZG.Sim.tick(s, 60);
-  assert.equal(o.abilityUsed, true);
+  assert.ok(o.skillUses < 3);
   assert.equal(s.stats.missilesFired, 3);
 
   const s2 = ZG.Sim.createGame({ mapId: 'suburban', seed: 41 });
@@ -156,7 +156,7 @@ test('长官导弹、武士剑气、加特林鼓舞', () => {
   ZG.State.spawnHuman(s3, 'gatling', 600, 600, { heroId: 'gatling' });
   for (let i = 0; i < 3; i++) ZG.State.spawnHuman(s3, 'pistol', 620 + i * 25, 600);
   ZG.Sim.startRound(s3); s3.spawner.batches = [];
-  s3.battle.time = 45;
+  s3.humans[0].skillCd = 0;
   ZG.Sim.tick(s3, 1);
   assert.equal(s3.humans[1].inspireT > 0, true);
 });

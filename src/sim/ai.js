@@ -442,7 +442,14 @@
   }
 
   function performHumanAttack(state, h, target) {
+    const ok = performHumanAttackRaw(state, h, target);
+    if (ok && ZG.Skills) ZG.Skills.onAttack(state, h, target);
+    return ok;
+  }
+
+  function performHumanAttackRaw(state, h, target) {
     const st = ZG.Stats.human(state, h);
+    const passives = ZG.Tech.mods(state).classPassives;
     const a = h.attack;
     faceToward(h, target.x, target.y);
     h.muzzleT = 0.07;
@@ -486,7 +493,8 @@
             { excludeId: z.id });
           const hit = inter || z;
           const d = ZG.Geom.dist(h.x, h.y, hit.x, hit.y);
-          const dmg = d > a.falloffStart ? st.damage * a.falloffMul : st.damage;
+          let dmg = d > a.falloffStart ? st.damage * a.falloffMul : st.damage;
+          if (passives.shotgun && d <= passives.shotgun.range) dmg *= passives.shotgun.dmgMul;
           ZG.Combat.applyDamage(state, {
             target: hit, amount: dmg, damageKind: a.damageKind,
             fromX: h.x, fromY: h.y, sourceIsHuman: true
@@ -505,8 +513,8 @@
             target: z, amount: st.damage, damageKind: D.FIRE,
             fromX: h.x, fromY: h.y, sourceIsHuman: true
           });
-          z.burnT = a.burnTime || 3;
-          z.burnDps = a.burnDps || 5;
+          z.burnT = passives.flame ? passives.flame.burnTime : (a.burnTime || 3);
+          z.burnDps = (a.burnDps || 5) * (passives.flame ? passives.flame.burnMul : 1);
           z.burnFromX = h.x;
           z.burnFromY = h.y;
         }
@@ -523,14 +531,35 @@
         const interceptor = ZG.Combat.interceptRay(state, h.x, h.y, target.x, target.y,
           { excludeId: target.id, pad: 6 });
         const aim = interceptor || target;
+        let dmg = st.damage;
+        if (passives.rocket && (aim.isBoss || aim.isSiege)) dmg *= passives.rocket.bossSiegeMul;
         ZG.Projectiles.spawn(state, {
           typeId: 'rocket', x: h.x, y: h.y, tx: aim.x, ty: aim.y,
-          speed: a.speed || 420, splash: a.splash || 60, damage: st.damage,
+          speed: a.speed || 420, splash: a.splash || 60, damage: dmg,
           damageKind: D.EXPLOSION,
           ownerId: h.id, color: '#CE93D8',
           targetId: aim.id, directTargetId: aim.id,
           siegeBonus: a.siegeBonus || 1, splashMul: 0.5
         });
+        if (h.rocketDouble > 0) {
+          h.rocketDouble = 0;
+          let second = null, bestD = Infinity;
+          for (const z of state.zombies) {
+            if (!z.alive || z.id === aim.id) continue;
+            const d = ZG.Geom.dist2(h.x, h.y, z.x, z.y);
+            if (d < bestD) { bestD = d; second = z; }
+          }
+          if (second) {
+            ZG.Projectiles.spawn(state, {
+              typeId: 'rocket', x: h.x, y: h.y, tx: second.x, ty: second.y,
+              speed: a.speed || 420, splash: a.splash || 60, damage: dmg,
+              damageKind: D.EXPLOSION,
+              ownerId: h.id, color: '#CE93D8',
+              targetId: second.id, directTargetId: second.id,
+              siegeBonus: a.siegeBonus || 1, splashMul: 0.5
+            });
+          }
+        }
         return true;
       }
       case 'vial': {
@@ -578,7 +607,8 @@
 
   function healLogic(state, h) {
     const isPlague = h.heroId === 'plague';
-    const serumMul = ZG.Balance.techMul('serum', state.tech.serum);
+    const m = ZG.Tech.mods(state);
+    const serumMul = 1 + 0.08 * m.hero.medicalRank;
     const rate = (isPlague ? 35 : (h.healRate || 20)) * serumMul;
     const range = isPlague ? 230 : (h.healRange || 160);
     let best = null, bestScore = -Infinity;
@@ -614,7 +644,11 @@
       emitHeal(h, best);
       return best;
     }
-    const amt = rate * STEP;
+    let amt = rate * STEP;
+    const medicPassive = m.classPassives.medic;
+    if (medicPassive && best.hp < best.maxHp * medicPassive.lowHpRatio) {
+      amt *= medicPassive.healMul;
+    }
     if (best.hp < best.maxHp) {
       ZG.Combat.heal(state, best, amt);
       h.healBeamT = 0.1;
@@ -628,61 +662,70 @@
   }
 
   function stepHeroAbilities(state, h, dt) {
-    const t = state.battle.time;
+    const m = ZG.Tech.mods(state);
 
-    if (h.heroId === 'officer' && !h.abilityUsed) {
+    if (h.heroId === 'officer' && h.skillUses > 0 && h.skillCd <= 0) {
       const c = densestZombieCluster(state, h.x, h.y, 420);
       const bossNear = state.zombies.some(z => z.alive && z.isBoss &&
         ZG.Geom.dist(h.x, h.y, z.x, z.y) <= 460);
       if (c.count >= 8 || bossNear) {
-        h.abilityUsed = true;
         const target = bossNear
           ? (state.zombies.find(z => z.alive && z.isBoss) || c)
           : c;
-        for (let i = 0; i < 3; i++) {
+        const volley = m.hero.officerUses;
+        for (let i = 0; i < volley; i++) {
           ZG.Projectiles.spawn(state, {
             typeId: 'missile', x: h.x, y: h.y,
-            tx: target.x + (i - 1) * 40, ty: target.y + (i - 1) * 20,
-            speed: 900, splash: 140, damage: 400, delay: i * 0.4,
+            tx: target.x + (i - (volley - 1) / 2) * 40,
+            ty: target.y + (i - (volley - 1) / 2) * 20,
+            speed: 900, splash: m.hero.officerRange, damage: 400, delay: i * 0.4,
             damageKind: D.EXPLOSION, ownerId: h.id, color: '#FFD54F'
           });
         }
-        state.stats.missilesFired = (state.stats.missilesFired || 0) + 3;
+        h.skillUses--;
+        h.skillCd = m.hero.officerVolleyCd * m.skillCdMul;
+        state.stats.missilesFired = (state.stats.missilesFired || 0) + volley;
         state.bus.emit('fx:ability', { kind: 'missiles', x: h.x, y: h.y, text: '导弹支援！' });
+      } else {
+        h.skillCd = 1;
       }
     }
 
-    if (h.heroId === 'gatling') {
-      if (h.nextInspireAt === undefined) h.nextInspireAt = 45;
-      if (t >= h.nextInspireAt) {
-        const allies = state.humans.filter(u => u.alive &&
-          ZG.Geom.dist2(u.x, u.y, h.x, h.y) <= 200 * 200);
-        if (allies.length >= 4) {
-          for (const u of allies) u.inspireT = 8;
-          h.nextInspireAt = t + 45;
-          state.bus.emit('fx:ability', { kind: 'inspire', x: h.x, y: h.y, text: '鼓舞！' });
-        } else {
-          h.nextInspireAt = t + 1;
+    if (h.heroId === 'gatling' && h.skillCd <= 0) {
+      const allies = state.humans.filter(u => u.alive &&
+        ZG.Geom.dist2(u.x, u.y, h.x, h.y) <= 200 * 200);
+      if (allies.length >= 4) {
+        for (const u of allies) {
+          u.inspireT = m.hero.gatlingDuration;
+          u.inspireMul = m.hero.gatlingAttackSpeed;
         }
-      }
-    }
-
-    if (h.heroId === 'plague') {
-      if (h.nextGroupHealAt === undefined) h.nextGroupHealAt = 12;
-      if (t >= h.nextGroupHealAt) {
-        const injured = state.humans.filter(u => u.alive &&
-          ZG.Geom.dist2(u.x, u.y, h.x, h.y) <= 180 * 180 &&
-          (u.hp < u.maxHp || u.infection > 0));
-        if (injured.length >= 3) {
-          for (const u of injured) {
-            ZG.Combat.heal(state, u, 70 * ZG.Balance.techMul('serum', state.tech.serum));
-            ZG.Infection.dispel(state, u, 30);
+        if (m.hero.gatlingHeal > 0) {
+          for (const u of allies) {
+            ZG.Combat.heal(state, u, m.hero.gatlingHeal);
+            ZG.Infection.dispel(state, u, m.hero.gatlingDispel);
           }
-          h.nextGroupHealAt = t + 12;
-          state.bus.emit('fx:ability', { kind: 'groupheal', x: h.x, y: h.y, text: '群体治疗' });
-        } else {
-          h.nextGroupHealAt = t + 1;
         }
+        h.skillCd = m.hero.gatlingInterval * m.skillCdMul;
+        state.bus.emit('fx:ability', { kind: 'inspire', x: h.x, y: h.y, text: '鼓舞！' });
+      } else {
+        h.skillCd = 1;
+      }
+    }
+
+    if (h.heroId === 'plague' && h.skillCd <= 0) {
+      const injured = state.humans.filter(u => u.alive &&
+        ZG.Geom.dist2(u.x, u.y, h.x, h.y) <= 180 * 180 &&
+        (u.hp < u.maxHp || u.infection > 0));
+      if (injured.length >= 3) {
+        const amount = 70 * (1 + 0.08 * m.hero.medicalRank);
+        for (const u of injured) {
+          ZG.Combat.heal(state, u, amount);
+          ZG.Infection.dispel(state, u, 30);
+        }
+        h.skillCd = m.hero.plagueInterval * m.skillCdMul;
+        state.bus.emit('fx:ability', { kind: 'groupheal', x: h.x, y: h.y, text: '群体治疗' });
+      } else {
+        h.skillCd = 1;
       }
     }
   }
@@ -813,9 +856,8 @@
         const did = performHumanAttack(state, h, target);
         if (did) {
           h.cd = Math.max(-STEP, h.cd) + ZG.Stats.human(state, h).interval;
-          if (h.heroId === 'samurai' && h.attack.kind === 'melee' &&
-            state.rng.jitter.chance(0.25)) {
-            samuraiSlash(state, h);
+          if (h.heroId === 'samurai' && h.attack.kind === 'melee') {
+            ZG.Skills.onSamuraiAttack(state, h);
           }
         }
       }
@@ -931,6 +973,8 @@
         continue;
       }
 
+      ZG.Skills.stepHuman(state, h, dt);
+
       if (h.classId === 'civilian') {
         stepCivilian(state, h, dt);
         continue;
@@ -979,6 +1023,10 @@
   }
 
   function pickZombieTarget(state, z) {
+    if (z.tauntT > 0) {
+      const t = state.humans.find(u => u.alive && u.id === z.tauntTargetId);
+      if (t) return { kind: 'human', target: t };
+    }
     if (z.typeId === 'boomer' || z.isBoss) {
       const p = densestHumanPoint(state);
       return { kind: 'point', x: p.x, y: p.y, count: p.count, target: null };
@@ -1129,6 +1177,11 @@
       if (z.flashT > 0) z.flashT -= dt;
       if (z.rockCd > 0) z.rockCd -= dt;
       if (z.stompCd > 0) z.stompCd -= dt;
+      if (z.tauntT > 0) z.tauntT -= dt;
+      if (z.stunT > 0) {
+        z.stunT -= dt;
+        continue;
+      }
 
       z.slowFactor = computeSlow(state, z);
       const st = ZG.Stats.zombie(state, z);

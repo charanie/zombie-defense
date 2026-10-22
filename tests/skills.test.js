@@ -106,3 +106,75 @@ test('每回合重置援助次数、技能冷却与复活标记', () => {
   assert.equal(h.reviveRound, 0);
   assert.equal(s.supports.uses.areaHeal, 0);
 });
+
+test('手枪主动：8 秒一次，2 秒攻速 +120%', () => {
+  const s = fresh();
+  const h = ZG.State.spawnHuman(s, 'pistol', 600, 600);
+  ZG.Tech.buy(s, 'fire_dmg'); ZG.Tech.buy(s, 'pistol_passive'); ZG.Tech.buy(s, 'pistol_active');
+  const z = ZG.State.spawnZombie(s, 'walker', 600, 400);
+  z.hp = z.maxHp = 99999; z.speed = 0;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 60 * 8 + 2);
+  assert.equal(h.skillT > 0, true);
+  assert.equal(ZG.Stats.human(s, h).interval.toFixed(4), (0.5 / 2.2).toFixed(4));
+});
+
+test('霰弹主动：眩晕 0.8 秒并击退，BOSS 免疫眩晕', () => {
+  const s = fresh();
+  const h = ZG.State.spawnHuman(s, 'shotgun', 600, 600);
+  for (const id of ['fire_dmg', 'pistol_passive', 'shotgun_passive', 'shotgun_active']) ZG.Tech.buy(s, id);
+  const z = ZG.State.spawnZombie(s, 'walker', 600, 500);
+  z.hp = z.maxHp = 99999; z.speed = 0;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 60 * 10 + 2);
+  assert.ok(z.stunT > 0.7);
+  assert.ok(z.y < 500); // 被从 600,600 的方向往外推
+});
+
+test('机枪主动：1 秒 12 段 ×8', () => {
+  const s = fresh();
+  const h = ZG.State.spawnHuman(s, 'mg', 600, 600);
+  for (const id of ['fire_dmg', 'pistol_passive', 'mg_passive', 'mg_active']) ZG.Tech.buy(s, id);
+  const z = ZG.State.spawnZombie(s, 'walker', 600, 500);
+  z.hp = z.maxHp = 99999; z.speed = 0;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 60 * 12 + 90);
+  assert.ok(99999 - z.hp >= 96);
+});
+
+test('盾兵主动：嘲讽 2 秒、自身减伤 30%', () => {
+  const s = fresh();
+  const h = ZG.State.spawnHuman(s, 'shield', 600, 600);
+  for (const id of ['fire_dmg', 'pistol_passive', 'mg_passive', 'shield_passive', 'shield_active']) ZG.Tech.buy(s, id);
+  // 放在嘲讽半径内、近战范围外，避免它在 15 秒里把盾兵血量打掉
+  const z = ZG.State.spawnZombie(s, 'walker', 800, 600);
+  z.hp = z.maxHp = 99999; z.speed = 0;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 60 * 15 + 2);
+  assert.equal(z.tauntTargetId, h.id);
+  assert.equal(h.guardT > 0, true);
+  ZG.Combat.applyDamage(s, { target: h, amount: 100, damageKind: 'melee' });
+  // 盾被动 -10% 与盾墙 -30% 同时生效
+  assert.equal(h.hp.toFixed(4), (650 - 63).toFixed(4));
+});
+
+test('英雄强化：长官 5 发、半径 210；医疗体系 3 级', () => {
+  const s = fresh();
+  ZG.State.spawnHuman(s, 'officer', 600, 600, { heroId: 'officer' });
+  for (const id of ['hero_dmg', 'officer_range', 'officer_uses']) ZG.Tech.buy(s, id);
+  for (let i = 0; i < 10; i++) ZG.State.spawnZombie(s, 'walker', 500 + i * 20, 300);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 60);
+  assert.equal(s.stats.missilesFired, 5);
+  assert.equal(ZG.Tech.mods(s).hero.officerRange, 210);
+
+  const s2 = fresh();
+  const m = ZG.State.spawnHuman(s2, 'medic', 600, 600);
+  for (const id of ['hero_dmg', 'hero_hp', 'officer_range', 'officer_uses', 'samurai_chain', 'gatling_heal', 'plague_cap', 'medical_system']) {
+    ZG.Tech.buy(s2, id);
+  }
+  ZG.Tech.buy(s2, 'medical_system'); ZG.Tech.buy(s2, 'medical_system');
+  assert.equal(ZG.Tech.mods(s2).hero.medicalRank, 3);
+  assert.equal(ZG.Sim.startRound(s2).ok, true);
+  assert.equal(m.serumLeft, 6);
+});
