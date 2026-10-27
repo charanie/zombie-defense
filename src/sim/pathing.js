@@ -70,7 +70,8 @@
     const queue = new Int32Array(COLS * ROWS);
     let head = 0, tail = 0;
 
-    // 源点：所有存活人类所在格；没有人类时用地图中心
+    // 源点：所有存活人类所在格；没有人类时用活动区中心，中心被挡则螺旋找最近空格
+    const center = ZG.MapZone.center(map);
     const sources = [];
     for (const h of state.humans || []) {
       if (!h.alive) continue;
@@ -78,8 +79,9 @@
       if (!blocked[c.i]) sources.push(c.i);
     }
     if (!sources.length) {
-      const c = cellOf(ZG.Const.W / 2, ZG.Const.H / 2);
-      if (!blocked[c.i]) sources.push(c.i);
+      const c = cellOf(center.x, center.y);
+      const open = nearestOpen(blocked, c.cx, c.cy);
+      if (open >= 0) sources.push(open);
     }
     for (const i of sources) {
       if (dist[i] !== INF) continue;
@@ -108,10 +110,10 @@
       queue[tail++] = ni;
     }
 
-    const center = ZG.Geom.humanCentroid(state) || { x: ZG.Const.W / 2, y: ZG.Const.H / 2 };
+    const centerPoint = ZG.Geom.humanCentroid(state) || center;
     return {
       cols: COLS, rows: ROWS, cell: CELL, blocked, dist, dirX, dirY,
-      centerX: center.x, centerY: center.y, mapId: map ? map.id : ''
+      centerX: centerPoint.x, centerY: centerPoint.y, mapId: map ? map.id : ''
     };
   }
 
@@ -119,6 +121,22 @@
     const cx = Math.max(0, Math.min(COLS - 1, Math.floor(x / CELL)));
     const cy = Math.max(0, Math.min(ROWS - 1, Math.floor(y / CELL)));
     return { cx, cy, i: idx(cx, cy) };
+  }
+
+  // 从 (cx,cy) 开始按切比雪夫半径螺旋找第一个未阻挡格；返回格子索引或 -1。
+  function nearestOpen(blocked, cx, cy) {
+    if (!blocked[idx(cx, cy)]) return idx(cx, cy);
+    for (let r = 1; r < Math.max(COLS, ROWS); r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const nx = cx + dx, ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+          if (!blocked[idx(nx, ny)]) return idx(nx, ny);
+        }
+      }
+    }
+    return -1;
   }
 
   function directionAt(pathing, x, y) {
