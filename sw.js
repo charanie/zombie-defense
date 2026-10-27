@@ -42,6 +42,7 @@ const SHELL = [
   './src/sim/sim.js',
   './src/view/model.js',
   './src/view/maplayer.js',
+  './src/view/fx.js',
   './src/view/techLayout.js',
   './src/view/techPanel.js',
   './src/view/renderer.js',

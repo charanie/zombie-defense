@@ -6,7 +6,8 @@
   const NAMES = [
     'pistol', 'shotgun', 'mg', 'flame', 'rocket', 'explosion',
     'heal', 'infect', 'bossRoar', 'click', 'horn', 'coin',
-    'dash', 'spit', 'summon'
+    'dash', 'spit', 'summon',
+    'missile', 'slash', 'stomp', 'rockBreak', 'fuse'
   ];
 
   function create(opts) {
@@ -73,6 +74,11 @@
           else if (name === 'dash') sweep(520, 70, 0.22, 'sawtooth', 0.14);
           else if (name === 'spit') noise(0.11, 760, 0.09);
           else if (name === 'summon') sweep(58, 132, 0.45, 'sine', 0.15);
+          else if (name === 'missile') { sweep(220, 900, 0.25, 'square', 0.1); sweep(90, 40, 0.5, 'sine', 0.18); }
+          else if (name === 'slash') noise(0.09, 2600, 0.16);
+          else if (name === 'stomp') { sweep(70, 34, 0.3, 'square', 0.2); noise(0.2, 180, 0.22); }
+          else if (name === 'rockBreak') { noise(0.16, 480, 0.2); noise(0.22, 900, 0.12); }
+          else if (name === 'fuse') { tone(1200, 0.04, 'square', 0.04); setTimeout(() => tone(900, 0.04, 'square', 0.03), 180); }
           else if (name === 'click') tone(880, 0.04, 'square', 0.05);
           else if (name === 'horn') horn();
           else if (name === 'coin') coin();

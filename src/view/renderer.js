@@ -766,148 +766,8 @@
   }
 
   function drawEffects(ctx, state) {
-    for (const e of state.effects) {
-      const a = Math.max(0, e.life / (e.maxLife || 0.1));
-      if (e.kind === 'tracer') {
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.strokeStyle = e.color;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(e.x1, e.y1);
-        ctx.lineTo(e.x2, e.y2);
-        ctx.stroke();
-        ctx.restore();
-      } else if (e.kind === 'flame') {
-        ctx.save();
-        ctx.globalAlpha = a * 0.55;
-        const g = ctx.createRadialGradient(e.x1, e.y1, 8, e.x1, e.y1, e.range);
-        g.addColorStop(0, 'rgba(255, 183, 77, 0.9)');
-        g.addColorStop(1, 'rgba(239, 83, 80, 0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.moveTo(e.x1, e.y1);
-        ctx.arc(e.x1, e.y1, e.range, e.facing - (e.coneDeg * Math.PI) / 360,
-          e.facing + (e.coneDeg * Math.PI) / 360);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      } else if (e.kind === 'slash') {
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.translate(e.x, e.y);
-        ctx.rotate(e.facing);
-        const g = ctx.createLinearGradient(0, 0, e.length, 0);
-        g.addColorStop(0, 'rgba(255,255,255,0.9)');
-        g.addColorStop(1, 'rgba(255, 138, 101, 0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, -e.width / 2, e.length, e.width);
-        ctx.restore();
-      } else if (e.kind === 'fire_ring' || e.kind === 'heal_ring' ||
-                 e.kind === 'taunt_ring' || e.kind === 'support_heal') {
-        const isHeal = e.kind === 'heal_ring' || e.kind === 'support_heal';
-        const isTaunt = e.kind === 'taunt_ring';
-        const color = isHeal ? '102, 187, 106' : (isTaunt ? '255, 213, 79' : '255, 112, 67');
-        ctx.save();
-        ctx.globalAlpha = a * 0.75;
-        ctx.strokeStyle = 'rgba(' + color + ', 0.9)';
-        ctx.fillStyle = 'rgba(' + color + ', 0.18)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, (e.radius || 60) * (1 - a * 0.35), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-      } else if (e.kind === 'mg_sweep') {
-        ctx.save();
-        ctx.globalAlpha = a * 0.5;
-        ctx.strokeStyle = '#FFE082';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.radius || 150, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      } else if (e.kind === 'shockwave') {
-        ctx.save();
-        ctx.globalAlpha = a * 0.7;
-        ctx.translate(e.x, e.y);
-        ctx.rotate(e.facing);
-        ctx.fillStyle = 'rgba(255, 204, 128, 0.35)';
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, e.range, -(e.coneDeg * Math.PI) / 360, (e.coneDeg * Math.PI) / 360);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      } else if (e.kind === 'support_warn') {
-        ctx.save();
-        ctx.globalAlpha = 0.35 + 0.35 * (1 - a);
-        ctx.strokeStyle = '#FF7043';
-        ctx.setLineDash([8, 6]);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.radius || 130, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.restore();
-      } else if (e.kind === 'dash_warn') {
-        ctx.save();
-        ctx.globalAlpha = 0.45 + 0.55 * a;
-        ctx.strokeStyle = 'rgba(239, 83, 80, 0.95)';
-        ctx.lineWidth = 5;
-        ctx.setLineDash([14, 8]);
-        ctx.beginPath();
-        ctx.moveTo(e.x1, e.y1);
-        ctx.lineTo(e.x2, e.y2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        const ang = Math.atan2(e.y2 - e.y1, e.x2 - e.x1);
-        ctx.fillStyle = 'rgba(255, 138, 128, 0.95)';
-        ctx.beginPath();
-        ctx.moveTo(e.x2, e.y2);
-        ctx.lineTo(e.x2 - Math.cos(ang - 0.45) * 16, e.y2 - Math.sin(ang - 0.45) * 16);
-        ctx.lineTo(e.x2 - Math.cos(ang + 0.45) * 16, e.y2 - Math.sin(ang + 0.45) * 16);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      } else if (e.kind === 'poison_cloud') {
-        ctx.save();
-        const grd = ctx.createRadialGradient(e.x, e.y, 4, e.x, e.y, e.radius);
-        grd.addColorStop(0, 'rgba(124, 179, 66, ' + (0.20 + 0.15 * a) + ')');
-        grd.addColorStop(0.7, 'rgba(46, 125, 50, ' + (0.14 + 0.10 * a) + ')');
-        grd.addColorStop(1, 'rgba(46, 125, 50, 0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(174, 213, 129, ' + (0.25 * a + 0.15) + ')';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        for (let i = 0; i < 5; i++) {
-          const t = state.battle.time * 1.7 + i * 1.26;
-          const rr = e.radius * (0.25 + 0.55 * ((i * 0.37) % 1));
-          ctx.fillStyle = 'rgba(213, 245, 184, ' + (0.35 * a) + ')';
-          ctx.beginPath();
-          ctx.arc(e.x + Math.cos(t) * rr, e.y + Math.sin(t * 1.3) * rr,
-            2.4 + 1.2 * Math.sin(t * 2), 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
-      } else if (e.kind === 'summon') {
-        ctx.save();
-        ctx.globalAlpha = 0.35 + 0.55 * (1 - a);
-        ctx.strokeStyle = 'rgba(225, 190, 231, 0.95)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, 12 + (1 - a) * 54, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(156, 255, 87, 0.7)';
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, 6 + (1 - a) * 36, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
+    ZG.Fx.drawWorld(ctx, state);
+    ZG.Fx.drawAir(ctx, state);
   }
 
   function drawSupportAim(ctx, state) {
@@ -1063,6 +923,7 @@
     drawSupportAim(ctx, state);
 
     ZG.Particles.draw(ctx, state.settings);
+    ZG.Fx.drawScreen(ctx, state);
     ctx.restore();
   }
 
