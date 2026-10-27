@@ -292,7 +292,8 @@
   function reasonText(reason) {
     const map = {
       money: '金钱不足', population: '人口已满', 'civilian-cap': '平民已满',
-      outside: '地图外', overlap: '位置重叠', obstacle: '障碍阻挡',
+      outside: '地图外', 'outside-zone': '超出可活动区域',
+      overlap: '位置重叠', obstacle: '障碍阻挡',
       limit: '已达上限', 'not-prep': '战斗中不能操作',
       locked: '尚未解锁', uses: '本回合次数已用完', 'not-battle': '仅战斗中可用'
     };

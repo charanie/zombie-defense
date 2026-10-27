@@ -38,6 +38,7 @@
       population: '人口已满',
       'civilian-cap': '平民已满',
       outside: '地图外',
+      'outside-zone': '超出可活动区域',
       overlap: '位置重叠',
       obstacle: '障碍阻挡',
       limit: '已达上限',
