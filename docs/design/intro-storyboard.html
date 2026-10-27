@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>尸潮防线 · 开场动画分镜</title>
+<style>
+  :root { --ink: #E6EDF7; --dim: #8FA3BF; --faint: #526A87; --cyan: #4FC3F7; --red: #EF5350; --gold: #FFD54F; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #05080d; color: var(--ink); }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+    padding: 44px 56px 50px;
+    min-height: 100vh;
+  }
+  header { display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid rgba(79,195,247,.16); padding-bottom: 18px; }
+  .kicker { font: 600 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .3em; color: var(--cyan); }
+  h1 { margin: 12px 0 0; font-size: 26px; letter-spacing: .14em; font-weight: 800; }
+  .meta { font: 10px/1.7 ui-monospace, Consolas, monospace; letter-spacing: .12em; color: var(--faint); text-align: right; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px 30px; margin-top: 28px; }
+  .panel { position: relative; }
+  .frame { position: relative; aspect-ratio: 16 / 9; background: #04070c; border: 1px solid rgba(79,195,247,.18); overflow: hidden; }
+  .frame canvas { display: block; width: 100%; height: 100%; }
+  .frame::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 80px rgba(0,0,0,.6); }
+  .tag {
+    position: absolute; left: 0; top: 0; z-index: 2;
+    padding: 6px 9px; background: rgba(4,9,16,.86); border-right: 1px solid rgba(79,195,247,.2); border-bottom: 1px solid rgba(79,195,247,.2);
+    font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .14em; color: var(--cyan);
+  }
+  .panel h2 { margin: 12px 0 0; font-size: 13px; letter-spacing: .14em; font-weight: 700; }
+  .panel p { margin: 7px 0 0; font-size: 11px; line-height: 1.65; color: #7E96B2; }
+  .panel p b { color: #B9CCE4; font-weight: 600; }
+  .keys { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .keys span { padding: 4px 7px; border: 1px solid rgba(110,144,182,.22); font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .08em; color: #7894B3; }
+  .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-top: 26px; background: rgba(79,195,247,.15); border: 1px solid rgba(79,195,247,.15); }
+  .timeline div { background: rgba(6,12,21,.9); padding: 12px 14px; }
+  .timeline .t { font: 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .12em; color: var(--gold); }
+  .timeline .d { margin-top: 7px; font-size: 10px; line-height: 1.5; color: #7894B3; }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="kicker">INTRO SEQUENCE / STORYBOARD</div>
+      <h1>开场动画 · 四拍分镜</h1>
+    </div>
+    <div class="meta">总时长 4.2s · 任意键跳过<br>1440 × 810 · 16:9</div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="frame"><span class="tag">T+00:00.4 / IMPACT</span><canvas data-phase="crack"></canvas></div>
+      <h2>01 咬碎 · 左上角破口</h2>
+      <p>画面停在刚刚选中的地图上。左上角先出现<b>牙印状破口</b>，玻璃裂纹向外炸开，碎屑、血点、尘土一起飞出；震屏 6–8px，持续 120ms。</p>
+      <div class="keys"><span>玻璃裂响</span><span>低频撞击</span><span>红光脉冲</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="frame"><span class="tag">T+00:01.2 / SPREAD</span><canvas data-phase="spread"></canvas></div>
+      <h2>02 蔓延 · 裂纹吞掉画面</h2>
+      <p>裂纹沿 5–7 条主路径扩展到全屏，暗角快速收拢，黑色从破口向四周渗开；选图界面失焦、降饱和，声音被压闷。</p>
+      <div class="keys"><span>裂纹 1.2s</span><span>压暗 0.8s</span><span>失焦</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="frame"><span class="tag">T+00:02.6 / TITLE</span><canvas data-phase="title"></canvas></div>
+      <h2>03 地图名 · 黑场中的唯一信息</h2>
+      <p>全黑。地图名以<b>字距收紧</b>的方式出现，英文代号、威胁等级、一句话战术依次淡入；底部红线扫过，心跳声接管。</p>
+      <div class="keys"><span>字距 0.6em → 0.18em</span><span>轻微故障闪</span><span>心跳</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="frame"><span class="tag">T+00:04.2 / REVEAL</span><canvas data-phase="reveal"></canvas></div>
+      <h2>04 变亮 · 进入整备期</h2>
+      <p>黑场从中心向外抬升，战场曝光恢复；顶栏、底部面板、开始回合按钮依次滑入。输入在最后一帧才解锁，避免误触。</p>
+      <div class="keys"><span>曝光 0.7s</span><span>HUD 错峰 80ms</span><span>解除输入锁</span></div>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div><div class="t">0.00 – 0.25s</div><div class="d">吸气：降饱和、暗角、轻微推近</div></div>
+    <div><div class="t">0.25 – 1.35s</div><div class="d">破口 + 裂纹扩散 + 碎片飞散</div></div>
+    <div><div class="t">1.35 – 2.20s</div><div class="d">黑幕合拢；2.0s 切状态、建游戏</div></div>
+    <div><div class="t">2.20 – 4.20s</div><div class="d">地图名 1.0s → 变亮 0.7s → 解锁</div></div>
+  </div>
+
+<script>
+(() => {
+  const D = Math.min(devicePixelRatio || 1, 2);
+
+  function rng(seed) {
+    let s = seed >>> 0;
+    return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  }
+
+  function drawMenu(ctx, W, H) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#060b13'); g.addColorStop(.6, '#0b1522'); g.addColorStop(1, '#05080d');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // 天际线
+    const r = rng(77); let x = -10;
+    while (x < W) {
+      const bw = 12 + r() * 36, bh = 20 + r() * 70;
+      ctx.fillStyle = '#08111b'; ctx.fillRect(x, H * .64 - bh, bw, bh + 4);
+      for (let i = 0; i < 5; i++) {
+        if (r() > .7) { ctx.fillStyle = 'rgba(120,170,205,.13)'; ctx.fillRect(x + 4 + (i % 3) * 8, H * .64 - bh + 8 + Math.floor(i / 3) * 12, 2, 2); }
+      }
+      x += bw + 3 + r() * 6;
+    }
+    // 网格地面
+    ctx.strokeStyle = 'rgba(79,195,247,.07)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 8; i++) { const y = H * .66 + Math.pow(i / 7, 1.7) * H * .34; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    for (let i = -5; i <= 5; i++) { ctx.beginPath(); ctx.moveTo(W / 2 + i * 8, H * .66); ctx.lineTo(W / 2 + i * W * .22, H); ctx.stroke(); }
+
+    // 标题
+    ctx.save();
+    ctx.fillStyle = '#DCEEFF';
+    ctx.font = '900 34px "Microsoft YaHei"';
+    ctx.fillText('尸潮防线', 56, 88);
+    ctx.fillStyle = '#5B7390';
+    ctx.font = '9px ui-monospace, Consolas, monospace';
+    ctx.fillText('ZOMBIE DEFENSE', 58, 108);
+    ctx.restore();
+
+    // 三张地图卡
+    const cardW = W * .25, cardH = H * .40, gap = W * .035;
+    const startX = 56, y = H * .27;
+    const themes = [
+      { bg: '#1C241F', road: '#2A2C2E', accent: '#C9B458', name: '郊区公路' },
+      { bg: '#1B2230', road: '#27313F', accent: '#A9C7E8', name: '医院广场' },
+      { bg: '#121820', road: '#202932', accent: '#E6C34A', name: '地铁站台' }
+    ];
+    themes.forEach((t, i) => {
+      const cx = startX + i * (cardW + gap);
+      ctx.fillStyle = 'rgba(10,18,30,.84)';
+      ctx.fillRect(cx, y, cardW, cardH);
+      ctx.strokeStyle = i === 0 ? 'rgba(201,180,88,.7)' : 'rgba(110,144,182,.22)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx + .5, y + .5, cardW - 1, cardH - 1);
+      const th = cardH * .50;
+      ctx.fillStyle = t.bg; ctx.fillRect(cx + 8, y + 8, cardW - 16, th - 8);
+      ctx.fillStyle = t.road; ctx.fillRect(cx + 8, y + th * .35, cardW - 16, th * .45);
+      ctx.strokeStyle = 'rgba(255,255,255,.1)';
+      ctx.strokeRect(cx + 8.5, y + 8.5, cardW - 17, th - 9);
+      ctx.fillStyle = '#E6EDF7';
+      ctx.font = '700 12px "Microsoft YaHei"';
+      ctx.fillText(t.name, cx + 12, y + th + 22);
+      ctx.fillStyle = t.accent;
+      ctx.fillRect(cx + 12, y + th + 28, 22, 2);
+    });
+
+    // 简报条
+    ctx.fillStyle = 'rgba(6,12,21,.8)';
+    ctx.fillRect(56, H * .73, W - 112, H * .14);
+    ctx.strokeStyle = 'rgba(79,195,247,.14)';
+    ctx.strokeRect(56.5, H * .73 + .5, W - 113, H * .14 - 1);
+  }
+
+  // 裂纹
+  const crackPaths = (() => {
+    const r = rng(20261027);
+    const ox = .15, oy = .10;
+    const out = [];
+    for (let i = 0; i < 7; i++) {
+      const base = -0.35 + i * 0.62 + (r() - .5) * .35;
+      const len = .38 + r() * .55;
+      const pts = [[ox, oy]];
+      let x = ox, y = oy;
+      const steps = 11;
+      for (let s = 1; s <= steps; s++) {
+        const f = s / steps;
+        const ang = base + (r() - .5) * .35;
+        x += Math.cos(ang) * (len / steps) * (1 - f * .25);
+        y += Math.sin(ang) * (len / steps) * (1 - f * .25);
+        pts.push([x, y]);
+        if (r() > .72 && s < steps - 1) {
+          out.push({ branch: makeBranch(x, y, ang + (r() > .5 ? 1 : -1) * (.4 + r() * .5), len * (.2 + r() * .25), r) });
+        }
+      }
+      out.push({ pts });
+    }
+    function makeBranch(x, y, ang, len, rr) {
+      const pts = [[x, y]];
+      const steps = 6;
+      for (let s = 1; s <= steps; s++) {
+        let a = ang + (rr() - .5) * .5;
+        x += Math.cos(a) * len / steps;
+        y += Math.sin(a) * len / steps;
+        pts.push([x, y]);
+      }
+      return pts;
+    }
+    return out;
+  })();
+
+  function drawCracks(ctx, W, H, p) {
+    const ox = W * .15, oy = H * .10;
+    // 咬痕
+    const biteR = Math.min(W, H) * .105;
+    ctx.save();
+    const bg = ctx.createRadialGradient(ox, oy, 2, ox, oy, biteR * 3.0);
+    bg.addColorStop(0, 'rgba(239,83,80,.34)');
+    bg.addColorStop(.40, 'rgba(150,30,30,.16)');
+    bg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.arc(ox, oy, biteR * 3.0, 0, 6.283); ctx.fill();
+
+    ctx.beginPath();
+    const n = 28;
+    for (let i = 0; i <= n; i++) {
+      const a = i / n * Math.PI * 2;
+      const notch = (i % 2 === 0) ? 1 : .68;
+      const rr = biteR * notch * p;
+      const x = ox + Math.cos(a) * rr, y = oy + Math.sin(a) * rr;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#010204';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.85)';
+    ctx.lineWidth = 7;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(235,245,255,.62)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.restore();
+
+    // 主裂纹
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const item of crackPaths) {
+      if (item.branch) continue;
+      ctx.beginPath();
+      item.pts.forEach((pt, i) => {
+        const f = Math.min(1, p * 1.15);
+        const x = (ox + (pt[0] * W - ox) * f);
+        const y = (oy + (pt[1] * H - oy) * f);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.strokeStyle = 'rgba(0,0,0,.95)';
+      ctx.lineWidth = 7.0;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(8,12,18,.95)';
+      ctx.lineWidth = 4.0;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(225,240,255,.62)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    // 支裂纹
+    ctx.globalAlpha = .6;
+    for (const item of crackPaths) {
+      if (!item.branch) continue;
+      ctx.beginPath();
+      item.branch.forEach((pt, i) => {
+        const f = Math.min(1, p * 1.15);
+        const x = (ox + (pt[0] * W - ox) * f);
+        const y = (oy + (pt[1] * H - oy) * f);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.strokeStyle = 'rgba(0,0,0,.8)';
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(230,240,255,.55)';
+      ctx.lineWidth = .9;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 碎片
+    const r = rng(5);
+    ctx.save();
+    for (let i = 0; i < 34; i++) {
+      const a = r() * 6.283;
+      const d = (0.05 + r() * .40) * p;
+      const x = ox + Math.cos(a) * d * W;
+      const y = oy + Math.sin(a) * d * H;
+      const s = 2 + r() * 9;
+      ctx.fillStyle = 'rgba(' + (160 + r() * 80 | 0) + ',' + (190 + r() * 50 | 0) + ',220,' + (.20 + r() * .40) + ')';
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + s, y + s * .35);
+      ctx.lineTo(x + s * .3, y + s);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // 血点
+    for (let i = 0; i < 14; i++) {
+      const a = r() * 6.283, d = (0.05 + r() * .22) * p;
+      ctx.fillStyle = 'rgba(150,25,25,.55)';
+      ctx.beginPath();
+      ctx.arc(ox + Math.cos(a) * d * W, oy + Math.sin(a) * d * H, 1 + r() * 3.5, 0, 6.283);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawTitle(ctx, W, H) {
+    // 细网格底
+    ctx.strokeStyle = 'rgba(79,195,247,.035)'; ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#EAF4FF';
+    ctx.font = '900 44px "Microsoft YaHei"';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '10px';
+    ctx.shadowColor = 'rgba(79,195,247,.3)'; ctx.shadowBlur = 24;
+    ctx.fillText('郊区公路', W / 2, H * .46);
+    ctx.shadowBlur = 0;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '7px';
+    ctx.fillStyle = '#6E90B6';
+    ctx.font = '10px ui-monospace, Consolas, monospace';
+    ctx.fillText('SUBURBAN HIGHWAY', W / 2, H * .53);
+    // 红线
+    ctx.fillStyle = '#EF5350';
+    ctx.fillRect(W / 2 - 40, H * .575, 80, 2);
+    // 难度
+    ctx.fillStyle = 'rgba(230,237,247,.72)';
+    ctx.font = '11px "Microsoft YaHei"';
+    ctx.fillText('威胁等级  ★☆☆　·　第 01 号战区', W / 2, H * .63);
+    ctx.fillStyle = 'rgba(120,148,179,.7)';
+    ctx.font = '10px "Microsoft YaHei"';
+    ctx.fillText('开阔车道，四面来袭。第一次部署通常从这里开始。', W / 2, H * .68);
+    // 角标
+    ctx.strokeStyle = 'rgba(79,195,247,.2)'; ctx.lineWidth = 1;
+    ctx.strokeRect(W * .08, H * .16, W * .84, H * .68);
+    ctx.restore();
+  }
+
+  function drawGame(ctx, W, H) {
+    // 背景
+    ctx.fillStyle = '#1A2233'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#232D42'; ctx.fillRect(0, H * .26, W, H * .34); ctx.fillRect(0, H * .64, W, H * .06);
+    // 网格
+    ctx.strokeStyle = 'rgba(79,195,247,.05)';
+    for (let x = 0; x < W; x += 28) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 28) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    // 障碍
+    ctx.fillStyle = '#4A4038';
+    ctx.beginPath(); ctx.arc(W * .33, H * .42, 14, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(W * .66, H * .42, 14, 0, 6.283); ctx.fill();
+    // 部署区
+    ctx.save();
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = 'rgba(79,195,247,.55)';
+    ctx.strokeRect(W * .18, H * .54, W * .64, H * .20);
+    ctx.fillStyle = 'rgba(79,195,247,.05)';
+    ctx.fillRect(W * .18, H * .54, W * .64, H * .20);
+    ctx.restore();
+    // 单位
+    const units = [[.34, .64], [.40, .64], [.46, .64], [.52, .64]];
+    for (const u of units) {
+      ctx.fillStyle = '#4FC3F7';
+      ctx.beginPath(); ctx.arc(W * u[0], H * u[1], 5, 0, 6.283); ctx.fill();
+      ctx.strokeStyle = 'rgba(230,245,255,.8)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = '#EAF6FF';
+      ctx.fillRect(W * u[0] - 2, H * u[1] - 2, 4, 4);
+    }
+    // 顶栏
+    ctx.fillStyle = 'rgba(7,12,20,.92)'; ctx.fillRect(0, 0, W, 28);
+    ctx.fillStyle = '#E6EDF7'; ctx.font = '600 10px "Microsoft YaHei"';
+    ctx.fillText('回合 1', 16, 18);
+    ctx.fillStyle = '#FFD54F'; ctx.fillText('🪙 400', 70, 18);
+    ctx.fillStyle = '#8FA3BF'; ctx.fillText('人口 0/10', 118, 18);
+    // 底栏
+    ctx.fillStyle = 'rgba(7,12,20,.94)'; ctx.fillRect(0, H - 70, W, 70);
+    ctx.fillStyle = 'rgba(79,195,247,.25)'; ctx.fillRect(0, H - 70, W, 1);
+    ctx.fillStyle = '#E6EDF7'; ctx.font = '700 11px "Microsoft YaHei"';
+    ctx.fillText('开始回合', W - 100, H - 30);
+    ctx.fillStyle = '#546A86'; ctx.font = '9px "Microsoft YaHei"';
+    ctx.fillText('招募', 16, H - 30); ctx.fillText('建筑', 58, H - 30); ctx.fillText('科技树 (T)', 100, H - 30);
+  }
+
+  function drawVignette(ctx, W, H) {
+    const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .32, W / 2, H / 2, Math.max(W, H) * .72);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,.55)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // 扫描线
+    ctx.fillStyle = 'rgba(255,255,255,.025)';
+    for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
+  }
+
+  document.querySelectorAll('canvas[data-phase]').forEach(cv => {
+    const rect = cv.getBoundingClientRect();
+    const w = cv.width = Math.round(rect.width * D);
+    const h = cv.height = Math.round(rect.height * D);
+    const ctx = cv.getContext('2d');
+    ctx.scale(D, D);
+    const W = rect.width, H = rect.height;
+    const phase = cv.dataset.phase;
+    drawMenu(ctx, W, H);
+    if (phase === 'crack') {
+      ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(0, 0, W, H);
+      drawCracks(ctx, W, H, 0.55);
+    } else if (phase === 'spread') {
+      ctx.fillStyle = 'rgba(0,0,0,.48)'; ctx.fillRect(0, 0, W, H);
+      drawCracks(ctx, W, H, 1);
+    } else if (phase === 'title') {
+      ctx.fillStyle = '#020407'; ctx.fillRect(0, 0, W, H);
+      drawTitle(ctx, W, H);
+    } else {
+      drawGame(ctx, W, H);
+      ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(0, 0, W, H);
+    }
+    drawVignette(ctx, W, H);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>尸潮防线 · 开始界面视觉稿</title>
+<style>
+  :root {
+    --ink: #E6EDF7;
+    --dim: #8FA3BF;
+    --faint: #566A85;
+    --cyan: #4FC3F7;
+    --red: #EF5350;
+    --gold: #FFD54F;
+    --line: rgba(79, 195, 247, .18);
+    --panel: rgba(8, 14, 24, .62);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #04070c; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+    color: var(--ink);
+    user-select: none;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  #stage { position: fixed; inset: 0; overflow: hidden; background: #04070c; }
+  #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .fx { position: absolute; inset: 0; pointer-events: none; }
+  .vignette {
+    background:
+      radial-gradient(ellipse at 50% 44%, transparent 34%, rgba(2, 5, 9, .42) 72%, rgba(2, 5, 9, .9) 100%),
+      linear-gradient(180deg, rgba(3, 7, 12, .35), transparent 22%, transparent 70%, rgba(3, 7, 12, .72));
+  }
+  .scanlines {
+    opacity: .3;
+    background: repeating-linear-gradient(180deg,
+      rgba(255, 255, 255, .035) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  .grain {
+    opacity: .17;
+    background-image:
+      radial-gradient(rgba(255,255,255,.28) .5px, transparent .6px),
+      radial-gradient(rgba(255,255,255,.18) .5px, transparent .6px);
+    background-size: 3px 3px, 5px 5px;
+    background-position: 0 0, 1px 2px;
+    mix-blend-mode: overlay;
+  }
+
+  .screen { position: absolute; inset: 0; }
+  .screen.hidden { display: none; }
+
+  /* ---------- 通用 ---------- */
+  .kicker {
+    display: flex; align-items: center; gap: 10px;
+    font: 600 10px/1 ui-monospace, Consolas, "Courier New", monospace;
+    letter-spacing: 2.4px; color: #7E9DBD;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--red); box-shadow: 0 0 8px var(--red);
+    animation: blink 2.4s infinite;
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 46%, 60% { opacity: .18; } }
+  .rule { height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
+
+  /* ---------- 主菜单 ---------- */
+  .corner-brand { position: absolute; left: 64px; top: 44px; }
+  .corner-brand .zone {
+    margin-top: 8px; font: 10px/1.5 ui-monospace, Consolas, monospace;
+    letter-spacing: 1.6px; color: #4C617C;
+  }
+
+  .hero { position: absolute; left: 96px; top: 132px; }
+  .hero .title {
+    font-size: clamp(52px, 5.4vw, 78px);
+    font-weight: 900; line-height: .96; letter-spacing: .12em;
+    background: linear-gradient(180deg, #F2FAFF 0%, #A9D9FF 44%, #4C93C8 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 8px 30px rgba(40, 125, 190, .28));
+    position: relative;
+  }
+  .hero .title::after {
+    content: ""; position: absolute; left: 5px; bottom: -14px;
+    width: 74px; height: 3px;
+    background: linear-gradient(90deg, var(--red), rgba(239, 83, 80, 0));
+    box-shadow: 0 0 18px rgba(239, 83, 80, .45);
+  }
+  .hero .en {
+    margin-top: 30px;
+    font: 600 11px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: .58em; color: #6E90B6;
+  }
+  .hero .tagline {
+    margin-top: 18px; font-size: 13px; letter-spacing: .18em; color: #91A8C4;
+  }
+
+  .nav { position: absolute; left: 96px; top: 388px; width: 474px; }
+  .nav-item {
+    position: relative;
+    width: 100%; height: 70px;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    text-align: left;
+    padding: 0 16px 0 18px;
+    border-top: 1px solid rgba(110, 144, 182, .14);
+    transition: background .18s, padding .18s, border-color .18s;
+  }
+  .nav-item:last-child { border-bottom: 1px solid rgba(110, 144, 182, .14); }
+  .nav-item::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(180deg, transparent, var(--cyan), transparent);
+    opacity: 0; transition: opacity .18s;
+  }
+  .nav-item .num {
+    font: 10px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: .1em; color: #4E6683;
+    align-self: start; padding-top: 21px;
+  }
+  .nav-item .label { font-size: 22px; font-weight: 700; letter-spacing: .18em; }
+  .nav-item .sub {
+    display: block; margin-top: 4px;
+    font: 9px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: .24em; color: #5B7390;
+  }
+  .nav-item .tail {
+    font: 10px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: .16em; color: #526A87;
+  }
+  .nav-item:hover, .nav-item.active {
+    background: linear-gradient(90deg, rgba(79, 195, 247, .13), rgba(79, 195, 247, 0) 78%);
+    padding-left: 26px;
+    border-color: rgba(79, 195, 247, .36);
+  }
+  .nav-item:hover::before, .nav-item.active::before { opacity: 1; }
+  .nav-item:hover .label, .nav-item.active .label { color: #F4FAFF; text-shadow: 0 0 18px rgba(79,195,247,.28); }
+  .nav-item:hover .tail { color: var(--cyan); }
+  .nav-item.locked { opacity: .62; }
+  .nav-item.locked .label { color: #B7C5D6; }
+  .nav-item .locktag {
+    display: inline-block; margin-left: 12px; padding: 3px 7px;
+    border: 1px solid rgba(255, 213, 79, .36);
+    color: var(--gold); font: 9px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: .12em; vertical-align: 3px;
+  }
+  .nav-hint {
+    margin-top: 20px; font: 10px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: .16em; color: #435A75;
+    visibility: hidden;
+  }
+
+  /* ---------- 右侧战区监视 ---------- */
+  .feed {
+    position: absolute; right: 88px; top: 128px; width: 404px;
+    border: 1px solid rgba(79, 195, 247, .16);
+    background: linear-gradient(180deg, rgba(9, 17, 29, .72), rgba(5, 10, 18, .5));
+    box-shadow: 0 30px 90px rgba(0, 0, 0, .55), inset 0 0 60px rgba(19, 48, 79, .18);
+    padding: 14px;
+  }
+  .feed::before, .feed::after {
+    content: ""; position: absolute; width: 14px; height: 14px; border: 1px solid rgba(79,195,247,.55);
+  }
+  .feed::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+  .feed::after { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+  .feed-head { display: flex; align-items: center; justify-content: space-between; }
+  .feed-title { font: 600 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .2em; color: #88A6C6; }
+  .live { display: flex; align-items: center; gap: 7px; font: 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .18em; color: var(--red); }
+  .live .dot { width: 5px; height: 5px; }
+  .feed-canvas-wrap { position: relative; margin-top: 12px; }
+  #feedmap { display: block; width: 100%; height: auto; background: #0a111c; }
+  .feed-canvas-wrap::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(180deg, rgba(255,255,255,.05) 0 1px, transparent 1px 4px);
+    mix-blend-mode: overlay;
+  }
+  .feed-tags { position: absolute; left: 8px; top: 8px; display: flex; gap: 6px; }
+  .feed-tags span {
+    padding: 4px 7px; font: 9px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: .1em; color: #BFD9F1; background: rgba(4, 9, 16, .72);
+    border: 1px solid rgba(79, 195, 247, .22);
+  }
+  .feed-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 1px; background: rgba(79,195,247,.12); }
+  .feed-meta div { background: rgba(6, 12, 21, .92); padding: 10px 11px; }
+  .feed-meta .k { font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .18em; color: #526A87; }
+  .feed-meta .v { margin-top: 6px; font-size: 13px; letter-spacing: .08em; color: #D8E7F8; }
+  .feed-meta .v.gold { color: var(--gold); }
+  .feed-meta .v.red { color: #FF8A80; }
+  .signal { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
+  .signal .bars { display: flex; gap: 2px; align-items: flex-end; height: 12px; flex: 1; }
+  .signal .bars i { display: block; width: 3px; background: rgba(79,195,247,.42); }
+  .signal .txt { font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .12em; color: #4E6683; }
+
+  /* ---------- 底部 ---------- */
+  .bottom {
+    position: absolute; left: 64px; right: 64px; bottom: 30px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid rgba(110, 144, 182, .14); padding-top: 16px;
+  }
+  .bottom .left { display: flex; gap: 22px; font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .16em; color: #435A75; }
+  .bottom .left b { color: #7894B3; font-weight: 400; }
+  .bottom .right { display: flex; align-items: center; gap: 8px; }
+  .util {
+    padding: 8px 12px; border: 1px solid rgba(110, 144, 182, .2);
+    font: 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .12em; color: #7894B3;
+  }
+  .util:hover { border-color: rgba(79,195,247,.6); color: var(--cyan); }
+  .ver { margin-left: 10px; font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .1em; color: #344A63; }
+
+  /* ---------- 地图选择 ---------- */
+  .maps-head { position: absolute; left: 96px; top: 46px; }
+  .back {
+    display: inline-flex; align-items: center; gap: 10px;
+    font: 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .16em; color: #7894B3;
+  }
+  .back:hover { color: var(--cyan); }
+  .crumb { margin-top: 26px; font: 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .2em; color: #4E6683; }
+  .maps-title { margin-top: 14px; font-size: clamp(34px, 3.4vw, 50px); font-weight: 900; letter-spacing: .18em; }
+  .maps-sub { margin-top: 12px; font-size: 12px; letter-spacing: .2em; color: #8FA3BF; }
+
+  .cards {
+    position: absolute; left: 96px; right: 96px; top: 258px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+  }
+  .card {
+    position: relative; text-align: left;
+    background: linear-gradient(180deg, rgba(18, 30, 48, .82), rgba(8, 14, 24, .92));
+    border: 1px solid rgba(110, 144, 182, .22);
+    transition: transform .18s ease, border-color .18s, box-shadow .18s;
+    overflow: hidden;
+  }
+  .card::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent, #4FC3F7), transparent 70%);
+    opacity: .55;
+  }
+  .card:hover, .card.hover {
+    transform: translateY(-6px);
+    border-color: color-mix(in srgb, var(--accent, #4FC3F7) 70%, transparent);
+    box-shadow: 0 26px 60px rgba(0,0,0,.55), 0 0 34px rgba(79,195,247,.1);
+  }
+  .thumb { position: relative; aspect-ratio: 16 / 9; background: #08101a; overflow: hidden; }
+  .thumb canvas { display: block; width: 100%; height: 100%; }
+  .thumb::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, rgba(3,8,14,.05) 40%, rgba(3,8,14,.72)),
+      repeating-linear-gradient(180deg, rgba(255,255,255,.045) 0 1px, transparent 1px 4px);
+    pointer-events: none;
+  }
+  .thumb .ao, .thumb .threat {
+    position: absolute; z-index: 2; top: 10px;
+    font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .14em;
+  }
+  .thumb .ao { left: 10px; color: #BFD9F1; }
+  .thumb .threat { right: 10px; display: flex; gap: 3px; align-items: flex-end; }
+  .thumb .threat i { display: block; width: 4px; background: rgba(255,255,255,.22); }
+  .thumb .threat i.on { background: var(--gold); box-shadow: 0 0 8px rgba(255,213,79,.4); }
+  .card-body { padding: 16px 17px 17px; }
+  .card-name { font-size: 21px; font-weight: 800; letter-spacing: .12em; }
+  .card-en { margin-top: 5px; font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .18em; color: #5B7390; }
+  .card-desc { margin-top: 12px; min-height: 36px; font-size: 11px; line-height: 1.65; color: #8FA3BF; }
+  .card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 11px; border-top: 1px solid rgba(110,144,182,.14); }
+  .best { font: 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .1em; color: #5B7390; }
+  .best b { color: var(--gold); font-size: 15px; font-weight: 700; margin-left: 5px; }
+  .go { font: 10px/1 ui-monospace, Consolas, monospace; letter-spacing: .16em; color: var(--accent, #4FC3F7); opacity: .8; }
+  .tags { position: absolute; left: 10px; bottom: 9px; z-index: 2; display: flex; gap: 5px; }
+  .tags span { padding: 3px 6px; font: 8px/1 ui-monospace, Consolas, monospace; letter-spacing: .08em; color: #AFC6DE; background: rgba(3,8,14,.7); border: 1px solid rgba(255,255,255,.12); }
+
+  .maps-foot {
+    position: absolute; left: 96px; right: 96px; bottom: 34px;
+    display: flex; justify-content: space-between; align-items: center;
+    font: 9px/1 ui-monospace, Consolas, monospace; letter-spacing: .14em; color: #435A75;
+  }
+  .maps-foot b { color: #7894B3; font-weight: 400; }
+
+  /* 行动简报 */
+  .brief {
+    position: absolute; left: 96px; right: 96px; top: 656px;
+    display: grid; grid-template-columns: 1.5fr 1fr 1fr .95fr; gap: 1px;
+    background: rgba(79, 195, 247, .13);
+    border: 1px solid rgba(79, 195, 247, .15);
+  }
+  .brief .cell { background: rgba(6, 12, 21, .78); padding: 13px 16px 14px; min-height: 108px; }
+  .brief .k {
+    font: 9px/1 ui-monospace, Consolas, monospace;
+    letter-spacing: .18em; color: #526A87;
+  }
+  .brief .v { margin-top: 12px; font-size: 13px; letter-spacing: .06em; color: #D2E2F3; }
+  .brief .note { margin-top: 7px; font-size: 10px; line-height: 1.5; color: #7894B3; }
+  .brief .gold { color: var(--gold); }
+  .brief .red { color: #FF8A80; }
+  .brief .bars { display: flex; flex-direction: column; gap: 6px; margin-top: 11px; }
+  .brief .bar { display: grid; grid-template-columns: 38px 1fr 30px; align-items: center; gap: 7px; }
+  .brief .bar span { font: 9px/1 ui-monospace, Consolas, monospace; color: #6F89A7; }
+  .brief .bar i { display: block; height: 5px; background: rgba(255,255,255,.1); position: relative; }
+  .brief .bar i::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--p); background: var(--c, var(--cyan)); }
+  .brief .bar b { font: 9px/1 ui-monospace, Consolas, monospace; color: #8FA3BF; font-weight: 400; text-align: right; }
+  .brief .record { display: flex; align-items: baseline; gap: 6px; }
+  .brief .record b { font-size: 28px; line-height: 1; color: var(--gold); font-weight: 800; }
+  .brief .record span { font-size: 10px; color: #7894B3; }
+
+  /* 小屏设计稿：不是最终响应式，仅证明方向 */
+  @media (max-width: 1100px) {
+    .feed { display: none; }
+    .nav { width: 420px; }
+    .cards { grid-template-columns: 1fr; top: 230px; max-height: 58vh; overflow-y: auto; }
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="scene"></canvas>
+  <div class="fx vignette"></div>
+  <div class="fx scanlines"></div>
+  <div class="fx grain"></div>
+
+  <!-- 主菜单 -->
+  <div class="screen" id="screen-main">
+    <div class="corner-brand">
+      <div class="kicker"><span class="dot"></span>QUARANTINE ZONE 07</div>
+      <div class="zone">SIGNAL LOST · 03:47:12 · 17°C</div>
+    </div>
+
+    <div class="hero">
+      <div class="title">尸潮防线</div>
+      <div class="en">ZOMBIE DEFENSE</div>
+      <div class="tagline">最后一道防线，由你决定它倒下的方式。</div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active" data-page="maps">
+        <span class="num">01</span>
+        <span><span class="label">无尽模式</span><span class="sub">ENDLESS DEFENSE · 3 个作战区域</span></span>
+        <span class="tail">3 MAPS</span>
+      </button>
+      <button class="nav-item locked">
+        <span class="num">02</span>
+        <span><span class="label">剧情模式<span class="locktag">即将开放</span></span><span class="sub">STORY MODE · CHAPTER 00</span></span>
+        <span class="tail">LOCKED</span>
+      </button>
+      <button class="nav-item">
+        <span class="num">03</span>
+        <span><span class="label">战地图鉴</span><span class="sub">CODEX · 单位 / 威胁 / 操作</span></span>
+        <span class="tail">ARCHIVE</span>
+      </button>
+      <button class="nav-item">
+        <span class="num">04</span>
+        <span><span class="label">系统设置</span><span class="sub">SETTINGS · 音效 / 画面 / 存档</span></span>
+        <span class="tail">CONFIG</span>
+      </button>
+    </nav>
+
+    <aside class="feed">
+      <div class="feed-head">
+        <div class="feed-title">战区监视 / SECTOR FEED</div>
+        <div class="live"><span class="dot"></span>LIVE</div>
+      </div>
+      <div class="feed-canvas-wrap">
+        <canvas id="feedmap" width="376" height="212"></canvas>
+        <div class="feed-tags"><span>CAM-03</span><span>THERMAL</span></div>
+      </div>
+      <div class="feed-meta">
+        <div><div class="k">CURRENT SECTOR</div><div class="v">地铁站台</div></div>
+        <div><div class="k">THREAT LEVEL</div><div class="v red">高危 / III</div></div>
+        <div><div class="k">PERSONAL BEST</div><div class="v gold">04 回合</div></div>
+        <div><div class="k">HOSTILES</div><div class="v">2 通道 · 西侧</div></div>
+      </div>
+      <div class="signal">
+        <span class="txt">UPLINK</span>
+        <span class="bars">
+          <i style="height:4px"></i><i style="height:6px"></i><i style="height:9px"></i>
+          <i style="height:5px"></i><i style="height:11px"></i><i style="height:7px"></i>
+          <i style="height:12px"></i><i style="height:8px"></i><i style="height:4px"></i>
+          <i style="height:6px"></i><i style="height:10px"></i><i style="height:3px"></i>
+        </span>
+        <span class="txt">93%</span>
+      </div>
+    </aside>
+
+    <footer class="bottom">
+      <div class="left">
+        <span><b>↑↓</b> 选择</span><span><b>ENTER</b> 确认</span><span><b>ESC</b> 返回</span>
+      </div>
+      <div class="right">
+        <button class="util">分享</button>
+        <button class="util">安装</button>
+        <button class="util">全屏</button>
+        <span class="ver">v1.6.0</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- 地图选择 -->
+  <div class="screen hidden" id="screen-maps">
+    <div class="maps-head">
+      <button class="back" id="backBtn">← 返回主菜单</button>
+      <div class="crumb">无尽模式 / 选择战场</div>
+      <div class="maps-title">选择战场</div>
+      <div class="maps-sub">三条防线。三份遗书。选择你的死法。</div>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <section class="brief" id="brief">
+      <div class="cell">
+        <div class="k">行动简报 / OPERATION BRIEF · <span id="briefName">郊区公路</span></div>
+        <div class="v" id="briefLoadout">2 手枪兵 · 1 盾兵 · 1 机枪兵</div>
+        <div class="note" id="briefNote">先占住公路中线，盾兵朝向来袭方向；第一波不要分散。</div>
+      </div>
+      <div class="cell">
+        <div class="k">威胁构成（估计） / HOSTILE MIX</div>
+        <div class="bars">
+          <div class="bar"><span>普通</span><i style="--p:62%"></i><b>62%</b></div>
+          <div class="bar"><span>冲刺</span><i style="--p:22%;--c:#C0CA33"></i><b>22%</b></div>
+          <div class="bar"><span>特殊</span><i style="--p:16%;--c:#EF5350"></i><b>16%</b></div>
+        </div>
+      </div>
+      <div class="cell">
+        <div class="k">个人记录 / PERSONAL BEST</div>
+        <div class="record"><b id="briefBest">23</b><span>回合</span></div>
+        <div class="note">上次抵达 <span id="briefLast">12</span> 回合 · 记录自动保存</div>
+      </div>
+      <div class="cell">
+        <div class="k">行动提示 / FIELD NOTE</div>
+        <div class="v" style="font-size:11px;line-height:1.65" id="briefTip">开阔地形，优先拉开射界；不要把所有人堆在一个角落。</div>
+        <div class="note" style="color:#526A87">开场动画可按任意键跳过</div>
+      </div>
+    </section>
+
+    <footer class="maps-foot">
+      <span>所有战区已解锁 · 记录自动保存</span>
+      <span>选择后播放开场 · <b>可跳过</b></span>
+    </footer>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const W = 1440, H = 900;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const scene = document.getElementById('scene');
+  const sctx = scene.getContext('2d');
+
+  function fit() {
+    scene.width = Math.round(innerWidth * dpr);
+    scene.height = Math.round(innerHeight * dpr);
+    scene.style.width = innerWidth + 'px';
+    scene.style.height = innerHeight + 'px';
+  }
+  fit();
+
+  function rnd(seed) {
+    let s = seed >>> 0;
+    return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  }
+
+  // 预生成城市天际线
+  const skylineA = [], skylineB = [], rain = [], embers = [], walkers = [];
+  (function build() {
+    const r = rnd(20261027);
+    let x = -40;
+    while (x < 1500) {
+      const w = 28 + r() * 80;
+      skylineA.push({ x, w, h: 40 + r() * 150, ant: r() > .72, lit: r() });
+      x += w + 2 + r() * 7;
+    }
+    x = -40;
+    while (x < 1500) {
+      const w = 40 + r() * 120;
+      skylineB.push({ x, w, h: 20 + r() * 90, ant: r() > .82, lit: r() });
+      x += w + 3 + r() * 12;
+    }
+    for (let i = 0; i < 95; i++) rain.push({ x: r() * 1440, y: r() * 900, l: 8 + r() * 22, s: .22 + r() * .5 });
+    for (let i = 0; i < 26; i++) embers.push({ x: r() * 1440, y: 600 + r() * 300, s: .2 + r() * .6, p: r() * 6.28 });
+    for (let i = 0; i < 5; i++) walkers.push({ x: 150 + r() * 1150, y: 612 + r() * 42, s: .5 + r() * .5, p: r() * 8 });
+  })();
+
+  function drawScene(now) {
+    const w = innerWidth, h = innerHeight;
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sctx.clearRect(0, 0, w, h);
+    const t = now / 1000;
+
+    // 天空
+    const sky = sctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, '#050a12');
+    sky.addColorStop(.42, '#0a1420');
+    sky.addColorStop(.68, '#0c1724');
+    sky.addColorStop(1, '#05080d');
+    sctx.fillStyle = sky;
+    sctx.fillRect(0, 0, w, h);
+
+    // 远处红色余晖
+    const glow = sctx.createRadialGradient(w * .68, h * .58, 10, w * .68, h * .58, w * .62);
+    glow.addColorStop(0, 'rgba(120, 44, 38, .20)');
+    glow.addColorStop(.55, 'rgba(70, 28, 30, .06)');
+    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    sctx.fillStyle = glow;
+    sctx.fillRect(0, 0, w, h);
+
+    // 天际线 B（远）
+    sctx.fillStyle = '#0a1420';
+    for (const b of skylineB) {
+      const y = h * .64 - b.h;
+      sctx.fillRect(b.x, y, b.w, b.h + 2);
+      if (b.ant) sctx.fillRect(b.x + b.w * .62, y - 18, 2, 18);
+    }
+
+    // 天际线 A（近）+ 窗灯
+    for (const b of skylineA) {
+      const y = h * .69 - b.h;
+      sctx.fillStyle = '#070f19';
+      sctx.fillRect(b.x, y, b.w, b.h + 2);
+      if (b.ant) {
+        sctx.fillStyle = '#0a1521';
+        sctx.fillRect(b.x + b.w * .5, y - 26, 2, 26);
+        sctx.fillStyle = 'rgba(239,83,80,.5)';
+        sctx.fillRect(b.x + b.w * .5, y - 27, 2, 2);
+      }
+      const n = Math.floor(b.w / 14) * Math.floor(b.h / 22);
+      for (let i = 0; i < n; i++) {
+        if ((i * 7 + b.x) % 11 > 3) continue;
+        const wx = b.x + 5 + (i % Math.max(1, Math.floor(b.w / 14))) * 13;
+        const wy = y + 8 + Math.floor(i / Math.max(1, Math.floor(b.w / 14))) * 20;
+        sctx.fillStyle = (i + Math.floor(b.x)) % 17 === 0 ? 'rgba(239,83,80,.5)' : 'rgba(120, 170, 205, .18)';
+        sctx.fillRect(wx, wy, 2, 3);
+      }
+    }
+
+    // 地面透视网格
+    const horizon = h * .70;
+    sctx.save();
+    sctx.strokeStyle = 'rgba(79,195,247,.10)';
+    sctx.lineWidth = 1;
+    for (let i = 0; i < 11; i++) {
+      const yy = horizon + Math.pow(i / 10, 1.8) * (h - horizon);
+      sctx.beginPath(); sctx.moveTo(0, yy); sctx.lineTo(w, yy); sctx.stroke();
+    }
+    for (let i = -8; i <= 8; i++) {
+      const bx = w / 2 + i * w * .14;
+      sctx.beginPath(); sctx.moveTo(w / 2 + i * w * .008, horizon); sctx.lineTo(bx, h); sctx.stroke();
+    }
+    sctx.restore();
+
+    // 雾带
+    for (let i = 0; i < 3; i++) {
+      const y = horizon - 30 + i * 36 + Math.sin(t * .18 + i) * 8;
+      const g = sctx.createLinearGradient(0, y, 0, y + 100);
+      g.addColorStop(0, 'rgba(80, 120, 160, 0)');
+      g.addColorStop(.5, 'rgba(80, 130, 170, ' + (.035 + i * .012) + ')');
+      g.addColorStop(1, 'rgba(80, 120, 160, 0)');
+      sctx.fillStyle = g;
+      sctx.fillRect(0, y, w, 100);
+    }
+
+    // 远处游荡的僵尸剪影
+    sctx.save();
+    sctx.fillStyle = 'rgba(3, 7, 11, .72)';
+    for (const z of walkers) {
+      const x = z.x + Math.sin(t * .12 * z.s + z.p) * 26;
+      const y = z.y;
+      const s = z.s;
+      sctx.beginPath();
+      sctx.arc(x, y - 26 * s, 4.5 * s, 0, 6.283);
+      sctx.fill();
+      sctx.fillRect(x - 4 * s, y - 21 * s, 8 * s, 17 * s);
+      sctx.fillRect(x - 7 * s, y - 18 * s, 3 * s, 13 * s);
+      sctx.fillRect(x + 4 * s, y - 19 * s, 3 * s, 10 * s);
+      sctx.fillRect(x - 4 * s, y - 5 * s, 3 * s, 8 * s);
+      sctx.fillRect(x + 1 * s, y - 5 * s, 3 * s, 8 * s);
+    }
+    sctx.restore();
+
+    // 雨
+    sctx.save();
+    sctx.strokeStyle = 'rgba(150, 190, 220, .10)';
+    sctx.lineWidth = 1;
+    for (const d of rain) {
+      const y = (d.y + t * 900 * d.s) % (h + 40);
+      sctx.beginPath(); sctx.moveTo(d.x, y); sctx.lineTo(d.x - 3, y + d.l); sctx.stroke();
+    }
+    sctx.restore();
+
+    // 余烬
+    sctx.save();
+    for (const e of embers) {
+      const y = e.y - ((t * 18 * e.s) % 260);
+      const a = .18 + .12 * Math.sin(t * 2 + e.p);
+      sctx.fillStyle = 'rgba(255, 145, 80, ' + a + ')';
+      sctx.beginPath(); sctx.arc(e.x, y, 1.3, 0, 6.283); sctx.fill();
+    }
+    sctx.restore();
+
+    // 扫描光带
+    const sweepX = ((t * 0.035) % 1.4 - .2) * w;
+    const sweep = sctx.createLinearGradient(sweepX - 80, 0, sweepX + 80, 0);
+    sweep.addColorStop(0, 'rgba(79,195,247,0)');
+    sweep.addColorStop(.5, 'rgba(79,195,247,.035)');
+    sweep.addColorStop(1, 'rgba(79,195,247,0)');
+    sctx.fillStyle = sweep;
+    sctx.fillRect(0, 0, w, h);
+
+    requestAnimationFrame(drawScene);
+  }
+  requestAnimationFrame(drawScene);
+
+  // 战区监视缩略图
+  function drawFeed() {
+    const c = document.getElementById('feedmap');
+    const ctx = c.getContext('2d');
+    const w = c.width, hh = c.height;
+    const sx = w / 1280, sy = hh / 720;
+    ctx.save();
+    ctx.scale(sx, sy);
+    ctx.fillStyle = '#121820';
+    ctx.fillRect(0, 0, 1280, 720);
+    // 轨道
+    ctx.fillStyle = '#0c121a';
+    ctx.fillRect(0, 300, 1280, 120);
+    ctx.fillStyle = '#0a0f16';
+    ctx.fillRect(0, 60, 1000, 80);
+    // 站台
+    ctx.fillStyle = '#202932';
+    ctx.fillRect(0, 160, 1000, 140);
+    ctx.fillRect(0, 420, 1000, 140);
+    ctx.fillRect(1000, 160, 240, 400);
+    // 站台黄线
+    ctx.strokeStyle = 'rgba(230,195,74,.5)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([26, 18]);
+    ctx.beginPath(); ctx.moveTo(0, 286); ctx.lineTo(1000, 286); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 434); ctx.lineTo(1000, 434); ctx.stroke();
+    ctx.setLineDash([]);
+    // 装饰
+    ctx.fillStyle = '#2b3540';
+    for (let x = 40; x < 980; x += 60) ctx.fillRect(x, 300, 34, 4);
+    // 柱子
+    ctx.fillStyle = '#546E7A';
+    for (const p of [[400, 180, 22], [560, 540, 22], [1110, 230, 26], [1110, 490, 26]]) {
+      ctx.beginPath(); ctx.arc(p[0], p[1], p[2], 0, 6.283); ctx.fill();
+    }
+    // 长椅
+    ctx.fillStyle = '#4a4038';
+    ctx.fillRect(700, 162, 100, 22);
+    ctx.fillRect(780, 536, 100, 22);
+    // 网格
+    ctx.strokeStyle = 'rgba(79,195,247,.06)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= 1280; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 720); ctx.stroke(); }
+    for (let y = 0; y <= 720; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1280, y); ctx.stroke(); }
+    // 红色入口箭头
+    ctx.fillStyle = 'rgba(239,83,80,.8)';
+    for (const y of [230, 490]) {
+      ctx.beginPath();
+      ctx.moveTo(10, y); ctx.lineTo(46, y - 14); ctx.lineTo(46, y + 14);
+      ctx.closePath(); ctx.fill();
+    }
+    // 扫描线
+    ctx.fillStyle = 'rgba(79,195,247,.05)';
+    for (let y = 0; y < 720; y += 8) ctx.fillRect(0, y, 1280, 1);
+    ctx.restore();
+  }
+  drawFeed();
+
+  // 地图选择卡
+  const MAPS = [
+    {
+      id: 'suburban', name: '郊区公路', en: 'SUBURBAN HIGHWAY', accent: '#C9B458',
+      desc: '开阔车道，四面来袭。第一次部署通常从这里开始。',
+      best: 23, last: 12, threat: 1, tags: ['开阔', '四向', '教学'],
+      loadout: '2 手枪兵 · 1 盾兵 · 1 机枪兵',
+      note: '先占住公路中线，盾兵朝向来袭方向；第一波不要分散。',
+      tip: '开阔地形，优先拉开射界；不要把所有人堆在一个角落。',
+      mix: [62, 22, 16],
+      theme: { ground: '#1C241F', road: '#2A2C2E', accent: '#3B3D40', line: '#C9B458' }
+    },
+    {
+      id: 'hospital', name: '医院广场', en: 'HOSPITAL PLAZA', accent: '#A9C7E8',
+      desc: '消毒池能压低感染，但掩体稀少，中距离火力更吃香。',
+      best: 11, last: 7, threat: 2, tags: ['感染', '广场', '中距'],
+      loadout: '2 手枪兵 · 1 霰弹兵 · 1 治疗兵',
+      note: '把治疗兵放在消毒池边缘；感染单位优先点掉，别让盾兵被拖住。',
+      tip: '广场视野好，但掩体少；用建筑制造拐角，别让喷火兵贴脸。',
+      mix: [48, 18, 34],
+      theme: { ground: '#1B2230', road: '#27313F', accent: '#33404F', line: '#D8E2EF' }
+    },
+    {
+      id: 'subway', name: '地铁站台', en: 'SUBWAY PLATFORM', accent: '#E6C34A',
+      desc: '两条窄通道，僵尸只从西侧涌入；巨人会拆穿你的路障。',
+      best: 4, last: 2, threat: 3, tags: ['狭窄', '双通道', '高危'],
+      loadout: '1 盾兵 · 2 喷火兵（第 2 回合补导弹兵）',
+      note: '盾兵堵北通道，喷火覆盖南通道；导弹兵留到第 2 回合处理巨人。',
+      tip: '窄口是优势也是陷阱；两只盾兵不要叠在同一格，留出换位空间。',
+      mix: [35, 15, 50],
+      theme: { ground: '#121820', road: '#202932', accent: '#2B3742', line: '#E6C34A' }
+    }
+  ];
+
+  function drawThumb(canvas, map) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const sx = w / 1280, sy = h / 720;
+    ctx.save();
+    ctx.scale(sx, sy);
+    const t = map.theme;
+    ctx.fillStyle = t.ground; ctx.fillRect(0, 0, 1280, 720);
+
+    if (map.id === 'suburban') {
+      ctx.fillStyle = t.road; ctx.fillRect(0, 180, 1280, 340);
+      ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(0, 160, 1280, 20); ctx.fillRect(0, 520, 1280, 20);
+      ctx.strokeStyle = 'rgba(201,180,88,.45)'; ctx.lineWidth = 3; ctx.setLineDash([40, 30]);
+      ctx.beginPath(); ctx.moveTo(0, 270); ctx.lineTo(1280, 270); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 430); ctx.lineTo(1280, 430); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(201,180,88,.3)';
+      for (let x = 40; x < 1280; x += 120) ctx.fillRect(x, 348, 60, 3);
+      ctx.fillStyle = '#3B3D40';
+      ctx.fillRect(230, 180, 60, 340); ctx.fillRect(990, 180, 60, 340);
+      for (let y = 200; y < 520; y += 34) { ctx.fillStyle = 'rgba(220,225,230,.13)'; ctx.fillRect(230, y, 60, 16); ctx.fillRect(990, y, 60, 16); }
+      // 车
+      ctx.fillStyle = '#4A4038';
+      ctx.beginPath(); ctx.arc(420, 300, 36, 0, 6.283); ctx.fill();
+      ctx.beginPath(); ctx.arc(860, 300, 36, 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#5a4b3c'; ctx.fillRect(585, 222, 110, 56);
+      ctx.fillStyle = '#2a241e'; ctx.fillRect(595, 232, 36, 20); ctx.fillRect(645, 232, 36, 20);
+      // 路障/轮胎
+      ctx.fillStyle = '#3B3D40'; ctx.fillRect(250, 462, 80, 26); ctx.fillRect(1050, 462, 80, 26);
+      ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(1140, 250, 22, 0, 6.283); ctx.fill();
+      // 草丛
+      for (let i = 0; i < 26; i++) {
+        const x = (i * 97) % 1280, y = i % 2 ? 100 + (i * 23) % 60 : 570 + (i * 31) % 90;
+        ctx.fillStyle = 'rgba(70,90,60,.35)'; ctx.fillRect(x, y, 3, 9);
+      }
+    } else if (map.id === 'hospital') {
+      ctx.fillStyle = t.road; ctx.fillRect(0, 260, 1280, 200); ctx.fillRect(540, 0, 200, 720);
+      ctx.fillStyle = t.accent;
+      ctx.fillRect(0, 260, 1280, 2); ctx.fillRect(0, 458, 1280, 2);
+      // 地砖
+      for (let x = 0; x < 1280; x += 80) { ctx.strokeStyle = 'rgba(216,226,239,.04)'; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 720); ctx.stroke(); }
+      for (let y = 0; y < 720; y += 80) { ctx.strokeStyle = 'rgba(216,226,239,.04)'; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1280, y); ctx.stroke(); }
+      // 消毒池
+      for (const p of [[300, 560, 100], [980, 560, 100]]) {
+        const g = ctx.createRadialGradient(p[0], p[1], 6, p[0], p[1], p[2]);
+        g.addColorStop(0, 'rgba(80,170,190,.28)'); g.addColorStop(1, 'rgba(40,90,110,.07)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p[0], p[1], p[2], 0, 6.283); ctx.fill();
+        ctx.strokeStyle = 'rgba(130,220,235,.2)'; ctx.stroke();
+      }
+      // 喷泉
+      ctx.fillStyle = '#4C566A'; ctx.beginPath(); ctx.arc(640, 360, 46, 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#33404F'; ctx.beginPath(); ctx.arc(640, 360, 30, 0, 6.283); ctx.fill();
+      // 花坛
+      ctx.fillStyle = '#3a4a3a'; ctx.fillRect(120, 210, 120, 36); ctx.fillRect(1040, 210, 120, 36);
+      ctx.fillRect(120, 480, 120, 36); ctx.fillRect(1040, 480, 120, 36);
+      // 救护车
+      ctx.fillStyle = '#D8E2EF'; ctx.fillRect(1030, 200, 100, 50);
+      ctx.fillStyle = '#33404F'; ctx.fillRect(1040, 210, 30, 18); ctx.fillRect(1080, 210, 40, 18);
+      ctx.fillStyle = '#EF5350'; ctx.fillRect(1060, 222, 24, 5);
+      // 红十字地贴
+      ctx.fillStyle = 'rgba(216,226,239,.18)';
+      ctx.fillRect(620, 330, 40, 12); ctx.fillRect(634, 316, 12, 40);
+    } else {
+      ctx.fillStyle = '#0c121a'; ctx.fillRect(0, 300, 1280, 120);
+      ctx.fillStyle = '#202932'; ctx.fillRect(0, 160, 1000, 140); ctx.fillRect(0, 420, 1000, 140); ctx.fillRect(1000, 160, 240, 400);
+      ctx.strokeStyle = 'rgba(230,195,74,.5)'; ctx.lineWidth = 4; ctx.setLineDash([26, 18]);
+      ctx.beginPath(); ctx.moveTo(0, 286); ctx.lineTo(1000, 286); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 434); ctx.lineTo(1000, 434); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#2b3540'; for (let x = 40; x < 980; x += 60) ctx.fillRect(x, 300, 34, 4);
+      ctx.fillStyle = '#546E7A';
+      for (const p of [[400, 180, 22], [560, 540, 22], [1110, 230, 26], [1110, 490, 26]]) { ctx.beginPath(); ctx.arc(p[0], p[1], p[2], 0, 6.283); ctx.fill(); }
+      ctx.fillStyle = '#4a4038'; ctx.fillRect(700, 162, 100, 22); ctx.fillRect(780, 536, 100, 22);
+      // 轨道
+      ctx.strokeStyle = 'rgba(120,140,160,.25)'; ctx.lineWidth = 3;
+      for (const y of [330, 390]) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1280, y); ctx.stroke(); }
+      for (let x = 0; x < 1280; x += 46) { ctx.strokeStyle = 'rgba(90,100,110,.18)'; ctx.beginPath(); ctx.moveTo(x, 324); ctx.lineTo(x, 396); ctx.stroke(); }
+    }
+
+    // 网格 + 扫描 + 暗角
+    ctx.strokeStyle = 'rgba(79,195,247,.07)'; ctx.lineWidth = 1;
+    for (let x = 0; x <= 1280; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 720); ctx.stroke(); }
+    for (let y = 0; y <= 720; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1280, y); ctx.stroke(); }
+    for (let y = 0; y < 720; y += 6) { ctx.fillStyle = 'rgba(255,255,255,.018)'; ctx.fillRect(0, y, 1280, 1); }
+    // 红点
+    ctx.fillStyle = 'rgba(239,83,80,.85)';
+    const pts = map.id === 'subway' ? [[12, 230], [12, 490]] : [[640, 12], [1268, 360], [640, 708], [12, 360]];
+    for (const p of pts) { ctx.beginPath(); ctx.arc(p[0], p[1], 11, 0, 6.283); ctx.fill(); }
+    const vg = ctx.createRadialGradient(640, 360, 220, 640, 360, 760);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, 1280, 720);
+    ctx.restore();
+  }
+
+  const cards = document.getElementById('cards');
+  function updateBrief(m) {
+    document.getElementById('briefName').textContent = m.name;
+    document.getElementById('briefLoadout').textContent = m.loadout;
+    document.getElementById('briefNote').textContent = m.note;
+    document.getElementById('briefBest').textContent = m.best;
+    document.getElementById('briefLast').textContent = m.last;
+    document.getElementById('briefTip').textContent = m.tip;
+    const bars = document.querySelectorAll('#brief .bar');
+    for (let i = 0; i < bars.length; i++) {
+      const p = m.mix[i];
+      bars[i].querySelector('i').style.setProperty('--p', p + '%');
+      bars[i].querySelector('b').textContent = p + '%';
+    }
+  }
+  for (const m of MAPS) {
+    const card = document.createElement('button');
+    card.className = 'card' + (m.id === 'suburban' ? ' hover' : '');
+    card.style.setProperty('--accent', m.accent);
+    card.innerHTML = `
+      <div class="thumb">
+        <canvas width="384" height="216"></canvas>
+        <span class="ao">AO-0${MAPS.indexOf(m) + 1}</span>
+        <span class="threat">${[1,2,3].map(i => `<i class="${i <= m.threat ? 'on' : ''}" style="height:${5 + i * 3}px"></i>`).join('')}</span>
+        <span class="tags">${m.tags.map(t => `<span>${t}</span>`).join('')}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${m.name}</div>
+        <div class="card-en">${m.en}</div>
+        <div class="card-desc">${m.desc}</div>
+        <div class="card-foot">
+          <span class="best">最佳<b>${m.best}</b> 回合</span>
+          <span class="go">进入 →</span>
+        </div>
+      </div>`;
+    const cv = card.querySelector('canvas');
+    drawThumb(cv, m);
+    card.addEventListener('mouseenter', () => {
+      document.querySelectorAll('#cards .card').forEach(c => c.classList.remove('hover'));
+      card.classList.add('hover');
+      updateBrief(m);
+    });
+    card.addEventListener('focus', () => updateBrief(m));
+    cards.appendChild(card);
+  }
+  updateBrief(MAPS[0]);
+
+  // 页面切换
+  const screens = { main: document.getElementById('screen-main'), maps: document.getElementById('screen-maps') };
+  function show(page) {
+    for (const k of Object.keys(screens)) screens[k].classList.toggle('hidden', k !== page);
+  }
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('locked')) return;
+      if (btn.dataset.page === 'maps') show('maps');
+    });
+  });
+  document.getElementById('backBtn').addEventListener('click', () => show('main'));
+  cards.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => {
+      card.animate([
+        { filter: 'brightness(1)' },
+        { filter: 'brightness(2.2)' },
+        { filter: 'brightness(1)' }
+      ], { duration: 220 });
+    });
+  });
+
+  // 供截图与设计评审调用
+  window.__show = show;
+  if (location.hash === '#maps') show('maps');
+})();
+</script>
+</body>
+</html>
