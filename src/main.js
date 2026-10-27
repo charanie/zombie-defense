@@ -239,7 +239,7 @@
     ZG.Menu.freeze();
     ZG.Audio.init();
     ZG.Audio.play('click');
-    ZG.Intro.play(mapId, {
+    const started = ZG.Intro.play(mapId, {
       variant: 'full',
       settings: state.settings,
       onBuild() {
@@ -252,6 +252,11 @@
         state.ui.inputLocked = false;
       }
     });
+    // 过场没能启动（极端情况：没有 #hud）时不能把玩家卡在冻结菜单里
+    if (!started) {
+      ZG.Menu.unfreeze();
+      state.ui.inputLocked = false;
+    }
   }
 
   // 重开同一张图：1.0s 短版开场；设置关闭开场动画时走 off（0.25s 淡入）
