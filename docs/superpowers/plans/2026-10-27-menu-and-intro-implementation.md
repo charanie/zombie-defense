@@ -1,6 +1,6 @@
 # 开始界面 · 无尽选图 · 开场演出 实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 >
 > 本文件把 `docs/superpowers/plans/2026-10-27-menu-and-intro-overhaul.md`（下称“设计稿”）转成可执行的工程方案：文件、签名、DOM/CSS 结构、测试断言、提交顺序。设计稿负责“长什么样、为什么”，本文件负责“写哪些文件、函数叫什么、测试断言是什么”。
 
@@ -289,7 +289,7 @@ function openMenu(page)          // showMenu=true、inputLocked=true、Menu.show
 - Consumes: 无
 - Produces: 干净的 `feat/v1.6-menu-intro` 分支；`docs/design/` 与两份计划进入版本库；基线数字写进 `docs/STATE.md` 草稿。
 
-- [ ] **Step 1: 确认工作区状态**
+- [x] **Step 1: 确认工作区状态**
 
 ```powershell
 cd 'games\zombie-defense'
@@ -299,7 +299,7 @@ git log --oneline -3
 
 期望：只有 `docs/design/`、两份 2026-10-27 计划是未跟踪文件；没有已修改的源码。
 
-- [ ] **Step 2: 记录基线**
+- [x] **Step 2: 记录基线**
 
 ```powershell
 npm test
@@ -309,7 +309,7 @@ node tests/bot.js --rounds 42 --seed 1
 
 记录：测试数（应为 231）、`avgStepMs`/`maxStepMs`、bot 回合/BOSS/击杀。若 v1.5 已合并，则以 v1.5 的 267 项为基线。
 
-- [ ] **Step 3: 合并 v1.5**
+- [x] **Step 3: 合并 v1.5**
 
 ```powershell
 git switch main
@@ -319,7 +319,7 @@ npm test
 
 说明：`feat/v1.5-map-fx` 被 `.agents/worktrees/feat/v1.5-map-fx` 占用，**不要** `git switch` 到它，直接按 ref 合并；合并前先在该 worktree 里 `git status`，若有未提交改动，先 review 并提交到 v1.5 分支再回来合并。期望 267 项全绿。若冲突，只允许在 `docs/STATE.md`、`sw.js`、`tests/shell.test.js` 这类收尾文件上按“保留 v1.5 内容 + 版本号”解决；`src/**` 冲突说明分支不是从当前 main 拉的，停下来报告。
 
-- [ ] **Step 4: 拉 v1.6 分支并把设计资产入库**
+- [x] **Step 4: 拉 v1.6 分支并把设计资产入库**
 
 ```powershell
 git switch -c feat/v1.6-menu-intro
@@ -341,7 +341,7 @@ git commit -m "docs(v1.6): add menu and intro design assets and plans"
 - Consumes: Task 0 的分支
 - Produces: 后续任务可引用的 ADR 编号与文档口径；不再出现“选图页只有三张卡”“剧情模式不在范围”的旧描述。
 
-- [ ] **Step 1: 改 `docs/game-plan.md`**
+- [x] **Step 1: 改 `docs/game-plan.md`**
 
 - §1.4 非目标改为：“剧情战役/关卡叙事仍不在本次范围；开场演出与主菜单骨架本次加入。”
 - §2.2 阶段表增加三行：`主菜单`（进入游戏前）、`选图`（无尽模式 → 三张战区）、`开场演出`（最多 4.2s，可跳过；黑场建局）。
@@ -349,11 +349,11 @@ git commit -m "docs(v1.6): add menu and intro design assets and plans"
 - §11 增加菜单/过场视觉与音效表：标题 78px/字距 .12em、地图名 `clamp(34px,7.2vw,86px)`、威胁星级 + 数字、开场音效名。
 - §13 把“剧情模式”从“非目标”移到“后续版本”。
 
-- [ ] **Step 2: 写 ADR-0003**
+- [x] **Step 2: 写 ADR-0003**
 
 固定条目：为什么用 DOM 菜单 + Canvas 场景/裂纹；为什么建局放在黑场 1.90s；层级表（复制 3.8）；输入锁双标志（`showMenu` / `inputLocked`）；跳过语义（决策 7）；`Menu`/`Intro` 不互相依赖。格式照 `0002-free-placement-and-squads.md`。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```powershell
 git add docs/game-plan.md docs/architectural-decisions/0003-menu-and-intro.md
@@ -375,7 +375,7 @@ git commit -m "docs(v1.6): document menu and intro architecture"
 - Consumes: `ZG.Data.mapOrder`、`ZG.Const`
 - Produces: `ZG.Data.menu`（3.2 形状）、`Platform.saveLast/loadLast/loadAllLast`、`state.ui.showMenu/inputLocked`、`state.settings.intro`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```js
 // tests/menu.test.js
@@ -434,7 +434,7 @@ test('state 默认值不影响快照', () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```powershell
 node --test tests/menu.test.js
@@ -442,7 +442,7 @@ node --test tests/menu.test.js
 
 期望：`Cannot read properties of undefined (reading 'modes')` 或 `P.saveLast is not a function`。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 - 新建 `src/data/menu.js`，IIFE 内 `ZG.Data = ZG.Data || {}; ZG.Data.menu = {...}`，内容照 3.2；不引用 DOM、不引用 view。
 - `state.js`：在 `ui` 里加 `showMenu: false, inputLocked: false`；在 `settings` 里加 `intro: true`。
@@ -450,7 +450,7 @@ node --test tests/menu.test.js
 - `main.js`：`ROUND_SETTLED` 里 `ZP.saveBest` 之后加 `ZG.Platform.saveLast(s.mapId, p.round)`；`GAME_OVER` 里 `saveBest` 之后加 `ZG.Platform.saveLast(s.mapId, s.round)`。
 - **加载顺序**：`index.html` 在 `src/data/maps.js` 之后加 `<script src="src/data/menu.js"></script>`；`sw.js` 的 `SHELL` 同步加 `./src/data/menu.js`。不先加进 HTML，`tests/load-sim.js` 就看不到这个文件，测试必红。
 
-- [ ] **Step 4: 跑测试**
+- [x] **Step 4: 跑测试**
 
 ```powershell
 node --test tests/menu.test.js
@@ -459,7 +459,7 @@ npm test
 
 期望：全绿（v1.5 基线 + 5 项）。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```powershell
 git add src/data/menu.js src/core/state.js src/core/platform.js src/main.js tests/menu.test.js index.html sw.js
@@ -481,7 +481,7 @@ git commit -m "feat(v1.6): add menu data and last-round records"
 - Consumes: `ZG.Data.maps`、`ZG.Const.W/H`、可选 `ZG.MapLayer.drawMinimap` + `ZG.MapZone`
 - Produces: `ZG.MenuScene.draw/drawFeed/drawThumb/drawFallbackThumb`（3.4）
 
-- [ ] **Step 1: 确保 stub ctx 存在**
+- [x] **Step 1: 确保 stub ctx 存在**
 
 ```js
 // tests/stub-ctx.js（v1.5 已存在时不要重写）
@@ -503,7 +503,7 @@ module.exports.stubCtx = function () {
 };
 ```
 
-- [ ] **Step 2: 追加失败测试**
+- [x] **Step 2: 追加失败测试**
 
 ```js
 const { stubCtx } = require('./stub-ctx.js');
@@ -541,7 +541,7 @@ test('缩略图优先 MapLayer，缺失时回退', () => {
 });
 ```
 
-- [ ] **Step 3: 跑测试确认失败**
+- [x] **Step 3: 跑测试确认失败**
 
 ```powershell
 node --test tests/menu.test.js
@@ -549,7 +549,7 @@ node --test tests/menu.test.js
 
 期望：`ZG.MenuScene is undefined`。
 
-- [ ] **Step 4: 实现**
+- [x] **Step 4: 实现**
 
 1. `styleOf(map)` 取 `map.theme`，`rgba(hex,a)` 小工具；模块级 `rgbaCache`。
 2. `drawFallbackThumb`：`ctx.save()` → 按 `w/1280, h/720` 缩放 → `theme.ground` 铺底 → `theme.road` 画 `map.roads` → `map.terrain`/`map.obstacles` 画圆/矩形 → 四面入口红点（v1.4 无 `map.spawns` 时用四边中点）→ `restore()`；再叠 64px 网格（青色 7%）、每 6px 扫描线（白 1.8%）、底部渐变。所有坐标 clamp 到画布。
@@ -558,11 +558,11 @@ node --test tests/menu.test.js
 5. `drawFeed`：`drawThumb` 铺底 → 移动扫描线 → 四角细线框 → 入口红色箭头（`map.spawns` 或四边中点）→ 不画任何文字。
 6. 所有数组按尺寸缓存：`cacheKey = w + 'x' + h`；时间只影响位置。
 
-- [ ] **Step 5: 接入加载顺序**
+- [x] **Step 5: 接入加载顺序**
 
 `index.html`：`<script src="src/view/menuScene.js"></script>` 放在 `audio.js` 之后、`hud.js` 之前（`data/menu.js` 已在 Task 2 加过）。`sw.js` 的 `SHELL` 同步加 `./src/view/menuScene.js`。
 
-- [ ] **Step 6: 跑测试 + 浏览器抽查**
+- [x] **Step 6: 跑测试 + 浏览器抽查**
 
 ```powershell
 node --test tests/menu.test.js
@@ -579,7 +579,7 @@ document.body.appendChild(c);
 
 截图确认三张缩略图布局差异肉眼可辨（地铁能看到两条通道 + 纵向大厅）；再对 `draw` 传 `{reduced:true}` 确认无漂移。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```powershell
 git add src/view/menuScene.js tests/stub-ctx.js tests/menu.test.js index.html sw.js
@@ -600,7 +600,7 @@ git commit -m "feat(v1.6): add menu scene, thumbnails and sector feed renderer"
 - Consumes: `ZG.Data.menu`、`ZG.MenuScene`、`ZG.Const.VERSION`、`ZG.Platform.loadAllBest/loadAllLast`、`ZG.Audio.play`
 - Produces: `ZG.Menu.init/show/hide/page/isVisible/freeze/unfreeze/resize/tick/refreshRecords/refreshInstall` + 3 个纯函数（3.3）
 
-- [ ] **Step 1: 写纯函数失败测试**
+- [x] **Step 1: 写纯函数失败测试**
 
 ```js
 test('导航项顺序与锁定态', () => {
@@ -633,7 +633,7 @@ test('选卡防抖与过场互斥', () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```powershell
 node --test tests/menu.test.js
@@ -641,7 +641,7 @@ node --test tests/menu.test.js
 
 期望：`ZG.Menu is undefined`。
 
-- [ ] **Step 3: 实现 `menu.js` 骨架**
+- [x] **Step 3: 实现 `menu.js` 骨架**
 
 - 模块状态：`{ root, modal, sceneCtx, sceneCanvas, feedCanvas, pages, navEls, cardEls, briefEls, cb, page: 'hidden', visible: false, frozen: false, w: 0, h: 0, reduced: false, sceneT0: null, feedIndex: 2, feedSwitchAt: 0, lastSelectAt: -1e9, teaserOpen: false }`（`feedIndex` 初值取 `mapOrder.length - 1`，首屏显示地铁站台，与设计稿一致）。不引用 `ZG.Intro`。
 - `menuLayout(w,h,coarse)`：`h < 520 → 'short'`；否则 `w < 900 || coarse → 'narrow'`；否则 `w < 1100 → 'mid'`；否则 `h < 800 → 'compact'`；否则 `'wide'`。`showFeed = mode === 'wide' || mode === 'compact'`；`cardFlow = showFeed ? 'grid' : 'snap'`（900–1100 设计稿要求横滑）。
@@ -665,7 +665,7 @@ node --test tests/menu.test.js
 - 点击：nav 用 `click`；`data.action==='help'` → `cb.onHelp()`，`'settings'` → `cb.onSettings()`，`story` → 打开 teaser（Task 6），`endless` → `show('maps')`。
 - 声音：每次导航/选图调用 `ZG.Audio.play('click')`（玩家手势内，允许惰性初始化）。
 
-- [ ] **Step 4: 写 `menu.css`**
+- [x] **Step 4: 写 `menu.css`**
 
 1. 把 `docs/design/menu-mockup.html` 的 `<style>` 整段拷进 `menu.css`；
 2. 作用域化：`body`/`#stage`/`#scene`/`.screen` 改成 `.menu-root` 内选择器，`#scene` → `.menu-scene`；`.screen` → `.menu-page`；`.screen.hidden` 改为 `.menu-root.hidden` + page 的 `opacity/visibility` 过渡；
@@ -678,11 +678,11 @@ node --test tests/menu.test.js
 9. `.menu-root[data-layout="mid"] .feed{display:none}`、`[data-layout="mid"] .nav{width:420px}`；`[data-layout="compact"]` 先只压主菜单：`hero{top:96px}`、`title{font-size:52px}`、`nav{top:320px;width:440px}`、`nav-item{height:62px}`、`feed{top:96px;width:360px}`（选图页压缩放 Task 9）；
 10. `[data-layout="narrow"]`、`[data-layout="short"]` 的覆盖放 Task 9，先留空注释。
 
-- [ ] **Step 5: 接入加载顺序（仅声明，不接主流程）**
+- [x] **Step 5: 接入加载顺序（仅声明，不接主流程）**
 
 `index.html`：`<link rel="stylesheet" href="menu.css">` 紧跟 `styles.css`；`<script src="src/view/menu.js"></script>` 放在 `menuScene.js` 之后、`intro.js`/`hud.js` 之前。`sw.js` 的 `SHELL` 加 `./menu.css`、`./src/view/menu.js`。
 
-- [ ] **Step 6: 跑测试 + 临时浏览器验证**
+- [x] **Step 6: 跑测试 + 临时浏览器验证**
 
 ```powershell
 node --test tests/menu.test.js
@@ -701,7 +701,7 @@ ZG.Menu.show('main');
 
 对照 `docs/design/menu-main.png` 检查：左上角标、标题/英文/tagline、4 行导航、右侧监视、底部工具条；`↑↓` 能移动焦点、`Enter` 能触发“无尽模式”。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```powershell
 git add src/view/menu.js menu.css index.html sw.js tests/menu.test.js
@@ -721,7 +721,7 @@ git commit -m "feat(v1.6): add main menu shell with navigation and sector feed"
 - Consumes: Task 4 的 `Menu` 内部 refs、`ZG.MenuScene.drawThumb`、`Platform.loadAllBest/loadAllLast`
 - Produces: `Menu.mapCardModel`（3.3）、`callbacks.onSelectMap(id)` 唯一入口、卡片 400ms 防抖 + 触控横滑抑制
 
-- [ ] **Step 1: 写卡片模型失败测试**
+- [x] **Step 1: 写卡片模型失败测试**
 
 ```js
 test('地图卡：AO 编号、最佳/上次为空显示破折号', () => {
@@ -747,13 +747,13 @@ test('卡片顺序来自 mapOrder', () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```powershell
 node --test tests/menu.test.js
 ```
 
-- [ ] **Step 3: 实现选图页**
+- [x] **Step 3: 实现选图页**
 
 - `buildMaps()`（`init` 中调用一次）：对 `ZG.Data.mapOrder` 生成
   `<button class="map-card" data-id="..."><canvas></canvas><div class="card-head">AO-0N + 威胁条(3 格)</div><div class="card-tags">…</div><div class="card-body"><div class="card-name">…</div><div class="card-en">…</div><div class="card-desc">…</div><div class="card-foot"><span class="best">…</span><span class="enter">进入 →</span></div></div></button>`。
@@ -777,11 +777,11 @@ node --test tests/menu.test.js
 - `resize()` 里对每张卡 canvas 重绘；`show('maps')` 首帧再保证一次（防止 hidden 时 `clientWidth=0`）。
 - 键盘：`←/→` 在卡片间 focus；`Esc` 回 main；`Enter` 原生 click。
 
-- [ ] **Step 4: 写选图页 CSS**
+- [x] **Step 4: 写选图页 CSS**
 
 基于 mockup 的 `.maps-head/.back/.crumb/.maps-title/.maps-sub/.cards/.map-card/.card-*/.brief/.maps-foot`；桌面三列 `grid-template-columns: repeat(3,1fr); gap:24px`，卡片 16:9 缩略图 + 固定 body；`top:258px`、brief `top:656px`、foot `bottom:34px` 照设计稿 5.1；卡片 hover `translateY(-6px)`、边框用 `map.theme.accent` 提亮（在 JS 里写 `card.style.setProperty('--accent', map.theme.accent)`）、缩略图 `filter: brightness(1.12)`、`.enter` 变亮；`.map-card.flash{filter:brightness(2.2);transition:none}`（120ms 后由 JS 移除）；`[data-layout="narrow"] .cards` 改 `display:flex; overflow-x:auto; scroll-snap-type:x mandatory; touch-action:pan-x`，`.map-card{flex:0 0 82vw; scroll-snap-align:center}`；`.brief{display:none}`。
 
-- [ ] **Step 5: 跑测试 + 临时浏览器验证**
+- [x] **Step 5: 跑测试 + 临时浏览器验证**
 
 ```powershell
 node --test tests/menu.test.js
@@ -790,7 +790,7 @@ npm test
 
 控制台继续用 Task 4 的引导片段 + `ZG.Menu.show('maps')`，对照 `docs/design/menu-maps.png`；确认 hover/focus 改简报、点卡只触发一次、横滑不误触。
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```powershell
 git add src/view/menu.js menu.css tests/menu.test.js
@@ -810,7 +810,7 @@ git commit -m "feat(v1.6): add endless map select with operation brief"
 - Consumes: `ZG.Data.menu.story`、Task 4 的 `.menu-modal`（`#hud` 直接子元素，z 60）
 - Produces: `Menu.openTeaser()/closeTeaser()`（内部）、`aria-modal` 弹窗、锁定章节列表
 
-- [ ] **Step 1: 写数据/文案失败测试**
+- [x] **Step 1: 写数据/文案失败测试**
 
 ```js
 test('剧情弹窗内容完整且不承诺后端能力', () => {
@@ -822,7 +822,7 @@ test('剧情弹窗内容完整且不承诺后端能力', () => {
 });
 ```
 
-- [ ] **Step 2: 实现弹窗**
+- [x] **Step 2: 实现弹窗**
 
 - 结构：`.menu-modal`（`role="dialog" aria-modal="true" aria-label="档案封存"`）→ `.teaser-box` → 标题行（`档案封存 / CLASSIFIED` + 红色斜章）、`剧情模式 · 序章`、`s.chapterTitle`、`s.blurb`、三行章节（`01 撤离命令 …… 待解锁 🔒`，`aria-disabled="true"`，`<button disabled>`）、底部说明 `剧情模式将在后续版本开放。` + `返回` 按钮。
 - `.menu-modal { position:absolute; inset:0; z-index:60; pointer-events:auto; display:flex; align-items:center; justify-content:center; background:rgba(3,7,13,.72) }`；`.menu-modal.hidden` 隐藏。
@@ -831,11 +831,11 @@ test('剧情弹窗内容完整且不承诺后端能力', () => {
 - `Menu.hide()`、`show()` 都要先 `closeTeaser()`；`Menu` 的 document 键盘监听在 `teaserOpen` 时只处理 Escape。
 - 样式：480–560px 宽、暗色档案纸（细横线 `repeating-linear-gradient`）、红色 `CLASSIFIED` 斜章、锁定态 62% 透明度 + “待解锁”文字 + 锁图标（不只靠颜色）。
 
-- [ ] **Step 3: 浏览器验证**
+- [x] **Step 3: 浏览器验证**
 
 用 Task 4 引导片段，点“剧情模式”：弹窗在菜单之上，Esc/遮罩/返回都能关，焦点回到原 nav；读屏名称包含“档案封存”。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```powershell
 git add src/view/menu.js menu.css tests/menu.test.js
@@ -857,7 +857,7 @@ git commit -m "feat(v1.6): add classified story teaser modal"
 - Consumes: `ZG.Data.menu`、`ZG.Data.maps`、`ZG.Const`、`ZG.Audio`、`ZG.Platform.quality`
 - Produces: `ZG.Intro.play/tick/skip/resize/active/timeline/crackPaths/variantFor/skipDecision/copyFor`（3.5）
 
-- [ ] **Step 1: 写纯函数失败测试**
+- [x] **Step 1: 写纯函数失败测试**
 
 ```js
 // tests/intro.test.js
@@ -930,13 +930,13 @@ test('开场文案与音效名', () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```powershell
 node --test tests/intro.test.js
 ```
 
-- [ ] **Step 3: 实现纯函数**
+- [x] **Step 3: 实现纯函数**
 
 - `timeline` 按 3.6 表格返回，`phases` 连续；cues 照表。
 - `variantFor`、`skipDecision` 按 3.6。
@@ -948,7 +948,7 @@ node --test tests/intro.test.js
   - 所有点 `clamp` 到 `[0,w]×[0,h]`（测试硬要求）；
   - 固定 seed `20261027` 由调用方传入；主裂纹 `width 4.4`，支裂纹 `width 0.8`。
 
-- [ ] **Step 4: 实现 `play/tick/skip/resize/active`**
+- [x] **Step 4: 实现 `play/tick/skip/resize/active`**
 
 - `play(mapId, opts)`：若 `active()` 直接 return；读 `matchMedia('(prefers-reduced-motion: reduce)')`（try/catch）；`variant = variantFor(opts.variant, opts.settings, reduced)`；建/复用 `.intro-root`（`role="dialog" aria-label="进入战场"`，z 90）：
   - `<canvas class="intro-crack">`、`.intro-flash`、`.intro-veil`、`.intro-title`（sector/name/en/threat/desc/red line）、`<button class="intro-skip">跳过 ▸</button>`、`.intro-progress > i`；
@@ -966,7 +966,7 @@ node --test tests/intro.test.js
   - 跳过按钮：`t >= tl.skipAfter && phase in (windup/impact/spread/blackout)` 时显示；进度线宽度 `min(1, t/tl.total)*100%`；  - `reveal` 开始时给 `#hud` 加 `intro-reveal`；`impact` 时若 `settings.shake !== false && Platform.quality.shake` 给 `#stage` 加 `intro-shake`，120ms 后移除。
 - `resize()`：读 `#stage` 尺寸；canvas 尺寸 ×DPR（1.5/移动 1.25）并 `ctx.setTransform(dpr,0,0,dpr,0,0)`；`cracks = crackPaths(20261027, w, h)`；若 active 重画当前帧。
 
-- [ ] **Step 5: 音频配方**
+- [x] **Step 5: 音频配方**
 
 `audio.js`：`NAMES` 加 7 个名字；`play()` 分支：
 
@@ -982,7 +982,7 @@ else if (name === 'whoosh') noise(0.5, 200, 0.06, 'lowpass');
 
 `noise(dur, cutoff, gain, type)` 增加第 4 参数（默认 `bandpass`）；`stinger()` 用 55/58/110Hz 三个 saw + lowpass 1.2kHz、2s、增益 0.06；`heartbeat()` 用 `tone(50,...)` + `setTimeout(() => tone(50,...), 220)`。
 
-- [ ] **Step 6: `menu.css` 增加开场与 HUD 入场样式**
+- [x] **Step 6: `menu.css` 增加开场与 HUD 入场样式**
 
 - `.intro-root{position:absolute;inset:0;z-index:90;pointer-events:auto;background:transparent;overflow:hidden}`；
 - `.intro-crack{position:absolute;inset:0;width:100%;height:100%}`；
@@ -994,11 +994,11 @@ else if (name === 'whoosh') noise(0.5, 200, 0.06, 'lowpass');
 - `#hud.intro-reveal .hud-top{animation:hud-top-in .32s ease-out both}`；`.hud-bottom` delay 80ms、`.hud-tabs` delay 160ms、`.btn-start` delay 160ms；
 - `@media (prefers-reduced-motion: reduce){ .intro-crack, .intro-flash{display:none} #stage.intro-shake{animation:none} }`。
 
-- [ ] **Step 7: 接入加载顺序**
+- [x] **Step 7: 接入加载顺序**
 
 `index.html` 在 `menu.js` 之后加 `intro.js`；`sw.js` 的 `SHELL` 加 `./src/view/intro.js`。
 
-- [ ] **Step 8: 跑测试 + 浏览器抽帧**
+- [x] **Step 8: 跑测试 + 浏览器抽帧**
 
 ```powershell
 node --test tests/intro.test.js
@@ -1018,7 +1018,7 @@ ZG.Intro.play('suburban', {
 
 在 0.4s / 1.2s / 2.6s / 4.1s 截图对照 `docs/design/intro-storyboard.png`；再重放一次，0.5s 按 Esc，确认 0.55s 内结束且控制台 `done` 只出现一次。
 
-- [ ] **Step 9: 提交**
+- [x] **Step 9: 提交**
 
 ```powershell
 git add src/view/intro.js src/view/audio.js menu.css index.html sw.js tests/intro.test.js
@@ -1039,7 +1039,7 @@ git commit -m "feat(v1.6): add intro timeline, procedural cracks and reveal"
 - Consumes: 前面所有模块；`ZG.HUD.toast/hideTip`；`ZG.Platform`；`ZG.Audio`
 - Produces: 真实的 BOOT → main → maps → intro → prep 流程；`gameplayBlocked(s)`；旧菜单/旧缩略图/旧 CSS 彻底移除
 
-- [ ] **Step 1: 重构 `hud.js`**
+- [x] **Step 1: 重构 `hud.js`**
 
 - 删除 `buildMenu()`（约 284–322 行）、`drawMapThumb()`（约 324–343 行）、`init` 里的 `buildMenu()` 调用、`render` 里 530–540 的菜单块与 `H.refs.installBtn` 更新。
 - 删除 `refs.menu`、`refs.mapCards`、`refs.installBtn`、`refs.shareBtn` 的菜单用途（`showShare` 之类如果只剩菜单用，一并删）。
@@ -1049,7 +1049,7 @@ git commit -m "feat(v1.6): add intro timeline, procedural cracks and reveal"
 - 教程条件加 `!ui.inputLocked`。
 - 保留 `toast/showTip/hideTip/renderSettlement/renderGameOver` 导出。
 
-- [ ] **Step 2: 重构 `input.js`**
+- [x] **Step 2: 重构 `input.js`**
 
 ```js
 function gameplayBlocked(s) {
@@ -1067,14 +1067,14 @@ function gameplayBlocked(s) {
 - `Tab` 的 `preventDefault` 只在第 4 步之后执行，菜单内 Tab 保持原生。
 - `Escape` 在菜单/过场里不做游戏操作（被第 4 步拦掉）。
 
-- [ ] **Step 3: 重构 `styles.css`**
+- [x] **Step 3: 重构 `styles.css`**
 
 - `.overlay` z 40 保留；新增 `.overlay.modal { z-index: 60; }`。
 - 删除旧 `.menu`/`.menu-box`/`.game-title`/`.game-sub`/`.menu-how`/`.map-grid`/`.map-card`/`.map-name`/`.map-stars`/`.map-desc`/`.map-best`/`.menu-actions`/`.version`（约 394–452 行）。
 - `#hud button, #hud .unit-card, #hud .map-card, #hud .overlay, #hud .tech-row` 去掉 `.map-card`。
 - 保留 `.toast-stack` 70、`.tooltip` 80；其它现有 z-index 值加一行注释标明归属，冲突的按 3.8 表调整。
 
-- [ ] **Step 4: 重构 `main.js`**
+- [x] **Step 4: 重构 `main.js`**
 
 ```js
 function createRun(mapId) {
@@ -1139,11 +1139,11 @@ function openMenu(page) {
 - `registerPWA`：`beforeinstallprompt` 里 `ZG.__installPrompt = ev; ZG.Menu.refreshInstall();`；`appinstalled` 里 `null` + toast + `refreshInstall()`；`callbacks.onInstall` 的 `prompt.userChoice.then` 里清空后也调一次 `ZG.Menu.refreshInstall()`。
 - `ZG.Game` 形状不变。
 
-- [ ] **Step 5: 删除 `main.js` 里旧 `startGame` 的菜单语义**
+- [x] **Step 5: 删除 `main.js` 里旧 `startGame` 的菜单语义**
 
 `startGame` 不再被 `onSelectMap` 使用；把 `startGame` 删除，或保留为 `selectMap` 的别名时不得再设置 `showMenu=false` 之外的状态。旧 `onMenu` 的 body 替换为 `openMenu('maps')`。
 
-- [ ] **Step 6: 跑测试 + 全流程浏览器 QA**
+- [x] **Step 6: 跑测试 + 全流程浏览器 QA**
 
 ```powershell
 npm test
@@ -1158,7 +1158,7 @@ npm test
 - 菜单里按 Tab：焦点按原生顺序走，不切换招募/建筑。
 - console 0 error。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```powershell
 git add src/view/hud.js src/view/input.js src/main.js styles.css menu.css
@@ -1179,7 +1179,7 @@ git commit -m "feat(v1.6): wire menu and intro into boot flow, fix HUD layering 
 - Consumes: `data-layout`（Task 4）与 `menuLayout` 断点
 - Produces: 1440×900 / 1366×768 / 1024×768 / 844×390 / 390×844 五档可用；键盘/reduced motion 全流程可达
 
-- [ ] **Step 1: 补齐四档布局 CSS**
+- [x] **Step 1: 补齐四档布局 CSS**
 
 先删掉从 mockup 带过来的 `@media (max-width:1100px)` 规则（它会和 `[data-layout]` 打架），所有断点只由 `data-layout` 控制；只保留 `prefers-reduced-motion` 的媒体查询。
 
@@ -1190,7 +1190,7 @@ git commit -m "feat(v1.6): wire menu and intro into boot flow, fix HUD layering 
 - 竖屏 390×844：标题 40px、导航 4×58px、底部 `env(safe-area-inset-bottom)`；页面 `overflow:hidden`，`.cards{touch-action:pan-x}`。
 - 卡片/导航/工具/跳过/弹窗关闭均 ≥44px。
 
-- [ ] **Step 2: 可访问性**
+- [x] **Step 2: 可访问性**
 
 - 页切换：非活动 `.menu-page` 设 `inert` + `aria-hidden="true"`，过渡结束仍隐藏（CSS visibility）。
 - 锁定项：`aria-disabled="true"` 但可点开 teaser；文案“即将开放”。
@@ -1199,17 +1199,17 @@ git commit -m "feat(v1.6): wire menu and intro into boot flow, fix HUD layering 
 - 过场：`role="dialog" aria-label="进入战场"`；跳过按钮可 Tab 聚焦。
 - reduced motion：场景静帧、过场 1.4s、无震屏（Task 7 已实现，这里只验证）；`@media (prefers-reduced-motion: reduce){ .menu-page, .nav-item, .map-card { transition:none !important; } }`。
 
-- [ ] **Step 3: 五档截图与验收**
+- [x] **Step 3: 五档截图与验收**
 
 用 Edge headless（或 Playwright）截：1440×900 主菜单/选图/设置/剧情/整备；1366×768 主菜单/选图；1024×768；844×390；390×844。检查：无溢出、无横向滚动条、卡片不压简报、底部不压安全区、文字不糊。
 
-- [ ] **Step 4: 键盘/reduced 全流程**
+- [x] **Step 4: 键盘/reduced 全流程**
 
 - 仅键盘：Tab 到“无尽模式” → Enter → 焦点首卡 → ←/→ 换卡 → Enter → 过场 → 0.5s 后 Esc → 整备。
 - 系统开启 reduced motion：场景不漂移、过场 1.4s、无闪屏/震屏、流程可完成。
 - 读屏（Edge/Chrome accessibility tree）：能读出主菜单、卡片标签、锁定状态、跳过按钮、剧情弹窗标题。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```powershell
 git add menu.css src/view/menu.js
@@ -1230,7 +1230,7 @@ git commit -m "fix(v1.6): polish menu responsive layout and accessibility"
 - Consumes: 全部任务
 - Produces: v1.6.0 发布；三处版本一致；SW 缓存更替；文档收口
 
-- [ ] **Step 1: 版本号三处 + 测试**
+- [x] **Step 1: 版本号三处 + 测试**
 
 ```js
 // tests/shell.test.js
@@ -1241,7 +1241,7 @@ assert.equal(ZG.Const.VERSION, 'v1.6.0');
 
 `sw.js` 的 `SHELL` 增加 `./menu.css`、`./src/data/menu.js`、`./src/view/menuScene.js`、`./src/view/menu.js`、`./src/view/intro.js`；给 `tests/shell.test.js` 增加“index.html 的 stylesheet 都在 SHELL 里”的断言。`tests/smoke.test.js` 的模块列表加 `MenuScene`、`Menu`、`Intro`。
 
-- [ ] **Step 2: 全量验证**
+- [x] **Step 2: 全量验证**
 
 ```powershell
 npm test
@@ -1251,7 +1251,7 @@ node tests/bot.js --rounds 42 --seed 1
 
 记录：测试数（预计 245+）、`avgStepMs` ≤ 基线 115%、bot 回合与 v1.5 基线一致；同 seed 两次 `ZG.State.hash` 一致；菜单/过场不消耗 `state.rng`。
 
-- [ ] **Step 3: 文档收口**
+- [x] **Step 3: 文档收口**
 
 - `docs/STATE.md`：版本、测试数、性能、QA 记录、下一步；明确“桌面版已同步/未重打包”。
 - `docs/tech.md`：新增模块表（`data/menu.js`、`view/menuScene.js`、`view/menu.js`、`view/intro.js`、`menu.css`）与加载顺序。
@@ -1263,7 +1263,7 @@ node tests/bot.js --rounds 42 --seed 1
 
 部署 GitHub Pages 后确认：`ZG.Const.VERSION === 'v1.6.0'`；SW 缓存名 `zd-v1.6.0` 且条目包含 `menu.css` 与三个新脚本；三图缩略图正常；开场可跳过；console 0 error；`file://` 双击可玩。
 
-- [ ] **Step 5: 提交/打 tag**
+- [x] **Step 5: 提交/打 tag**
 
 ```powershell
 git add package.json src/core/constants.js sw.js tests/shell.test.js tests/smoke.test.js docs/STATE.md docs/tech.md qa/checklist.md README.md
