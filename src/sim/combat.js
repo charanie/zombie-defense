@@ -97,6 +97,13 @@
       if (Math.abs(ZG.Geom.angleDiff(toShooter, z.facing)) > half) continue;
       best = z; bestT = t;
     }
+    if (best && state.effects && state.effects.length < 250) {
+      state.effects.push({
+        kind: 'shield_flash', x: best.x, y: best.y,
+        radius: (best.radius || 10) + 4, facing: best.facing,
+        life: 0.2, maxLife: 0.2, color: '#42A5F5', seed: best.id
+      });
+    }
     return best;
   }
 
@@ -187,14 +194,19 @@
     return { shieldDamage: 0, hpDamage: amount, killed: false };
   }
 
+  function babySpot(state, x, y) {
+    const br = (ZG.Data.zombies.baby && ZG.Data.zombies.baby.radius) || 7;
+    return ZG.MapZone.clamp(state.map, x, y, br);
+  }
+
   function spawnBabies(state, z, n, cap, minR, maxR) {
     let spawned = 0;
     for (let k = 0; k < n; k++) {
       if ((state.battle.babyCount || 0) >= cap) break;
       const a = state.rng.spawn.next() * Math.PI * 2;
       const rr = minR + state.rng.spawn.next() * (maxR - minR);
-      const bz = ZG.State.spawnZombie(state, 'baby',
-        z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+      const p = babySpot(state, z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+      const bz = ZG.State.spawnZombie(state, 'baby', p.x, p.y);
       bz.wave = z.wave;
       state.battle.babyCount = (state.battle.babyCount || 0) + 1;
       spawned++;
@@ -222,7 +234,8 @@
         if ((state.battle.babyCount || 0) >= cap) break;
         const a = state.rng.spawn.next() * Math.PI * 2;
         const rr = 10 + state.rng.spawn.next() * 24;
-        const bz = ZG.State.spawnZombie(state, 'baby', z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+        const p = babySpot(state, z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+        const bz = ZG.State.spawnZombie(state, 'baby', p.x, p.y);
         bz.wave = z.wave;
         state.battle.babyCount = (state.battle.babyCount || 0) + 1;
         spawned++;
@@ -352,6 +365,13 @@
     const st = ZG.Stats.zombie(state, z);
     if (target.kind === 'building') {
       const mul = z.typeId === 'giant' ? ZG.Data.zombies.giant.buildingMultiplier : 1;
+      if (z.typeId === 'giant' && state.effects.length < 250) {
+        state.effects.push({
+          kind: 'boom', x: target.x, y: target.y, radius: 30,
+          life: 0.3, maxLife: 0.3, color: '#8D6E63', seed: z.id
+        });
+        state.bus.emit('fx:stomp', { x: target.x, y: target.y, radius: 30 });
+      }
       applyBuildingDamage(state, target, st.damage * mul);
       return;
     }

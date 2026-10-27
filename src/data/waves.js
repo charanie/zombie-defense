@@ -17,6 +17,15 @@
     return { x: ZG.Const.W + d, y: inset + rng.next() * (ZG.Const.H - 2 * inset), edge: 'right' };
   }
 
+  // 地图自定义出生口：x 固定在屏幕外 10–60px，y 在 def.y ± jitterY 内抖动。
+  // portalX/portalY 是屏幕内的预警位置（入口内侧）。
+  function spawnFromDef(rng, def) {
+    const x = -10 - rng.next() * 50;
+    const jitter = def.jitterY || 0;
+    const y = def.y + (rng.next() - 0.5) * 2 * jitter;
+    return { x, y, edge: def.edge || 'left', portalX: 60, portalY: y };
+  }
+
   function percents(R) {
     let p;
     if (R <= 2) p = [1, 0, 0, 0, 0, 0];
@@ -134,6 +143,8 @@
     for (let i = 0; i < k; i++) sizes.push(base + (rem > 0 ? 1 : 0) * (rem--, 1));
 
     // 切批
+    const defs = (o.map && Array.isArray(o.map.spawns) && o.map.spawns.length)
+      ? o.map.spawns : null;
     const batches = [];
     let cursor = 0;
     for (let i = 0; i < k; i++) {
@@ -142,7 +153,9 @@
       cursor += size;
       batches.push({
         spawns: chunk.map((t, j) => {
-          const sp = spawnPoint(rng, EDGES[(i + j) % 4]);
+          const sp = defs
+            ? spawnFromDef(rng, defs[(i + j) % defs.length])
+            : spawnPoint(rng, EDGES[(i + j) % 4]);
           sp.type = t;
           return sp;
         })
@@ -189,6 +202,6 @@
 
   ZG.Waves = {
     composition, total, isBossRound, escortCount, newTypes, preview, build,
-    spawnPoint, pickBossType, ORDER
+    spawnPoint, spawnFromDef, pickBossType, ORDER
   };
 })();

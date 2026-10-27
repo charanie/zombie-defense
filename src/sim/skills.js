@@ -296,9 +296,11 @@
     if (state.effects.length < 250) {
       state.effects.push({
         kind: 'slash', x: h.x, y: h.y, facing: h.facing,
-        length, width, life: 0.18, maxLife: 0.18
+        length, width, radius: length, arc: 0.9, ang: h.facing,
+        color: '#FFFFFF', life: 0.2, maxLife: 0.2
       });
     }
+    state.bus.emit('fx:slash', { x: h.x, y: h.y });
   }
 
   function onSamuraiAttack(state, h) {

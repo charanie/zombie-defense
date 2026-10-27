@@ -8,7 +8,7 @@
     const bossType = bossRound
       ? ZG.Waves.pickBossType(state.battle.lastBossType, state.rng.boss)
       : null;
-    const w = ZG.Waves.build(state.round, state.rng.spawn, { bossType });
+    const w = ZG.Waves.build(state.round, state.rng.spawn, { bossType, map: state.map });
     state.spawner = {
       batches: w.batches,
       batchIndex: 0,
@@ -51,8 +51,10 @@
         b.warned = true;
         const first = b.spawns[0];
         if (first) {
-          sp.portals.push({ x: first.x, y: first.y, edge: first.edge, ttl: 1.2 });
-          state.bus.emit(ZG.Events.PORTAL_WARNING, { x: first.x, y: first.y, edge: first.edge });
+          const px = first.portalX !== undefined ? first.portalX : first.x;
+          const py = first.portalY !== undefined ? first.portalY : first.y;
+          sp.portals.push({ x: px, y: py, edge: first.edge, ttl: 1.2 });
+          state.bus.emit(ZG.Events.PORTAL_WARNING, { x: px, y: py, edge: first.edge });
         }
       }
       if (state.battle.time < b.at) break;

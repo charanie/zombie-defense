@@ -8,7 +8,7 @@ test('建筑可自由放置且带朝向', () => {
   const a = ZG.Economy.build(s, 'barricade', 600, 200, { vertical: false });
   assert.equal(a.ok, true);
   assert.equal(a.building.w, 64); assert.equal(a.building.h, 24);
-  const b = ZG.Economy.build(s, 'barricade', 700, 200, { vertical: true });
+  const b = ZG.Economy.build(s, 'barricade', 760, 200, { vertical: true });
   assert.equal(b.building.w, 24); assert.equal(b.building.h, 64);
 });
 

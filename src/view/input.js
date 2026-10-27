@@ -66,7 +66,7 @@
         const check = ZG.Economy.canPlace(s, h.x, h.y, h.radius, h.id);
         if (!check.ok) {
           h.x = drag.sx; h.y = drag.sy;
-          ZG.HUD.toast('不能放在这里', 'warn');
+          ZG.HUD.toast(reasonText(check.reason), 'warn');
         } else {
           h.homeX = h.x; h.homeY = h.y;
         }
@@ -103,8 +103,8 @@
         if (ev.buttons !== undefined && !(ev.buttons & 1)) { finishDrag(s); return; }
         const h = s.humans.find(u => u.id === drag.id && u.alive);
         if (h) {
-          const c = ZG.Geom.clampToWorld(p.x, p.y, h.radius);
-          h.x = c.x; h.y = c.y;
+          // 预览跟随光标；落点非法时在 finishDrag 明确拒绝并提示，而不是吸附到最近合法点
+          h.x = p.x; h.y = p.y;
         }
         return;
       }
@@ -292,7 +292,8 @@
   function reasonText(reason) {
     const map = {
       money: '金钱不足', population: '人口已满', 'civilian-cap': '平民已满',
-      outside: '地图外', overlap: '位置重叠', obstacle: '障碍阻挡',
+      outside: '地图外', 'outside-zone': '超出可活动区域',
+      overlap: '位置重叠', obstacle: '障碍阻挡',
       limit: '已达上限', 'not-prep': '战斗中不能操作',
       locked: '尚未解锁', uses: '本回合次数已用完', 'not-battle': '仅战斗中可用'
     };

@@ -21,11 +21,22 @@ const FRONT_RING = [
   { x: 720, y: 600 }
 ];
 
+// 有自定义出生口的地图（地铁）把盾兵前压点放到两条通道中段，交替使用
+const SUBWAY_FRONT = [
+  { x: 300, y: 230 },
+  { x: 300, y: 490 }
+];
+
+function frontTarget(state) {
+  const spots = (state.map && Array.isArray(state.map.spawns) && state.map.spawns.length)
+    ? SUBWAY_FRONT : FRONT_RING;
+  return spots[counts(state).shield % spots.length];
+}
+
 function roleScore(state, p, role) {
   // 僵尸四面来袭：盾兵分散成多个小队，远程/治疗居中
   if (role === 'front') {
-    const n = counts(state).shield;
-    const t = FRONT_RING[n % FRONT_RING.length];
+    const t = frontTarget(state);
     return Math.hypot(p.x - t.x, p.y - t.y);
   }
   const target = { x: 640, y: 500 };
@@ -55,13 +66,22 @@ function hasBuilding(state, typeId) {
   return state.buildings.some(b => b.alive && b.typeId === typeId);
 }
 
+// 地铁图只有两条窄通道：建筑优先放在末端大厅，避免把唯一的入口堵死
+function buildCandidates(state) {
+  const pts = candidates(state);
+  if (state.map && Array.isArray(state.map.spawns) && state.map.spawns.length) {
+    pts.sort((a, b) => (b.x - a.x) || (a.y - b.y));
+  }
+  return pts;
+}
+
 function tryBuild(state, typeId, x, y, opts, reserve) {
   const data = ZG.Data.buildings[typeId];
   if (state.money < data.cost + (reserve || 120)) return false;
   let r = ZG.Economy.build(state, typeId, x, y, opts);
   if (r.ok) return true;
   if (r.reason === 'limit' || r.reason === 'money' || r.reason === 'unknown') return false;
-  for (const p of candidates(state)) {
+  for (const p of buildCandidates(state)) {
     r = ZG.Economy.build(state, typeId, p.x, p.y, opts);
     if (r.ok) return true;
     if (r.reason === 'limit' || r.reason === 'money') return false;
@@ -74,15 +94,16 @@ function prep(state, opts) {
   const R = state.round;
   const c = counts(state);
 
-  // 建筑顺序
-  if (!hasBuilding(state, 'barricade') && (state.mapId === 'suburban' || R >= 4)) {
+  // 建筑顺序（围墙只用于郊区/医院：地铁窄通道里自建横墙会把入口堵死）
+  if (!hasBuilding(state, 'barricade') &&
+      (state.mapId === 'suburban' || (state.mapId === 'hospital' && R >= 4))) {
     tryBuild(state, 'barricade', 640, 430, { vertical: false }, 260);
   }
   if (R >= 2 && !hasBuilding(state, 'hospital')) tryBuild(state, 'hospital', 760, 560, null, 160);
   if (R >= 2 && !hasBuilding(state, 'turret')) tryBuild(state, 'turret', 520, 560, null, 160);
   if (R >= 4 && !hasBuilding(state, 'ammo')) tryBuild(state, 'ammo', 640, 600, null, 160);
   if (R >= 3 && !hasBuilding(state, 'tarpit')) tryBuild(state, 'tarpit', 640, 420, null, 100);
-  if (!hasBuilding(state, 'barricade')) {
+  if (!hasBuilding(state, 'barricade') && state.mapId !== 'subway') {
     tryBuild(state, 'barricade', 580, 430, { vertical: false }, 140);
   }
   if (R >= 6 && !hasBuilding(state, 'mine')) {

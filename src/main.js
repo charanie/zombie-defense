@@ -136,6 +136,28 @@
     bus.on('fx:stomp', p => {
       ZG.Particles.explosion(p.x, p.y, p.radius, '#FF7043');
       ZG.Particles.shake(5);
+      ZG.Audio.play('stomp');
+    });
+    bus.on('fx:missile', p => {
+      ZG.Particles.burst(p.x, p.y, '#FFD54F', 14);
+      ZG.Particles.shake(8);
+      ZG.Audio.play('missile');
+    });
+    bus.on('fx:slash', p => {
+      ZG.Particles.burst(p.x, p.y, '#FFF3E0', 8);
+      ZG.Audio.play('slash');
+    });
+    bus.on('fx:heal', p => {
+      ZG.Particles.burst(p.x, p.y, '#66BB6A', 10);
+      ZG.Audio.play('heal');
+    });
+    bus.on('fx:rockBreak', p => {
+      ZG.Particles.burst(p.x, p.y, '#A1887F', 12);
+      ZG.Audio.play('rockBreak');
+    });
+    bus.on('fx:fuse', p => {
+      ZG.Particles.burst(p.x, p.y, '#FF7043', 4);
+      ZG.Audio.play('fuse');
     });
     bus.on('fx:dash', p => {
       ZG.Particles.burst(p.x, p.y, '#FF8A80', 10);
@@ -167,7 +189,11 @@
       if (isSkill && now - lastSkillFxAt < 1500) return;
       if (isSkill) lastSkillFxAt = now;
       if (p.text) { ZG.HUD.toast(p.text, 'hero'); log(p.text, 'hero'); }
-      ZG.Audio.play('horn');
+      const sound = (p.kind === 'missiles' || p.kind === 'skill-officer') ? 'missile'
+        : p.kind === 'skill-samurai' ? 'slash'
+          : p.kind === 'skill-plague' || p.kind === 'skill-medic' ? 'heal'
+            : 'horn';
+      ZG.Audio.play(sound);
     });
     bus.on('fx:support_heal', p => {
       ZG.Particles.burst(p.x, p.y, '#66BB6A', 18);
@@ -569,8 +595,11 @@
     ZG.Renderer.resize();
     ZG.Input.init(canvas, () => state, callbacks);
     ZG.Audio.setMuted(!!state.settings.muted);
-    if (ZG.Particles && ZG.Particles.instance && ZG.Platform.quality.particleCap) {
-      ZG.Particles.instance.cap = ZG.Platform.quality.particleCap;
+    if (ZG.Particles && ZG.Particles.instance) {
+      if (ZG.Platform.quality.particleCap) {
+        ZG.Particles.instance.cap = ZG.Platform.quality.particleCap;
+      }
+      ZG.Particles.instance.setQuality(ZG.Platform.isMobile ? 'mobile' : 'desktop');
     }
 
     ZG.Game = {

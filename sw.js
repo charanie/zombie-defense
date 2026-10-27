@@ -1,5 +1,5 @@
 /* 尸潮防线 Service Worker — Cache First */
-const CACHE = 'zd-v1.4.0';
+const CACHE = 'zd-v1.5.0';
 
 const SHELL = [
   './',
@@ -27,6 +27,7 @@ const SHELL = [
   './src/sim/spatial.js',
   './src/sim/tech.js',
   './src/sim/stats.js',
+  './src/sim/mapzone.js',
   './src/sim/pathing.js',
   './src/sim/squads.js',
   './src/sim/infection.js',
@@ -40,6 +41,8 @@ const SHELL = [
   './src/sim/heroes.js',
   './src/sim/sim.js',
   './src/view/model.js',
+  './src/view/maplayer.js',
+  './src/view/fx.js',
   './src/view/techLayout.js',
   './src/view/techPanel.js',
   './src/view/renderer.js',

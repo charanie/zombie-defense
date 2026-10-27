@@ -133,3 +133,30 @@ test('每个战斗职业都有移动参数', () => {
   assert.ok(ZG.Data.humanAi.careHpRatio > 0);
   assert.ok(ZG.Data.humanAi.dodgeRadius > 0);
 });
+
+test('地铁图人类不会走出活动区', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  ZG.State.spawnHuman(s, 'shield', 1100, 360);
+  for (let i = 0; i < 10; i++) ZG.State.spawnZombie(s, 'walker', -20, i % 2 ? 230 : 490);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 900);
+  let alive = 0;
+  for (const u of s.humans) {
+    if (!u.alive) continue;
+    alive++;
+    assert.ok(ZG.MapZone.contains(s.map, u.x, u.y), `${u.x},${u.y}`);
+  }
+  assert.ok(alive > 0, '盾兵应仍存活');
+});
+
+test('分离推挤不会把人类挤进设备带', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  ZG.State.spawnHuman(s, 'pistol', 500, 286);
+  ZG.State.spawnHuman(s, 'pistol', 500, 294);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 1);
+  for (const u of s.humans) {
+    if (!u.alive) continue;
+    assert.ok(ZG.MapZone.contains(s.map, u.x, u.y), `${u.x},${u.y}`);
+  }
+});

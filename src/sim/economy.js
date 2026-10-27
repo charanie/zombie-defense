@@ -37,6 +37,9 @@
     if (x < m || y < m || x > ZG.Const.W - m || y > ZG.Const.H - m) {
       return { ok: false, reason: 'outside' };
     }
+    if (!ZG.MapZone.containsCircle(state.map, x, y, r)) {
+      return { ok: false, reason: 'outside-zone' };
+    }
     for (const h of state.humans) {
       if (!h.alive || h.id === ignoreId) continue;
       if (ZG.Geom.circleOverlapsCircle(x, y, r, h.x, h.y, h.radius, ZG.Const.PLACE_GAP)) {
@@ -128,6 +131,15 @@
       }
     }
     const my = d.shape === 'rect' ? ZG.Geom.rectOfCenter(x, y, d.w, d.h) : null;
+    // 活动区检查：矩形用中心+四角+四边中点 9 点；圆形用外接正方形同样的 9 点。
+    const hw = d.w / 2, hh = d.h / 2;
+    const zonePts = [
+      [x, y], [x - hw, y - hh], [x + hw, y - hh], [x - hw, y + hh], [x + hw, y + hh],
+      [x, y - hh], [x, y + hh], [x - hw, y], [x + hw, y]
+    ];
+    for (const [px, py] of zonePts) {
+      if (!ZG.MapZone.contains(state.map, px, py)) return { ok: false, reason: 'outside-zone' };
+    }
     const hitsCircle = (cx, cy, cr) => d.shape === 'rect'
       ? ZG.Geom.circleOverlapsRect(cx, cy, cr, my.x, my.y, my.w, my.h, ZG.Const.PLACE_GAP)
       : ZG.Geom.circleOverlapsCircle(x, y, d.radius, cx, cy, cr, ZG.Const.PLACE_GAP);

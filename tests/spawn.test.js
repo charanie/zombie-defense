@@ -50,3 +50,29 @@ test('传送门预警保留 1 秒且坐标在屏幕外', () => {
   assert.ok(p.x < 0 || p.x > ZG.Const.W || p.y < 0 || p.y > ZG.Const.H);
   assert.ok(p.ttl > 0.9);
 });
+
+test('地铁图只从两个通道口出怪', () => {
+  const rng = ZG.Rng.createStreams(9).spawn;
+  const w = ZG.Waves.build(9, rng, { map: ZG.Data.maps.subway });
+  const edges = new Set();
+  for (const b of w.batches) for (const s of b.spawns) {
+    assert.equal(s.edge, 'left');
+    assert.ok(s.x <= -10 && s.x >= -60, 'x=' + s.x);
+    assert.ok((s.y > 175 && s.y < 285) || (s.y > 435 && s.y < 545), 'y=' + s.y);
+    edges.add(s.y < 360 ? 'north' : 'south');
+  }
+  assert.deepEqual([...edges].sort(), ['north', 'south']);
+});
+
+test('无 spawns 的地图与 v1.3 出生坐标逐位一致', () => {
+  const rng = ZG.Rng.createStreams(9).spawn;
+  const w = ZG.Waves.build(7, rng);
+  const first = w.batches[0].spawns.slice(0, 4)
+    .map(s => [+s.x.toFixed(2), +s.y.toFixed(2), s.edge]);
+  assert.deepEqual(first, [
+    [1230.84, -37.98, 'top'],
+    [1336.97, 352.93, 'right'],
+    [447.1, 761, 'bottom'],
+    [-54.19, 551.63, 'left']
+  ]);
+});

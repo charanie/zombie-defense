@@ -34,7 +34,11 @@
       splash: opts.splash || opts.radius || 60,
       spitKind: opts.spitKind || null,
       poison: opts.poison || null,
-      ignoreShield: !!opts.ignoreShield
+      ignoreShield: !!opts.ignoreShield,
+      trailMax: opts.trailMax !== undefined ? opts.trailMax
+        : ((opts.typeId === 'rocket' || opts.typeId === 'vial' || opts.typeId === 'missile') ? 12 : 0),
+      trail: [],
+      trailT: 0
     };
     state.projectiles.push(p);
     if (opts.effect) state.effects.push(opts.effect);
@@ -115,6 +119,19 @@
       }
     }
     state.bus.emit('fx:explosion', { x, y, radius, color: o.color || '#FF7043', kind: o.kind || 'normal' });
+    if (o.kind === 'missile') {
+      if (state.effects.length < 246) {
+        state.effects.push({
+          kind: 'boom', x, y, radius: 110, life: 0.45, maxLife: 0.45,
+          color: '#FFD54F', seed: 1
+        });
+        state.effects.push({
+          kind: 'rock_impact', x, y, radius: 90, life: 0.6, maxLife: 0.6,
+          color: '#FF7043', seed: 2
+        });
+      }
+      state.bus.emit('fx:missile', { x, y });
+    }
   }
 
   // 腐吐者子弹到达结算：毒弹不走 explode（无爆炸音效/震屏）
@@ -147,7 +164,7 @@
       const life = p.poison ? p.poison.duration : 3.5;
       state.effects.push({
         kind: 'poison_cloud', x: p.x, y: p.y, radius: r,
-        color: '#7CB342', life, maxLife: life
+        color: '#7CB342', life, maxLife: life, seed: p.id
       });
       state.bus.emit('fx:poison', { x: p.x, y: p.y, radius: r });
       return;
@@ -193,6 +210,17 @@
             hitsHumans: true, hitsBuildings: false, infection: p.infection,
             color: '#EF5350', kind: 'rock'
           });
+          if (state.effects.length < 250) {
+            state.effects.push({
+              kind: 'rock_impact', x: p.x, y: p.y, radius: p.radius,
+              life: 0.9, maxLife: 0.9, color: '#FF7043', seed: p.id
+            });
+            state.effects.push({
+              kind: 'crack', x: p.x, y: p.y, radius: p.radius * 1.4,
+              life: 6, maxLife: 6, color: '#8D6E63', seed: p.id
+            });
+          }
+          state.bus.emit('fx:rockBreak', { x: p.x, y: p.y });
         }
         continue;
       }
@@ -224,6 +252,14 @@
       p.x += (dx / dist) * move;
       p.y += (dy / dist) * move;
       p.life -= dt;
+      if (p.trailMax > 0) {
+        p.trailT += dt;
+        if (p.trailT >= 2 * dt) {
+          p.trailT = 0;
+          p.trail.push({ x: p.x, y: p.y });
+          if (p.trail.length > p.trailMax) p.trail.shift();
+        }
+      }
     }
 
     // 淘汰
@@ -237,8 +273,11 @@
       e.life -= dt;
       if (e.life <= 0) state.effects.splice(i, 1);
     }
-    if (state.effects.length > ZG.Const.MAX_EFFECTS) {
-      state.effects.splice(0, state.effects.length - ZG.Const.MAX_EFFECTS);
+    if (state.effects.length > (state.quality === 'mobile'
+      ? ZG.Const.MAX_EFFECTS_MOBILE : ZG.Const.MAX_EFFECTS)) {
+      const cap = state.quality === 'mobile'
+        ? ZG.Const.MAX_EFFECTS_MOBILE : ZG.Const.MAX_EFFECTS;
+      state.effects.splice(0, state.effects.length - cap);
     }
   }
 

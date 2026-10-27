@@ -48,7 +48,7 @@
   };
 
   ZG.Const = Object.freeze({
-    VERSION: 'v1.4.0',
+    VERSION: 'v1.5.0',
     W: 1280,
     H: 720,
     STEP_MS: 1000 / 60,
@@ -65,6 +65,9 @@
     PARTICLE_CAP_MOBILE: 120,
     DAMAGE_NUMBER_CAP: 50,
     MAX_EFFECTS: 400,
+    MAX_EFFECTS_MOBILE: 200,
+    PATH_H_WEIGHT: 10,
+    PATH_V_WEIGHT: 12,
 
     MAX_POP: 80,
     MAX_CIVILIANS: 8,

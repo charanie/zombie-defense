@@ -142,129 +142,7 @@
     const map = state.map;
     if (!ctx || !map) return;
     clearCanvas(ctx);
-
-    const theme = map.theme || {};
-    ctx.fillStyle = theme.ground || C.ground;
-    ctx.fillRect(0, 0, W, H);
-
-    // 道路
-    if (map.roads) {
-      ctx.fillStyle = theme.road || C.road;
-      for (const r of map.roads) {
-        ctx.fillRect(r.x, r.y, r.w, r.h);
-      }
-      ctx.strokeStyle = 'rgba(255,255,255,0.035)';
-      ctx.lineWidth = 1;
-      for (const r of map.roads) {
-        if (r.w > r.h) {
-          ctx.beginPath();
-          ctx.moveTo(r.x, r.y + r.h / 2);
-          ctx.lineTo(r.x + r.w, r.y + r.h / 2);
-          ctx.stroke();
-        }
-      }
-    }
-
-    // 网格
-    ctx.strokeStyle = C.grid;
-    ctx.globalAlpha = 0.35;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = 0; x <= W; x += ZG.Const.GRID) {
-      ctx.moveTo(x + 0.5, 0);
-      ctx.lineTo(x + 0.5, H);
-    }
-    for (let y = 0; y <= H; y += ZG.Const.GRID) {
-      ctx.moveTo(0, y + 0.5);
-      ctx.lineTo(W, y + 0.5);
-    }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    // 地形（消毒池）
-    if (map.terrain) {
-      for (const t of map.terrain) {
-        if (t.kind !== 'circle') continue;
-        ctx.save();
-        const g = ctx.createRadialGradient(t.x, t.y, 4, t.x, t.y, t.r);
-        g.addColorStop(0, 'rgba(77, 182, 172, 0.22)');
-        g.addColorStop(1, 'rgba(77, 182, 172, 0.03)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.setLineDash([6, 6]);
-        ctx.strokeStyle = 'rgba(77, 182, 172, 0.45)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(128, 222, 214, 0.8)';
-        ctx.font = '11px "Microsoft YaHei", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('消毒池 · 感染 -50%', t.x, t.y + 4);
-        ctx.restore();
-      }
-    }
-
-    // 障碍
-    if (map.obstacles) {
-      for (const ob of map.obstacles) {
-        if (ob.kind !== 'circle') continue;
-        if (ob.theme === 'pillar') {
-          ctx.save();
-          ctx.fillStyle = 'rgba(120, 144, 156, 0.35)';
-          ctx.beginPath();
-          ctx.arc(ob.x, ob.y, ob.r, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(176, 190, 197, 0.55)';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(ob.x, ob.y, ob.r * 0.55, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(176, 190, 197, 0.28)';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.restore();
-        } else {
-          ctx.save();
-          ctx.translate(ob.x, ob.y);
-          ctx.fillStyle = 'rgba(74, 64, 56, 0.95)';
-          roundRect(ctx, -44, -22, 88, 44, 9);
-          ctx.fill();
-          ctx.fillStyle = 'rgba(96, 125, 139, 0.75)';
-          roundRect(ctx, -30, -16, 24, 14, 4);
-          ctx.fill();
-          roundRect(ctx, 6, -16, 24, 14, 4);
-          ctx.fill();
-          ctx.fillStyle = 'rgba(23, 25, 30, 0.9)';
-          ctx.beginPath();
-          ctx.arc(-26, 22, 9, 0, Math.PI * 2);
-          ctx.arc(26, 22, 9, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-          ctx.lineWidth = 1;
-          roundRect(ctx, -44, -22, 88, 44, 9);
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
-    }
-
-    // 暗角
-    const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
-    vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(2, 6, 12, 0.55)');
-    ctx.fillStyle = vg;
-    ctx.fillRect(0, 0, W, H);
-
-    // 地图名
-    ctx.save();
-    ctx.globalAlpha = 0.16;
-    ctx.fillStyle = '#DDEBFF';
-    ctx.font = 'bold 46px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(map.name, W - 28, H - 24);
-    ctx.restore();
+    ZG.MapLayer.draw(ctx, map);
   }
 
   /* ---------------- 动态层 ---------------- */
@@ -466,14 +344,53 @@
       const t = state.humans.find(u => u.id === h.healTargetId && u.alive);
       if (t) {
         ctx.save();
+        ctx.strokeStyle = 'rgba(102, 187, 106, 0.18)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(h.x, h.y);
+        ctx.lineTo(t.x, t.y);
+        ctx.stroke();
         ctx.strokeStyle = 'rgba(102, 187, 106, 0.7)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(h.x, h.y);
         ctx.lineTo(t.x, t.y);
         ctx.stroke();
+        // 光束上的十字
+        const pulse = (state.battle.time * 2) % 1;
+        const mx = h.x + (t.x - h.x) * pulse;
+        const my = h.y + (t.y - h.y) * pulse;
+        ctx.fillStyle = 'rgba(178, 255, 189, 0.85)';
+        ctx.fillRect(mx - 1, my - 5, 2, 10);
+        ctx.fillRect(mx - 5, my - 1, 10, 2);
         ctx.restore();
       }
+    }
+
+    // 头顶技能状态：鼓舞金环 / 盾墙蓝环 / 职业主动黄点
+    if (h.inspireT > 0 || h.guardT > 0 || h.skillT > 0) {
+      ctx.save();
+      if (h.inspireT > 0) {
+        ctx.strokeStyle = 'rgba(255, 213, 79, 0.8)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, r + 12, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (h.guardT > 0) {
+        ctx.strokeStyle = 'rgba(66, 165, 245, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, r + 9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (h.skillT > 0) {
+        ctx.fillStyle = 'rgba(255, 213, 79, 0.95)';
+        ctx.beginPath();
+        ctx.arc(h.x, h.y - r - 14, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     drawShieldArc(ctx, h, 'rgba(66, 165, 245, 0.95)', r);
@@ -676,17 +593,25 @@
         }
       }
       drawBossSprite(ctx, z, r);
-      // 腐吐者蓄力：口部按下一发弹种亮起
+      // 腐吐者蓄力：口部按下一发弹种亮起，球体随蓄力变大
       if (z.typeId === 'boss_spitter' && z.spitWindupT > 0 && z.nextBullet) {
         const mx = z.x + Math.cos(z.facing) * r * 0.95;
         const my = z.y + Math.sin(z.facing) * r * 0.95;
+        const bd = (ZG.Data.zombies.boss_spitter || {}).boss || {};
+        const win = bd.windup || 0.35;
+        const k = 1 - Math.max(0, Math.min(1, z.spitWindupT / win));
         ctx.save();
         ctx.fillStyle = z.nextBullet.color || '#9CFF57';
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 12;
         ctx.beginPath();
-        ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
+        ctx.arc(mx, my, 3 + k * 6, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(mx, my, 8 + k * 6, 0, Math.PI * 2);
+        ctx.stroke();
         ctx.restore();
       }
     } else {
@@ -707,19 +632,33 @@
       drawShieldArc(ctx, z, 'rgba(66, 165, 245, 0.9)', r);
     }
 
-    // 爆尸引信
+    // 爆尸引信：脉冲 + 进度环 + 膨胀
     if (z.fuseArmed) {
-      const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(state.battle.time * 18));
+      const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(state.battle.time * 10));
+      const fuseMax = (ZG.Data.zombies.boomer && ZG.Data.zombies.boomer.fuse) || 0.8;
+      const prog = Math.max(0, Math.min(1, 1 - z.fuseT / fuseMax));
+      const grow = 1 + prog * 0.22;
       ctx.save();
+      // 膨胀红晕
+      ctx.fillStyle = 'rgba(229, 57, 53, ' + (0.10 + 0.12 * prog) + ')';
+      ctx.beginPath();
+      ctx.arc(z.x, z.y, r * grow + 5, 0, Math.PI * 2);
+      ctx.fill();
       ctx.strokeStyle = 'rgba(239, 83, 80, ' + pulse + ')';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(z.x, z.y, r + 6, 0, Math.PI * 2);
       ctx.stroke();
+      // 引信进度环
+      ctx.strokeStyle = 'rgba(255, 235, 238, 0.95)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(z.x, z.y, r + 11, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2);
+      ctx.stroke();
       ctx.fillStyle = 'rgba(255, 138, 128, ' + pulse + ')';
       ctx.font = 'bold 11px "Microsoft YaHei", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('!', z.x, z.y - r - 12);
+      ctx.fillText('!', z.x, z.y - r - 14);
       ctx.restore();
     }
 
@@ -875,6 +814,21 @@
       } else if (p.delay > 0) {
         continue;
       } else {
+        // 火箭/毒瓶/导弹拖尾：渐隐折线
+        if (p.trail && p.trail.length > 1) {
+          ctx.save();
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.typeId === 'missile' ? 3 : 2;
+          for (let i = 1; i < p.trail.length; i++) {
+            const t0 = p.trail[i - 1], t1 = p.trail[i];
+            ctx.globalAlpha = (i / p.trail.length) * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(t0.x, t0.y);
+            ctx.lineTo(t1.x, t1.y);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
         ctx.save();
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;
@@ -888,148 +842,8 @@
   }
 
   function drawEffects(ctx, state) {
-    for (const e of state.effects) {
-      const a = Math.max(0, e.life / (e.maxLife || 0.1));
-      if (e.kind === 'tracer') {
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.strokeStyle = e.color;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(e.x1, e.y1);
-        ctx.lineTo(e.x2, e.y2);
-        ctx.stroke();
-        ctx.restore();
-      } else if (e.kind === 'flame') {
-        ctx.save();
-        ctx.globalAlpha = a * 0.55;
-        const g = ctx.createRadialGradient(e.x1, e.y1, 8, e.x1, e.y1, e.range);
-        g.addColorStop(0, 'rgba(255, 183, 77, 0.9)');
-        g.addColorStop(1, 'rgba(239, 83, 80, 0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.moveTo(e.x1, e.y1);
-        ctx.arc(e.x1, e.y1, e.range, e.facing - (e.coneDeg * Math.PI) / 360,
-          e.facing + (e.coneDeg * Math.PI) / 360);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      } else if (e.kind === 'slash') {
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.translate(e.x, e.y);
-        ctx.rotate(e.facing);
-        const g = ctx.createLinearGradient(0, 0, e.length, 0);
-        g.addColorStop(0, 'rgba(255,255,255,0.9)');
-        g.addColorStop(1, 'rgba(255, 138, 101, 0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, -e.width / 2, e.length, e.width);
-        ctx.restore();
-      } else if (e.kind === 'fire_ring' || e.kind === 'heal_ring' ||
-                 e.kind === 'taunt_ring' || e.kind === 'support_heal') {
-        const isHeal = e.kind === 'heal_ring' || e.kind === 'support_heal';
-        const isTaunt = e.kind === 'taunt_ring';
-        const color = isHeal ? '102, 187, 106' : (isTaunt ? '255, 213, 79' : '255, 112, 67');
-        ctx.save();
-        ctx.globalAlpha = a * 0.75;
-        ctx.strokeStyle = 'rgba(' + color + ', 0.9)';
-        ctx.fillStyle = 'rgba(' + color + ', 0.18)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, (e.radius || 60) * (1 - a * 0.35), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-      } else if (e.kind === 'mg_sweep') {
-        ctx.save();
-        ctx.globalAlpha = a * 0.5;
-        ctx.strokeStyle = '#FFE082';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.radius || 150, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      } else if (e.kind === 'shockwave') {
-        ctx.save();
-        ctx.globalAlpha = a * 0.7;
-        ctx.translate(e.x, e.y);
-        ctx.rotate(e.facing);
-        ctx.fillStyle = 'rgba(255, 204, 128, 0.35)';
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, e.range, -(e.coneDeg * Math.PI) / 360, (e.coneDeg * Math.PI) / 360);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      } else if (e.kind === 'support_warn') {
-        ctx.save();
-        ctx.globalAlpha = 0.35 + 0.35 * (1 - a);
-        ctx.strokeStyle = '#FF7043';
-        ctx.setLineDash([8, 6]);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.radius || 130, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.restore();
-      } else if (e.kind === 'dash_warn') {
-        ctx.save();
-        ctx.globalAlpha = 0.45 + 0.55 * a;
-        ctx.strokeStyle = 'rgba(239, 83, 80, 0.95)';
-        ctx.lineWidth = 5;
-        ctx.setLineDash([14, 8]);
-        ctx.beginPath();
-        ctx.moveTo(e.x1, e.y1);
-        ctx.lineTo(e.x2, e.y2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        const ang = Math.atan2(e.y2 - e.y1, e.x2 - e.x1);
-        ctx.fillStyle = 'rgba(255, 138, 128, 0.95)';
-        ctx.beginPath();
-        ctx.moveTo(e.x2, e.y2);
-        ctx.lineTo(e.x2 - Math.cos(ang - 0.45) * 16, e.y2 - Math.sin(ang - 0.45) * 16);
-        ctx.lineTo(e.x2 - Math.cos(ang + 0.45) * 16, e.y2 - Math.sin(ang + 0.45) * 16);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      } else if (e.kind === 'poison_cloud') {
-        ctx.save();
-        const grd = ctx.createRadialGradient(e.x, e.y, 4, e.x, e.y, e.radius);
-        grd.addColorStop(0, 'rgba(124, 179, 66, ' + (0.20 + 0.15 * a) + ')');
-        grd.addColorStop(0.7, 'rgba(46, 125, 50, ' + (0.14 + 0.10 * a) + ')');
-        grd.addColorStop(1, 'rgba(46, 125, 50, 0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(174, 213, 129, ' + (0.25 * a + 0.15) + ')';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        for (let i = 0; i < 5; i++) {
-          const t = state.battle.time * 1.7 + i * 1.26;
-          const rr = e.radius * (0.25 + 0.55 * ((i * 0.37) % 1));
-          ctx.fillStyle = 'rgba(213, 245, 184, ' + (0.35 * a) + ')';
-          ctx.beginPath();
-          ctx.arc(e.x + Math.cos(t) * rr, e.y + Math.sin(t * 1.3) * rr,
-            2.4 + 1.2 * Math.sin(t * 2), 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
-      } else if (e.kind === 'summon') {
-        ctx.save();
-        ctx.globalAlpha = 0.35 + 0.55 * (1 - a);
-        ctx.strokeStyle = 'rgba(225, 190, 231, 0.95)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, 12 + (1 - a) * 54, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(156, 255, 87, 0.7)';
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, 6 + (1 - a) * 36, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
+    ZG.Fx.drawWorld(ctx, state);
+    ZG.Fx.drawAir(ctx, state);
   }
 
   function drawSupportAim(ctx, state) {
@@ -1168,6 +982,9 @@
       R.bgSig = sig;
     }
 
+    state.cssW = R.cssW;
+    state.cssH = R.cssH;
+
     clearCanvas(ctx);
 
     const off = state.settings.shake === false ? { x: 0, y: 0 } : ZG.Particles.getOffset();
@@ -1185,6 +1002,7 @@
     drawSupportAim(ctx, state);
 
     ZG.Particles.draw(ctx, state.settings);
+    ZG.Fx.drawScreen(ctx, state);
     ctx.restore();
   }
 

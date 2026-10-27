@@ -38,6 +38,7 @@
       population: '人口已满',
       'civilian-cap': '平民已满',
       outside: '地图外',
+      'outside-zone': '超出可活动区域',
       overlap: '位置重叠',
       obstacle: '障碍阻挡',
       limit: '已达上限',
@@ -323,23 +324,7 @@
 
   function drawMapThumb(canvas, map) {
     const ctx = canvas.getContext('2d');
-    const sx = canvas.width / 1280, sy = canvas.height / 720;
-    ctx.save();
-    ctx.scale(sx, sy);
-    ctx.fillStyle = map.theme.ground;
-    ctx.fillRect(0, 0, 1280, 720);
-    ctx.fillStyle = map.theme.road;
-    for (const r of map.roads || []) ctx.fillRect(r.x, r.y, r.w, r.h);
-    // 四面来袭提示
-    ctx.fillStyle = 'rgba(239,83,80,0.75)';
-    for (const sp of [{ x: 640, y: 12 }, { x: 640, y: 708 }, { x: 12, y: 360 }, { x: 1268, y: 360 }]) {
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, 14, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = 'rgba(84,110,122,0.9)';
-    for (const ob of map.obstacles || []) {
-      ctx.beginPath(); ctx.arc(ob.x, ob.y, ob.r, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
+    ZG.MapLayer.drawMinimap(ctx, map, canvas.width, canvas.height);
   }
 
   function buildSettlement() {

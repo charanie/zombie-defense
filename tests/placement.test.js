@@ -25,3 +25,35 @@ test('moveHuman 可跨全图并更新 home', () => {
   assert.equal(h.x, 120); assert.equal(h.homeX, 120);
   assert.equal(ZG.Economy.moveHuman(s, h.id, 0, 80).ok, false);
 });
+
+test('地铁图中央设备带与轨道不能放置', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  s.money = 9999;
+  assert.equal(ZG.Economy.canPlace(s, 200, 360, 8).reason, 'outside-zone');
+  assert.equal(ZG.Economy.canPlace(s, 200, 80, 8).reason, 'outside-zone');
+  assert.equal(ZG.Economy.canPlace(s, 200, 230, 8).ok, true);
+  assert.equal(ZG.Economy.canPlace(s, 1100, 360, 8).ok, true);
+});
+
+test('地铁图建筑同样限制在活动区', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  s.money = 9999;
+  assert.equal(ZG.Economy.canPlaceBuilding(s, 'turret', 200, 360).reason, 'outside-zone');
+  assert.equal(ZG.Economy.canPlaceBuilding(s, 'turret', 200, 240).ok, true);
+});
+
+test('moveHuman 到区域外被拒绝且不改变位置', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  const h = ZG.State.spawnHuman(s, 'pistol', 1100, 360);
+  const r = ZG.Economy.moveHuman(s, h.id, 500, 360);
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'outside-zone');
+  assert.equal(h.x, 1100); assert.equal(h.y, 360);
+});
+
+test('地铁图按单位半径检查，圆不能伸进设备带', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  s.money = 9999;
+  assert.equal(ZG.Economy.canPlace(s, 500, 295, 11).reason, 'outside-zone');
+  assert.equal(ZG.Economy.canPlace(s, 500, 240, 11).ok, true);
+});

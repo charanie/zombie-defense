@@ -1,0 +1,65 @@
+/* 地铁图僵尸活动范围与反卡死回归 */
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const ZG = require('./load-sim.js')();
+
+test('地铁图僵尸始终在通道与大厅内', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 5 });
+  ZG.State.spawnHuman(s, 'shield', 1120, 360);
+  for (let i = 0; i < 12; i++) ZG.State.spawnZombie(s, 'walker', -20, i % 2 ? 230 : 490);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 900);
+  assert.ok(s.zombies.length > 0, '僵尸应仍存活');
+  for (const z of s.zombies) {
+    assert.ok(ZG.MapZone.contains(s.map, z.x, z.y), `zombie ${z.typeId} at ${z.x},${z.y}`);
+  }
+});
+
+test('地铁图 BOSS 与召唤物不会进入设备带', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 5 });
+  s.round = 7;
+  ZG.State.spawnHuman(s, 'shield', 1120, 360);
+  const boss = ZG.State.spawnZombie(s, 'boss_brood', -20, 230);
+  boss.hp = boss.maxHp = 1e6;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 1200);
+  for (const z of s.zombies) {
+    assert.ok(ZG.MapZone.contains(s.map, z.x, z.y), `${z.typeId} at ${z.x},${z.y}`);
+  }
+});
+
+test('地铁图僵尸 8 秒内能推进过柱子不被卡死', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 5 });
+  ZG.State.spawnHuman(s, 'shield', 1100, 480);
+  const z = ZG.State.spawnZombie(s, 'walker', -20, 490);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  const x0 = z.x;
+  ZG.Sim.tick(s, 480);
+  assert.ok(z.x > x0 + 100, `推进不足：x=${z.x}`);
+});
+
+test('地铁通道与末端大厅的接缝可通行', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 5 });
+  ZG.State.spawnHuman(s, 'shield', 1120, 480);
+  const z = ZG.State.spawnZombie(s, 'walker', 980, 481);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 600);
+  assert.ok(z.x > 1050, `应穿过 x=1000 接缝进入大厅，实际 x=${z.x.toFixed(1)}`);
+});
+
+test('母体与母巢死亡幼体都在活动区内', () => {
+  for (const seed of [4, 5, 6]) {
+    const s = ZG.Sim.createGame({ mapId: 'subway', seed });
+    ZG.State.spawnHuman(s, 'shield', 1120, 360);
+    const m = ZG.State.spawnZombie(s, 'mother', 990, 552);
+    ZG.Combat.killZombie(s, m);
+    for (const z of s.zombies) {
+      assert.ok(ZG.MapZone.contains(s.map, z.x, z.y), `seed ${seed} mother baby at ${z.x},${z.y}`);
+    }
+    const b = ZG.State.spawnZombie(s, 'boss_brood', 990, 230);
+    ZG.Combat.killZombie(s, b);
+    for (const z of s.zombies) {
+      assert.ok(ZG.MapZone.contains(s.map, z.x, z.y), `seed ${seed} brood baby at ${z.x},${z.y}`);
+    }
+  }
+});

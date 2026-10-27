@@ -1,6 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const ZG = require('./load-sim.js')();
+const { stubCtx } = require('./stub-ctx.js');
 
 test('兵种卡状态与禁用原因', () => {
   const s = ZG.Sim.createGame({ mapId: 'suburban', seed: 1 });
@@ -157,4 +158,31 @@ test('移动端布局高度自适应 visualViewport 并保持三段不溢出', (
   assert.equal(c.panelH, 120);
   assert.equal(c.canvasH, 230);
   assert.equal(c.panelH + c.canvasH + c.topH, 390);
+});
+
+test('三张地图有各自的区域色', () => {
+  const st = ZG.MapLayer.styleOf(ZG.Data.maps.subway);
+  assert.ok(st.zone);
+  assert.notEqual(st.zone, ZG.MapLayer.styleOf(ZG.Data.maps.suburban).zone);
+});
+
+test('地图背景绘制不抛错且画出足够图元', () => {
+  for (const id of ZG.Data.mapOrder) {
+    const ctx = stubCtx();
+    ZG.MapLayer.draw(ctx, ZG.Data.maps[id]);
+    assert.ok(ctx.calls.fillRect + ctx.calls.stroke + ctx.calls.arc >= 10, id);
+  }
+});
+
+test('缩略图绘制不抛错', () => {
+  const ctx = stubCtx();
+  ZG.MapLayer.drawMinimap(ctx, ZG.Data.maps.subway, 220, 110);
+  assert.ok(ctx.calls.fillRect >= 3);
+});
+
+test('装饰 kind 覆盖三图需求', () => {
+  const kinds = new Set(ZG.MapLayer.decorKinds());
+  for (const k of ['track', 'platformLine', 'tunnel', 'kiosk', 'zebra', 'lamp', 'planter', 'parking']) {
+    assert.ok(kinds.has(k), k);
+  }
 });

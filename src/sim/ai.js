@@ -149,6 +149,7 @@
 
   function blockedAt(state, x, y, radius) {
     if (x < 8 || y < 8 || x > ZG.Const.W - 8 || y > ZG.Const.H - 8) return true;
+    if (!ZG.MapZone.contains(state.map, x, y)) return true;
     const map = state.map;
     if (map && map.obstacles) {
       for (const ob of map.obstacles) {
@@ -173,8 +174,9 @@
       const ca = Math.cos(a), sa = Math.sin(a);
       const vx = dx * ca - dy * sa;
       const vy = dx * sa + dy * ca;
-      const nx = Math.max(8, Math.min(ZG.Const.W - 8, h.x + vx * step));
-      const ny = Math.max(8, Math.min(ZG.Const.H - 8, h.y + vy * step));
+      const p = ZG.MapZone.clamp(state.map, h.x + vx * step, h.y + vy * step, h.radius);
+      const nx = Math.max(8, Math.min(ZG.Const.W - 8, p.x));
+      const ny = Math.max(8, Math.min(ZG.Const.H - 8, p.y));
       if (!blockedAt(state, nx, ny, h.radius)) {
         h.x = nx; h.y = ny;
         h.moveX = vx; h.moveY = vy;
@@ -519,10 +521,18 @@
           z.burnFromY = h.y;
         }
         h.flameT = 0.16;
-        if (state.effects.length < 250) {
+        if (state.effects.length < 248) {
           state.effects.push({
             kind: 'flame', x1: h.x, y1: h.y, facing: h.facing,
             range: st.range, coneDeg: a.coneDeg || 50, life: 0.16, maxLife: 0.16
+          });
+          const bm = list[0] || {
+            x: h.x + Math.cos(h.facing) * st.range * 0.6,
+            y: h.y + Math.sin(h.facing) * st.range * 0.6
+          };
+          state.effects.push({
+            kind: 'burn_mark', x: bm.x, y: bm.y, radius: 26,
+            life: 1.5, maxLife: 1.5, color: '#2A1C14', seed: h.id
           });
         }
         return list.length > 0;
@@ -675,10 +685,18 @@
           : c;
         const volley = m.hero.officerUses;
         for (let i = 0; i < volley; i++) {
+          const lock = ZG.MapZone.clamp(state.map,
+            target.x + (i - (volley - 1) / 2) * 40,
+            target.y + (i - (volley - 1) / 2) * 20, 0);
+          if (state.effects.length < 250) {
+            state.effects.push({
+              kind: 'missile_lock', x: lock.x, y: lock.y, radius: 140,
+              life: 0.9, maxLife: 0.9, delay: i * 0.4, color: '#FFD54F', seed: i
+            });
+          }
           ZG.Projectiles.spawn(state, {
             typeId: 'missile', x: h.x, y: h.y,
-            tx: target.x + (i - (volley - 1) / 2) * 40,
-            ty: target.y + (i - (volley - 1) / 2) * 20,
+            tx: lock.x, ty: lock.y,
             speed: 900, splash: m.hero.officerRange, damage: 400, delay: i * 0.4,
             damageKind: D.EXPLOSION, ownerId: h.id, color: '#FFD54F'
           });
@@ -707,6 +725,12 @@
           }
         }
         h.skillCd = m.hero.gatlingInterval * m.skillCdMul;
+        if (state.effects.length < 250) {
+          state.effects.push({
+            kind: 'inspire', x: h.x, y: h.y, radius: 200,
+            life: 0.8, maxLife: 0.8, color: '#FFD54F'
+          });
+        }
         state.bus.emit('fx:ability', { kind: 'inspire', x: h.x, y: h.y, text: '鼓舞！' });
       } else {
         h.skillCd = 1;
@@ -724,6 +748,13 @@
           ZG.Infection.dispel(state, u, 30);
         }
         h.skillCd = m.hero.plagueInterval * m.skillCdMul;
+        if (state.effects.length < 250) {
+          state.effects.push({
+            kind: 'groupheal', x: h.x, y: h.y, radius: 180,
+            life: 0.7, maxLife: 0.7, color: '#66BB6A'
+          });
+        }
+        state.bus.emit('fx:heal', { x: h.x, y: h.y });
         state.bus.emit('fx:ability', { kind: 'groupheal', x: h.x, y: h.y, text: '群体治疗' });
       } else {
         h.skillCd = 1;
@@ -914,6 +945,14 @@
 
         const bx = b.x + ux * push, by = b.y + uy * push;
         if (!blockedAt(state, bx, by, b.radius)) { b.x = bx; b.y = by; }
+      }
+    }
+    // 推挤仍可能把边缘单位挤到活动区外，最后统一投影回最近合法点
+    if (ZG.MapZone.has(state.map)) {
+      for (const u of list) {
+        if (!u.alive) continue;
+        const p = ZG.MapZone.clamp(state.map, u.x, u.y, u.radius);
+        u.x = p.x; u.y = p.y;
       }
     }
   }
@@ -1124,9 +1163,14 @@
         }
       }
     }
-    const M = ZG.Const.SPAWN_WORLD_MARGIN;
-    z.x = Math.max(-M, Math.min(ZG.Const.W + M, nx));
-    z.y = Math.max(-M, Math.min(ZG.Const.H + M, ny));
+    if (ZG.MapZone.has(state.map)) {
+      const p = ZG.MapZone.clamp(state.map, nx, ny, z.radius);
+      z.x = p.x; z.y = p.y;
+    } else {
+      const M = ZG.Const.SPAWN_WORLD_MARGIN;
+      z.x = Math.max(-M, Math.min(ZG.Const.W + M, nx));
+      z.y = Math.max(-M, Math.min(ZG.Const.H + M, ny));
+    }
     z.facing = Math.atan2(dy, dx);
   }
 
@@ -1177,7 +1221,8 @@
     if (z.stompCd > 0) z.stompCd = tickDown(z.stompCd, dt);
 
     if (z.rockCd <= 0) {
-      const p = densestHumanPoint(state);
+      const hp = densestHumanPoint(state);
+      const p = ZG.MapZone.clamp(state.map, hp.x, hp.y, 0);
       ZG.Projectiles.spawn(state, {
         typeId: 'rock', x: p.x, y: p.y, tx: p.x, ty: p.y,
         radius: rock.radius, splash: rock.radius,
@@ -1185,6 +1230,12 @@
         warnT: rock.warn, infection: rock.infection,
         hitsHumans: true, ownerId: z.id, color: '#EF5350'
       });
+      if (state.effects.length < 250) {
+        state.effects.push({
+          kind: 'rock_warn', x: p.x, y: p.y, radius: rock.radius,
+          life: rock.warn, maxLife: rock.warn, color: '#EF5350', seed: z.id
+        });
+      }
       z.rockCd = rock.interval;
     }
 
@@ -1203,6 +1254,12 @@
           }
         }
         z.stompCd = stomp.interval;
+        if (state.effects.length < 250) {
+          state.effects.push({
+            kind: 'stomp', x: z.x, y: z.y, radius: stomp.radius,
+            life: 0.35, maxLife: 0.35, color: '#FFB74D', seed: z.id
+          });
+        }
         state.bus.emit('fx:stomp', { x: z.x, y: z.y, radius: stomp.radius });
       }
     }
@@ -1257,12 +1314,13 @@
     if (z.dashCd <= 0 && t) {
       const dist = ZG.Geom.dist(z.x, z.y, t.x, t.y);
       if (dist >= d.minRange && dist <= d.maxRange) {
+        const dest = ZG.MapZone.clamp(state.map, t.x, t.y, z.radius);
         z.dashWindupT = d.windup;
-        z.dashToX = t.x;
-        z.dashToY = t.y;
-        z.facing = Math.atan2(t.y - z.y, t.x - z.x);
+        z.dashToX = dest.x;
+        z.dashToY = dest.y;
+        z.facing = Math.atan2(dest.y - z.y, dest.x - z.x);
         state.effects.push({
-          kind: 'dash_warn', x1: z.x, y1: z.y, x2: t.x, y2: t.y,
+          kind: 'dash_warn', x1: z.x, y1: z.y, x2: dest.x, y2: dest.y,
           life: d.windup, maxLife: d.windup
         });
         return true;
@@ -1335,9 +1393,19 @@
         for (let i = 0; i < n; i++) {
           const a = state.rng.spawn.next() * Math.PI * 2;
           const rr = s.radiusMin + state.rng.spawn.next() * (s.radiusMax - s.radiusMin);
-          const b = ZG.State.spawnZombie(state, s.type,
-            z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+          const bx = z.x + Math.cos(a) * rr;
+          const by = z.y + Math.sin(a) * rr;
+          const bd2 = ZG.Data.zombies[s.type] || {};
+          const br = bd2.radius || 7;
+          const p = ZG.MapZone.clamp(state.map, bx, by, br);
+          const b = ZG.State.spawnZombie(state, s.type, p.x, p.y);
           b.wave = z.wave;
+          if (state.effects.length < 250) {
+            state.effects.push({
+              kind: 'burrow', x: p.x, y: p.y, radius: 18,
+              life: 0.6, maxLife: 0.6, color: '#A1887F', seed: b.id
+            });
+          }
           state.battle.babyCount = (state.battle.babyCount || 0) + 1;
         }
         z.summonCd = s.interval;
@@ -1460,6 +1528,7 @@
         if (!z.fuseArmed && (edge <= 35 || z.hp <= z.maxHp * 0.2)) {
           z.fuseArmed = true;
           z.fuseT = 0.8;
+          state.bus.emit('fx:fuse', { x: z.x, y: z.y });
         }
         if (z.fuseArmed) {
           z.fuseT -= dt;
@@ -1472,11 +1541,33 @@
               hitsHumans: true, hitsBuildings: false, infection: 100,
               color: '#E53935', kind: 'boomer'
             });
+            if (state.effects.length < 250) {
+              state.effects.push({
+                kind: 'boom', x: z.x, y: z.y, radius: 80,
+                life: 0.45, maxLife: 0.45, color: '#E53935', seed: z.id
+              });
+              state.effects.push({
+                kind: 'crack', x: z.x, y: z.y, radius: 44,
+                life: 2.5, maxLife: 2.5, color: '#8D6E63', seed: z.id
+              });
+              state.effects.push({
+                kind: 'poison_cloud', x: z.x, y: z.y, radius: 72,
+                life: 2.2, maxLife: 2.2, color: '#7CB342', seed: z.id
+              });
+            }
             state.bus.emit(ZG.Events.ZOMBIE_DIED, { zombie: z });
             continue;
           }
         }
-        if (d > 20) moveZombie(state, z, p.x, p.y, speed, dt);
+        if (d > 20) {
+          // 有 zones 时远处也走流场：直线冲向隔断另一侧的人类会贴着设备带边滑动
+          if (ZG.MapZone.has(state.map) && d > 90) {
+            const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y, z.radius);
+            moveZombie(state, z, z.x + dir.x * 100, z.y + dir.y * 100, speed, dt);
+          } else {
+            moveZombie(state, z, p.x, p.y, speed, dt);
+          }
+        }
         continue;
       }
 
@@ -1505,10 +1596,13 @@
         z.facing = Math.atan2(ty - z.y, tx - z.x);
         if (tgt.target) attacking = zombieAttackTarget(state, z, tgt.target, dt);
       } else {
-        // 远处沿流场，近处直追
+        // 远处沿流场，近处直追。地铁类活动区地图被设备带隔断，直追会贴着边界滑行，
+        // 因此有 zones 时所有僵尸都在 90px 外走流场。
+        const zoned = ZG.MapZone.has(state.map);
+        const flowDist = zoned ? 90 : 340;
         let nx = tx, ny = ty;
-        if (usesFlowField(z) && dist > 340 && tgt.kind !== 'building') {
-          const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y);
+        if ((usesFlowField(z) || zoned) && dist > flowDist && tgt.kind !== 'building') {
+          const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y, z.radius);
           nx = z.x + dir.x * 100;
           ny = z.y + dir.y * 100;
         }
@@ -1522,10 +1616,11 @@
       } else if (!attacking) {
         z.stuckT += dt;
         if (z.stuckT >= ZG.Const.STUCK_SEC) {
-          const p = ZG.Pathing.nearestReachable(state.pathing, z.x, z.y);
+          const p = ZG.Pathing.nearestReachable(state.pathing, z.x, z.y,
+            ZG.MapZone.has(state.map) ? { advance: true } : undefined);
           let nx = p.x, ny = p.y;
           if (ZG.Geom.dist2(nx, ny, z.x, z.y) < 4) {
-            const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y);
+            const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y, z.radius);
             nx = Math.max(8, Math.min(ZG.Const.W - 8, p.x + dir.x * 64));
             ny = Math.max(8, Math.min(ZG.Const.H - 8, p.y + dir.y * 64));
           }
@@ -1555,9 +1650,14 @@
         z.x += (dx / d) * push;
         z.y += (dy / d) * push;
       }
-      const M = ZG.Const.SPAWN_WORLD_MARGIN;
-      z.x = Math.max(-M, Math.min(ZG.Const.W + M, z.x));
-      z.y = Math.max(-M, Math.min(ZG.Const.H + M, z.y));
+      if (ZG.MapZone.has(state.map)) {
+        const p = ZG.MapZone.clamp(state.map, z.x, z.y, z.radius);
+        z.x = p.x; z.y = p.y;
+      } else {
+        const M = ZG.Const.SPAWN_WORLD_MARGIN;
+        z.x = Math.max(-M, Math.min(ZG.Const.W + M, z.x));
+        z.y = Math.max(-M, Math.min(ZG.Const.H + M, z.y));
+      }
     }
   }
 

@@ -3,6 +3,47 @@
   'use strict';
   const ZG = globalThis.ZG = globalThis.ZG || {};
 
+  function drawShape(ctx, p, size) {
+    const s = Math.max(0.4, size);
+    if (p.shape === 'spark') {
+      const ang = Math.atan2(p.vy, p.vx) || p.rot;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x - Math.cos(ang) * s * 4, p.y - Math.sin(ang) * s * 4);
+      ctx.stroke();
+    } else if (p.shape === 'smoke') {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, s * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.shape === 'shard') {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.moveTo(p.x + Math.cos(p.rot) * s * 2, p.y + Math.sin(p.rot) * s * 2);
+      ctx.lineTo(p.x + Math.cos(p.rot + 2.4) * s, p.y + Math.sin(p.rot + 2.4) * s);
+      ctx.lineTo(p.x + Math.cos(p.rot - 2.4) * s, p.y + Math.sin(p.rot - 2.4) * s);
+      ctx.closePath();
+      ctx.fill();
+    } else if (p.shape === 'star') {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const ang = p.rot + (i * Math.PI) / 2;
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + Math.cos(ang) * s * 3, p.y + Math.sin(ang) * s * 3);
+      }
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function create(opts) {
     const o = opts || {};
     const cap = o.cap || ZG.Const.PARTICLE_CAP_DESKTOP;
@@ -12,6 +53,7 @@
     let cursor = 0;
     let dmgCursor = 0;
     let shakeT = 0, shakePower = 0, shakeX = 0, shakeY = 0;
+    let burstScale = 1;
 
     const api = {
       cap,
@@ -29,6 +71,11 @@
           size: p.size || 2.4,
           gravity: p.gravity || 0,
           ring: !!p.ring,
+          shape: p.shape || 'circle',
+          rot: p.rot || 0,
+          spin: p.spin || 0,
+          scaleTo: p.scaleTo || 1,
+          additive: !!p.additive,
           text: p.text || null
         };
         if (particles.length < cap) particles.push(item);
@@ -52,7 +99,7 @@
         }
       },
       burst(x, y, color, n) {
-        const count = n || 8;
+        const count = Math.max(1, Math.round((n || 8) * burstScale));
         for (let i = 0; i < count; i++) {
           const a = Math.random() * Math.PI * 2;
           const sp = 40 + Math.random() * 130;
@@ -82,6 +129,7 @@
           p.y += p.vy * dt;
           p.vy += p.gravity * dt;
           p.vx *= 0.98;
+          p.rot += p.spin * dt;
         }
         for (let i = damage.length - 1; i >= 0; i--) {
           const d = damage[i];
@@ -102,7 +150,9 @@
       draw(ctx, settings) {
         for (const p of particles) {
           const a = Math.max(0, p.life / p.maxLife);
+          const scale = 1 + (p.scaleTo - 1) * (1 - a);
           ctx.globalAlpha = a;
+          if (p.additive) ctx.globalCompositeOperation = 'lighter';
           if (p.kind === 'ring') {
             ctx.globalAlpha = a * 0.55;
             ctx.strokeStyle = p.color;
@@ -116,11 +166,9 @@
             ctx.textAlign = 'center';
             ctx.fillText('+', p.x, p.y);
           } else {
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
-            ctx.fill();
+            drawShape(ctx, p, p.size * a * scale);
           }
+          if (p.additive) ctx.globalCompositeOperation = 'source-over';
         }
         ctx.globalAlpha = 1;
 
@@ -139,6 +187,7 @@
         shakeT = Math.max(shakeT, 0.2);
         shakePower = Math.max(shakePower, power || 4);
       },
+      setQuality(q) { burstScale = q === 'mobile' ? 0.5 : 1; },
       getOffset() { return { x: shakeX, y: shakeY }; },
       activeCount() { return particles.length; },
       damageCount() { return damage.length; },
@@ -158,6 +207,7 @@
     step: () => defaultInstance.step(),
     draw: (...a) => defaultInstance.draw(...a),
     shake: (...a) => defaultInstance.shake(...a),
+    setQuality: (...a) => defaultInstance.setQuality(...a),
     getOffset: () => defaultInstance.getOffset(),
     activeCount: () => defaultInstance.activeCount(),
     damageCount: () => defaultInstance.damageCount(),

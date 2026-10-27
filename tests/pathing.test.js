@@ -26,10 +26,33 @@ test('矩形墙阻挡流场', () => {
   assert.equal(s.pathing.blocked[i], 1);
 });
 
-test('地图边缘可达中心', () => {
+test('三张地图可达性校验', () => {
   for (const id of ['suburban', 'hospital', 'subway']) {
     const r = ZG.Pathing.validate(ZG.Data.maps[id]);
     assert.equal(r.ok, true, id + ': ' + JSON.stringify(r));
+  }
+});
+
+test('地铁图流场只覆盖活动区', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  ZG.State.spawnHuman(s, 'shield', 1120, 360);
+  s.pathing = ZG.Pathing.build(s);
+  const outside = 11 * ZG.Const.GRID_COLS + 15; // (496, 368) 中央设备带
+  const inside = 7 * ZG.Const.GRID_COLS + 15;  // (496, 240) 北通道
+  assert.equal(s.pathing.blocked[outside], 1);
+  assert.equal(s.pathing.blocked[inside], 0);
+  assert.notEqual(s.pathing.dist[inside], 65535);
+});
+
+test('地铁图两个入口都能走向大厅', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  ZG.State.spawnHuman(s, 'shield', 1120, 360);
+  const zs = [-20, 490].map(y => ZG.State.spawnZombie(s, 'walker', -20, y));
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 900);
+  for (const z of zs) {
+    assert.ok(z.x > 400, `入口僵尸应推进到通道中段，实际 x=${z.x.toFixed(0)}`);
+    assert.ok(z.alive, '盾兵不应在 15 秒内杀死入口僵尸');
   }
 });
 
