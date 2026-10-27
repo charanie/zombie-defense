@@ -70,7 +70,7 @@ async function run(opts) {
   const port = opts.port || (9300 + Math.floor(Math.random() * 400));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zd-qa-'));
   const args = [
-    '--headless=new', '--disable-gpu', '--hide-scrollbars', '--mute-audio',
+    '--headless=new', '--hide-scrollbars', '--mute-audio',
     '--disable-extensions', '--no-first-run', '--no-default-browser-check',
     '--remote-debugging-port=' + port,
     '--user-data-dir=' + dir,
@@ -78,6 +78,7 @@ async function run(opts) {
     '--force-device-scale-factor=1',
     'about:blank'
   ];
+  if (!opts.gpu) args.splice(2, 0, '--disable-gpu');
   const proc = spawn(edgePath(), args, { stdio: 'ignore' });
   try {
     const target = await waitTarget(port, null);
@@ -145,6 +146,7 @@ function parseArgs(argv) {
     else if (a === '--mobile') out.mobile = true;
     else if (a === '--coarse') out.coarse = true;
     else if (a === '--reduced') out.reduced = true;
+    else if (a === '--gpu') out.gpu = true;
     else rest.push(a);
   }
   out.url = rest[0];
