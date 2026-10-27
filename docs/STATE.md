@@ -6,7 +6,8 @@
 
 - **版本**：v1.6.0。v1.5（三地图细化 / 地铁双通道 / 技能特效）已并入 `main`，v1.6 在其上重做开始流程。
 - **阶段**：开发完成；自动化验证全绿，浏览器 QA 已走查（桌面五档 + 键盘 + reduced motion），**待真机/线上缓存复测**。
-- **在线地址**：<https://charanie.github.io/zombie-defense/>（需发布 v1.6 构建后更新）。
+- **在线地址**：<https://charanie.github.io/zombie-defense/>（`main` 已推送到 v1.6.0）。
+- **安卓包**：`dist/zombie-defense-v1.6.0.apk`（0.36 MB，minSdk 24，自签名 v2+v3，零权限），构建脚本 `tools/android-build/build_apk.py`。
 - **可运行**：双击 `index.html`；或 `python -m http.server 8765` 后访问 `http://127.0.0.1:8765/`。
 - **测试**：`npm test` → **293 项全部通过**。
 - **性能**：300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 1.81`（预算 2.5）、`maxStepMs ≈ 15.9`。
@@ -23,6 +24,7 @@
 - **修掉的旧 bug**：菜单里“图鉴/设置”死按钮；弹窗被菜单盖住；菜单中 `Space/H/T/Tab` 触发游戏操作。
 - **记录**：新增 `zd_last_<id>`（上次抵达，只增不减）；选图页与简报显示 `最佳 / 上次抵达`，为空显示 `—`。
 - **设置**：新增“开场动画”开关（关闭后 0.25s 淡入）；`prefers-reduced-motion` 运行时优先。
+- **安卓 APK**：`apps/zombie-defense-android/`（单 Activity + WebView，`https://appassets.local/` 虚拟源拦截 `assets/www`）；`tools/android-build/build_apk.py` 用“python 内嵌 JVM + 手写 AXML + 纯 Python 组包”绕过 Gradle/aapt2 构建，产物 `dist/zombie-defense-v1.6.0.apk`。
 
 ## v1.5.0 已完成（并入本版）
 
@@ -56,6 +58,12 @@
   - 三图整备期截图 `shots/map-suburban.png` / `shots/map-hospital.png` / `shots/map-subway.png`；英雄与 BOSS 特效 `shots/fx-hero.png` / `shots/fx-boss.png`。
   - 手机 390×844（触控模拟）：无横向滚动（`scrollWidth=390`）；BOSS 战 600 帧 `avg 16.6ms / p95 16.8ms / max 33.3ms / >50ms 帧 0`；截图 `shots/mobile-subway.png`、`shots/mobile-boss.png`。
   - 分图 bot：医院 seed 1 到 R7（v1.4 R6）；地铁 seed 1 到 R6（v1.4 旧图 R7）；开局资金 500 作为补偿。
+- **安卓 APK 验证（2026-10-27）**：
+  - `aapt2 dump badging`：package `com.charanie.zombiedefense`、versionCode 10600 / versionName 1.6.0、minSdk 24、targetSdk 34、`launchable-activity: MainActivity`、`application label='尸潮防线'`。
+  - `aapt2 dump xmltree`：`versionCode(0x0101021b)=10600`、`label(0x01010001)="尸潮防线"`、`icon=@0x01080093`、`theme=@0x01030007`、activity `name/exported/configChanges=8096/screenOrientation=6/launchMode=2`、`MAIN` + `LAUNCHER` 全部正确 —— 手写 AXML 被官方解析器完整接受。
+  - `apksigner verify -v`：v2 `true`、v3 `true`；`dexdump`：3 个类（`MainActivity`、`MainActivity$LocalAssetClient`、`MainActivity$1`）。
+  - APK 共 61 个条目：`AndroidManifest.xml`、`classes.dex`、`assets/www/**`（56 个游戏文件）。
+  - **未做**：真机安装 / 启动验证（本机无 Android 设备，也未装模拟器）。
 - 旧记录（v1.4）：231/231、`avgStepMs≈1.5`、线上 `zd-v1.4.0` 缓存验证通过。
 
 ## 下一步（建议顺序）

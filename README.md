@@ -26,6 +26,23 @@ python -m http.server 8765
 
 `?dev=1` 会跳过 Service Worker，避免开发时缓存干扰。
 
+## 安卓 APK（手机安装）
+
+`dist/zombie-defense-v1.6.0.apk`（约 0.36 MB）是打包好的安卓安装包：单 Activity + WebView，
+游戏资源全部内置，**不需要网络、不申请任何权限**。
+
+- 安装：把 APK 传到手机（数据线 / 微信文件传输 / 网盘均可）→ 点开安装 → 允许“安装未知来源应用”。
+- 要求：Android 7.0（API 24）及以上；横屏锁定；包名 `com.charanie.zombiedefense`。
+- 说明：自签名（v2 + v3），可直接侧载，不是应用商店包；图标暂用系统默认图标。
+
+重新打包（需要 JDK 17 + Android SDK build-tools 34 + python 的 `jpype1`）：
+
+```powershell
+python tools\android-build\build_apk.py     # 或双击 apps\zombie-defense-android\build-apk.cmd
+```
+
+细节与取舍见 [`apps/zombie-defense-android/README.md`](apps/zombie-defense-android/README.md)。
+
 ## 怎么玩
 
 1. 主菜单选 **无尽模式**，在三张战区里挑一张：**郊区公路**（1★）、**医院广场**（2★）、**地铁站台**（3★）；点卡即进入，播放开场演出（0.35s 后按任意键可跳过）。
@@ -81,6 +98,7 @@ node tests/bot.js --rounds 42 --seed 1
 node tests/bot.js --rounds 42 --seed 1 --rocket-only   # 纯火箭兵平衡回归
 node tools/make-icons.js    # 重新生成 PWA 图标与 OG 图
 node tools/qa-shot.js <url> <out.png> --eval-file <js> # Edge headless 截图 / 脚本化走查
+python tools/android-build/build_apk.py               # 重新打安卓 APK（产物在 dist/）
 ```
 
 ### 目录
@@ -103,7 +121,9 @@ zombie-defense/
     main.js                  启动、开始流程编排、主循环、输入回调、PWA
     test-hooks.js            window.__game
   tests/                     node:test + load-sim + bot + bench
-  tools/                     图标生成、qa-shot（Edge headless 截图）
+  tools/                     图标生成、qa-shot（Edge headless 截图）、android-build（APK 构建）
+  apps/zombie-defense-android/  Android WebView 壳 + APK 构建说明
+  dist/                      打好的 APK
   docs/                      设计计划书、实现方案、STATE、ADR、平衡记录
   qa/checklist.md            QA 验收清单
 ```
@@ -147,7 +167,7 @@ git push -u origin main
 
 ## 版本
 
-**v1.6.0**（2026-10-27）— 开始界面重做：主菜单（无尽/剧情占位/图鉴/设置 + 战区监视）、无尽选图（三张战区卡 + 行动简报）、4.2s 程序化开场演出（可跳过，重开 1.0s）；修掉菜单死按钮、弹窗层级、键盘穿透三个旧 bug；新增“上次抵达”记录与“开场动画”开关。
+**v1.6.0**（2026-10-27）— 开始界面重做：主菜单（无尽/剧情占位/图鉴/设置 + 战区监视）、无尽选图（三张战区卡 + 行动简报）、4.2s 程序化开场演出（可跳过，重开 1.0s）；修掉菜单死按钮、弹窗层级、键盘穿透三个旧 bug；新增“上次抵达”记录与“开场动画”开关；新增安卓 APK 壳（`dist/zombie-defense-v1.6.0.apk`）。
 
 **v1.5.0**（2026-10-27）— 地图细节与特效：三张地图重做（`MapLayer` 静态层 + 缩略图）、地铁双通道活动区（`MapZone`）、只从西侧隧道出怪、区域感知寻路；英雄技能与 BOSS 特殊攻击的分层特效（预警/过程/命中）。
 

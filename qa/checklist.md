@@ -12,6 +12,16 @@
 - [x] 三张地图边缘格可达中心。
 - [x] `tests/shell.test.js`：`index.html` 全部脚本与样式表都在 `sw.js` SHELL；版本号 1.6.0 三处一致。
 
+## v1.6 安卓 APK
+
+- [x] `python tools/android-build/build_apk.py` 一条命令产出 `dist/zombie-defense-v1.6.0.apk`（0.36 MB）。
+- [x] `aapt2 dump badging`：package / versionCode 10600 / 1.6.0 / minSdk 24 / targetSdk 34 / launchable-activity / label 全部正确。
+- [x] `aapt2 dump xmltree`：手写 AXML 的属性 ID 与取值（label、icon、theme、configChanges 8096、screenOrientation 6、launchMode 2）全部被官方解析器读出。
+- [x] `apksigner verify -v`：v2 + v3 签名通过；`dexdump`：MainActivity 等 3 个类可解析。
+- [x] APK 内含 `assets/www/**` 56 个游戏文件（`index.html`、`src/**`、`icons/**` 等），无网络依赖、无权限申请。
+- [ ] 真机安装 / 启动 / 横竖屏切换（本机无设备，待测）。
+- [ ] 应用内 localStorage 存档、音频、开场演出真机表现（待测）。
+
 ## v1.6 开始流程
 
 - [x] 主菜单 4 项：无尽模式 → 选图；剧情模式 → 封存档案；战地图鉴 → HUD 帮助；系统设置 → HUD 设置。
