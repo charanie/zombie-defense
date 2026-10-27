@@ -39,6 +39,71 @@
     }
   }
 
+  // v1.4 基线：4 邻域 BFS，只在无 zones 地图使用
+  function fillBFS(blocked, sources, dist, dirX, dirY) {
+    const queue = new Int32Array(COLS * ROWS);
+    let head = 0, tail = 0;
+    for (const i of sources) {
+      if (dist[i] !== INF) continue;
+      dist[i] = 0;
+      queue[tail++] = i;
+    }
+    while (head < tail) {
+      const i = queue[head++];
+      const cx = i % COLS;
+      const cy = (i / COLS) | 0;
+      const d = dist[i] + 1;
+      if (cx > 0) visit(i - 1, -1, 0, d);
+      if (cx < COLS - 1) visit(i + 1, 1, 0, d);
+      if (cy > 0) visit(i - COLS, 0, -1, d);
+      if (cy < ROWS - 1) visit(i + COLS, 0, 1, d);
+    }
+    function visit(ni, dx, dy, d) {
+      if (blocked[ni] || dist[ni] !== INF) return;
+      dist[ni] = d;
+      // 从邻居指回当前格的反方向
+      dirX[ni] = -dx;
+      dirY[ni] = -dy;
+      queue[tail++] = ni;
+    }
+  }
+
+  // 活动区地图：水平移动 10、垂直移动 12 的加权最短路（bucket Dijkstra）。
+  // 通道内水平更便宜，父节点稳定沿通道轴，僵尸不会贴着通道边挤成一排。
+  function fillWeighted(blocked, sources, dist, dirX, dirY) {
+    const HW = 10, VW = 12;
+    const maxD = (COLS + ROWS) * VW + 8;
+    const buckets = new Array(maxD + 1);
+    for (let i = 0; i <= maxD; i++) buckets[i] = [];
+    for (const i of sources) {
+      if (dist[i] === 0) continue;
+      dist[i] = 0;
+      buckets[0].push(i);
+    }
+    for (let d = 0; d <= maxD; d++) {
+      const b = buckets[d];
+      while (b.length) {
+        const i = b.pop();
+        if (dist[i] !== d) continue;
+        const cx = i % COLS;
+        const cy = (i / COLS) | 0;
+        if (cx > 0) relax(i - 1, -1, 0, HW, d);
+        if (cx < COLS - 1) relax(i + 1, 1, 0, HW, d);
+        if (cy > 0) relax(i - COLS, 0, -1, VW, d);
+        if (cy < ROWS - 1) relax(i + COLS, 0, 1, VW, d);
+      }
+    }
+    function relax(ni, dx, dy, w, d) {
+      if (blocked[ni]) return;
+      const nd = d + w;
+      if (nd >= dist[ni]) return;
+      dist[ni] = nd;
+      dirX[ni] = -dx;
+      dirY[ni] = -dy;
+      if (nd <= maxD) buckets[nd].push(ni);
+    }
+  }
+
   function build(state) {
     const blocked = new Uint8Array(COLS * ROWS);
     const map = state.map;
@@ -75,8 +140,6 @@
     const dist = new Uint16Array(COLS * ROWS).fill(INF);
     const dirX = new Int8Array(COLS * ROWS);
     const dirY = new Int8Array(COLS * ROWS);
-    const queue = new Int32Array(COLS * ROWS);
-    let head = 0, tail = 0;
 
     // 源点：所有存活人类所在格；没有人类时用活动区中心，中心被挡则螺旋找最近空格
     const center = ZG.MapZone.center(map);
@@ -91,37 +154,21 @@
       const open = nearestOpen(blocked, c.cx, c.cy);
       if (open >= 0) sources.push(open);
     }
-    for (const i of sources) {
-      if (dist[i] !== INF) continue;
-      dist[i] = 0;
-      queue[tail++] = i;
-    }
 
-    // 4 邻域 BFS
-    while (head < tail) {
-      const i = queue[head++];
-      const cx = i % COLS;
-      const cy = (i / COLS) | 0;
-      const d = dist[i] + 1;
-      if (cx > 0) visit(i - 1, cx - 1, cy, -1, 0, d);
-      if (cx < COLS - 1) visit(i + 1, cx + 1, cy, 1, 0, d);
-      if (cy > 0) visit(i - COLS, cx, cy - 1, 0, -1, d);
-      if (cy < ROWS - 1) visit(i + COLS, cx, cy + 1, 0, 1, d);
-    }
-
-    function visit(ni, ncx, ncy, dx, dy, d) {
-      if (blocked[ni] || dist[ni] !== INF) return;
-      dist[ni] = d;
-      // 从邻居 n 指回当前格 i 的反方向
-      dirX[ni] = -dx;
-      dirY[ni] = -dy;
-      queue[tail++] = ni;
-    }
+    // 无 zones 地图保持 v1.4 的 4 邻域 BFS（确定性基线）；
+    // 有 zones 的窄通道地图用水平优先的加权最短路，避免 BFS 父节点在宽通道里
+    // 出现上下锯齿、把僵尸挤到通道边界。
+    if (ZG.MapZone.has(map)) fillWeighted(blocked, sources, dist, dirX, dirY);
+    else fillBFS(blocked, sources, dist, dirX, dirY);
 
     const centerPoint = ZG.Geom.humanCentroid(state) || center;
     return {
       cols: COLS, rows: ROWS, cell: CELL, blocked, dist, dirX, dirY,
-      centerX: centerPoint.x, centerY: centerPoint.y, mapId: map ? map.id : ''
+      centerX: centerPoint.x, centerY: centerPoint.y,
+      // 窄通道地图（有 zones）不混入指向中心的平滑分量：否则僵尸会被拉向通道边界、
+      // 挤成一排互相推挤，推进速度跌到 2px/s 并把回合拖到硬上限。
+      smoothing: ZG.MapZone.has(map) ? 0 : 0.25,
+      mapId: map ? map.id : ''
     };
   }
 
@@ -157,10 +204,11 @@
     }
     // 网格方向为主，混入少量指向中心的平滑分量，避免纯轴向抖动
     let dx = pathing.dirX[c.i], dy = pathing.dirY[c.i];
+    const smooth = pathing.smoothing === undefined ? 0.25 : pathing.smoothing;
     const vx = pathing.centerX - x, vy = pathing.centerY - y;
     const vlen = Math.hypot(vx, vy) || 1;
-    dx += (vx / vlen) * 0.25;
-    dy += (vy / vlen) * 0.25;
+    dx += (vx / vlen) * smooth;
+    dy += (vy / vlen) * smooth;
     const len = Math.hypot(dx, dy) || 1;
     return { x: dx / len, y: dy / len };
   }

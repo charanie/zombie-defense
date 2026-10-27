@@ -47,10 +47,12 @@ test('地铁图流场只覆盖活动区', () => {
 test('地铁图两个入口都能走向大厅', () => {
   const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
   ZG.State.spawnHuman(s, 'shield', 1120, 360);
-  s.pathing = ZG.Pathing.build(s);
-  for (const p of [{ x: -20, y: 230 }, { x: -20, y: 490 }]) {
-    const d = ZG.Pathing.directionAt(s.pathing, p.x + 40, p.y);
-    assert.ok(d.x > 0, JSON.stringify(d));
+  const zs = [-20, 490].map(y => ZG.State.spawnZombie(s, 'walker', -20, y));
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 900);
+  for (const z of zs) {
+    assert.ok(z.x > 400, `入口僵尸应推进到通道中段，实际 x=${z.x.toFixed(0)}`);
+    assert.ok(z.alive, '盾兵不应在 15 秒内杀死入口僵尸');
   }
 });
 
