@@ -1,4 +1,4 @@
-﻿# 项目状态（SESSION HANDOFF）
+# 项目状态（SESSION HANDOFF）
 
 > 更新：2026-10-27
 
