@@ -57,7 +57,7 @@
     root: null, canvas: null, ctx: null,
     veil: null, flash: null, title: null, skipBtn: null, progress: null, progressBar: null,
     w: 0, h: 0, dpr: 1,
-    cracks: [], bite: null, debris: null, sparks: false
+    cracks: [], bite: null, debris: null
   };
 
   // ---------- 小工具 ----------
@@ -479,7 +479,6 @@
     I.last = null;
     I.cueIndex = 0;
     I.lastPhase = '';
-    I.sparks = false;
 
     const hud = document.getElementById('hud');
     if (!hud) { I.active = false; return false; }

@@ -293,7 +293,6 @@
     signal.appendChild(bars);
     signal.appendChild(el('span', 'signal-txt', d.feed.uplink + '%'));
     feed.appendChild(signal);
-    M.pages.feed = feed;
     return feed;
   }
 
@@ -498,13 +497,6 @@
   }
 
   // ---------- 页面 ----------
-  function currentNavIndex() {
-    for (let i = 0; i < M.navEls.length; i++) {
-      if (M.navEls[i] === document.activeElement) return i;
-    }
-    return -1;
-  }
-
   function setPageInert(page, inert) {
     const node = M.pages[page];
     if (!node) return;
