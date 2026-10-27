@@ -79,3 +79,29 @@ test('加特林鼓舞与疫医群疗各生成一个范围效果', () => {
   assert.equal(s.effects.filter(e => e.kind === 'inspire').length, 1);
   assert.equal(s.effects.filter(e => e.kind === 'groupheal').length, 1);
 });
+
+test('坦克投石先预警后落地', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  s.round = 7;
+  ZG.State.spawnHuman(s, 'shield', 1120, 360);
+  const b = ZG.State.spawnZombie(s, 'boss', -20, 230);
+  b.hp = b.maxHp = 1e6; b.rockCd = 0;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 1);
+  const warn = s.effects.find(e => e.kind === 'rock_warn');
+  assert.ok(warn, '应有落点预警');
+  assert.ok(ZG.MapZone.contains(s.map, warn.x, warn.y), '落点在活动区');
+  ZG.Sim.tick(s, 150);   // 2.5s 后落地
+  assert.ok(s.effects.some(e => e.kind === 'rock_impact'), '应有落地表现');
+});
+
+test('爆尸爆炸同时生成 boom 与毒雾表现', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  ZG.State.spawnHuman(s, 'shield', 1100, 360);
+  const z = ZG.State.spawnZombie(s, 'boomer', 1080, 360);
+  z.fuseArmed = true; z.fuseT = 0.01;
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 2);
+  assert.ok(s.effects.some(e => e.kind === 'boom'));
+  assert.ok(s.effects.some(e => e.kind === 'poison_cloud'));
+});

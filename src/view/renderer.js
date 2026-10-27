@@ -593,17 +593,25 @@
         }
       }
       drawBossSprite(ctx, z, r);
-      // 腐吐者蓄力：口部按下一发弹种亮起
+      // 腐吐者蓄力：口部按下一发弹种亮起，球体随蓄力变大
       if (z.typeId === 'boss_spitter' && z.spitWindupT > 0 && z.nextBullet) {
         const mx = z.x + Math.cos(z.facing) * r * 0.95;
         const my = z.y + Math.sin(z.facing) * r * 0.95;
+        const bd = (ZG.Data.zombies.boss_spitter || {}).boss || {};
+        const win = bd.windup || 0.35;
+        const k = 1 - Math.max(0, Math.min(1, z.spitWindupT / win));
         ctx.save();
         ctx.fillStyle = z.nextBullet.color || '#9CFF57';
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 12;
         ctx.beginPath();
-        ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
+        ctx.arc(mx, my, 3 + k * 6, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(mx, my, 8 + k * 6, 0, Math.PI * 2);
+        ctx.stroke();
         ctx.restore();
       }
     } else {
@@ -624,19 +632,33 @@
       drawShieldArc(ctx, z, 'rgba(66, 165, 245, 0.9)', r);
     }
 
-    // 爆尸引信
+    // 爆尸引信：脉冲 + 进度环 + 膨胀
     if (z.fuseArmed) {
-      const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(state.battle.time * 18));
+      const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(state.battle.time * 10));
+      const fuseMax = (ZG.Data.zombies.boomer && ZG.Data.zombies.boomer.fuse) || 0.8;
+      const prog = Math.max(0, Math.min(1, 1 - z.fuseT / fuseMax));
+      const grow = 1 + prog * 0.22;
       ctx.save();
+      // 膨胀红晕
+      ctx.fillStyle = 'rgba(229, 57, 53, ' + (0.10 + 0.12 * prog) + ')';
+      ctx.beginPath();
+      ctx.arc(z.x, z.y, r * grow + 5, 0, Math.PI * 2);
+      ctx.fill();
       ctx.strokeStyle = 'rgba(239, 83, 80, ' + pulse + ')';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(z.x, z.y, r + 6, 0, Math.PI * 2);
       ctx.stroke();
+      // 引信进度环
+      ctx.strokeStyle = 'rgba(255, 235, 238, 0.95)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(z.x, z.y, r + 11, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2);
+      ctx.stroke();
       ctx.fillStyle = 'rgba(255, 138, 128, ' + pulse + ')';
       ctx.font = 'bold 11px "Microsoft YaHei", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('!', z.x, z.y - r - 12);
+      ctx.fillText('!', z.x, z.y - r - 14);
       ctx.restore();
     }
 

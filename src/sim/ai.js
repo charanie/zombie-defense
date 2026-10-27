@@ -1220,6 +1220,12 @@
         warnT: rock.warn, infection: rock.infection,
         hitsHumans: true, ownerId: z.id, color: '#EF5350'
       });
+      if (state.effects.length < 250) {
+        state.effects.push({
+          kind: 'rock_warn', x: p.x, y: p.y, radius: rock.radius,
+          life: rock.warn, maxLife: rock.warn, color: '#EF5350', seed: z.id
+        });
+      }
       z.rockCd = rock.interval;
     }
 
@@ -1238,6 +1244,12 @@
           }
         }
         z.stompCd = stomp.interval;
+        if (state.effects.length < 250) {
+          state.effects.push({
+            kind: 'stomp', x: z.x, y: z.y, radius: stomp.radius,
+            life: 0.35, maxLife: 0.35, color: '#FFB74D', seed: z.id
+          });
+        }
         state.bus.emit('fx:stomp', { x: z.x, y: z.y, radius: stomp.radius });
       }
     }
@@ -1378,6 +1390,12 @@
           const p = ZG.MapZone.clamp(state.map, bx, by, br);
           const b = ZG.State.spawnZombie(state, s.type, p.x, p.y);
           b.wave = z.wave;
+          if (state.effects.length < 250) {
+            state.effects.push({
+              kind: 'burrow', x: p.x, y: p.y, radius: 18,
+              life: 0.6, maxLife: 0.6, color: '#A1887F', seed: b.id
+            });
+          }
           state.battle.babyCount = (state.battle.babyCount || 0) + 1;
         }
         z.summonCd = s.interval;
@@ -1512,6 +1530,20 @@
               hitsHumans: true, hitsBuildings: false, infection: 100,
               color: '#E53935', kind: 'boomer'
             });
+            if (state.effects.length < 250) {
+              state.effects.push({
+                kind: 'boom', x: z.x, y: z.y, radius: 80,
+                life: 0.45, maxLife: 0.45, color: '#E53935', seed: z.id
+              });
+              state.effects.push({
+                kind: 'crack', x: z.x, y: z.y, radius: 44,
+                life: 2.5, maxLife: 2.5, color: '#8D6E63', seed: z.id
+              });
+              state.effects.push({
+                kind: 'poison_cloud', x: z.x, y: z.y, radius: 72,
+                life: 2.2, maxLife: 2.2, color: '#7CB342', seed: z.id
+              });
+            }
             state.bus.emit(ZG.Events.ZOMBIE_DIED, { zombie: z });
             continue;
           }

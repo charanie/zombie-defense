@@ -151,7 +151,7 @@
       const life = p.poison ? p.poison.duration : 3.5;
       state.effects.push({
         kind: 'poison_cloud', x: p.x, y: p.y, radius: r,
-        color: '#7CB342', life, maxLife: life
+        color: '#7CB342', life, maxLife: life, seed: p.id
       });
       state.bus.emit('fx:poison', { x: p.x, y: p.y, radius: r });
       return;
@@ -197,6 +197,17 @@
             hitsHumans: true, hitsBuildings: false, infection: p.infection,
             color: '#EF5350', kind: 'rock'
           });
+          if (state.effects.length < 250) {
+            state.effects.push({
+              kind: 'rock_impact', x: p.x, y: p.y, radius: p.radius,
+              life: 0.9, maxLife: 0.9, color: '#FF7043', seed: p.id
+            });
+            state.effects.push({
+              kind: 'crack', x: p.x, y: p.y, radius: p.radius * 1.4,
+              life: 6, maxLife: 6, color: '#8D6E63', seed: p.id
+            });
+          }
+          state.bus.emit('fx:rockBreak', { x: p.x, y: p.y });
         }
         continue;
       }

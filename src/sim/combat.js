@@ -97,6 +97,13 @@
       if (Math.abs(ZG.Geom.angleDiff(toShooter, z.facing)) > half) continue;
       best = z; bestT = t;
     }
+    if (best && state.effects && state.effects.length < 250) {
+      state.effects.push({
+        kind: 'shield_flash', x: best.x, y: best.y,
+        radius: (best.radius || 10) + 4, facing: best.facing,
+        life: 0.2, maxLife: 0.2, color: '#42A5F5', seed: best.id
+      });
+    }
     return best;
   }
 
@@ -352,6 +359,13 @@
     const st = ZG.Stats.zombie(state, z);
     if (target.kind === 'building') {
       const mul = z.typeId === 'giant' ? ZG.Data.zombies.giant.buildingMultiplier : 1;
+      if (z.typeId === 'giant' && state.effects.length < 250) {
+        state.effects.push({
+          kind: 'boom', x: target.x, y: target.y, radius: 30,
+          life: 0.3, maxLife: 0.3, color: '#8D6E63', seed: z.id
+        });
+        state.bus.emit('fx:stomp', { x: target.x, y: target.y, radius: 30 });
+      }
       applyBuildingDamage(state, target, st.damage * mul);
       return;
     }
