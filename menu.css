@@ -720,6 +720,17 @@
   outline: 2px solid var(--menu-cyan, #4FC3F7);
   outline-offset: 2px;
 }
+/* 触控端：工具条按钮补到 44px（导航行本身已 ≥ 48px） */
+@media (pointer: coarse) {
+  .menu-util,
+  .menu-back { min-height: 44px; }
+  .menu-modal .teaser-close { min-height: 44px; }
+}
+/* 窄屏/横屏手机布局一律按触控尺寸处理（指针媒体查询在部分环境不可靠） */
+.menu-root[data-layout="narrow"] .menu-util,
+.menu-root[data-layout="short"] .menu-util,
+.menu-root[data-layout="narrow"] .menu-back,
+.menu-root[data-layout="short"] .menu-back { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) {
   .menu-page,
   .menu-nav-item,
