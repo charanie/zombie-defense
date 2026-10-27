@@ -57,3 +57,9 @@ test('地铁出生口在屏幕外且落在通道带内', () => {
     assert.ok((sp.y > 160 && sp.y < 300) || (sp.y > 420 && sp.y < 560), JSON.stringify(sp));
   }
 });
+
+test('地铁站台开局资金 500，其余地图 400', () => {
+  assert.equal(ZG.Data.maps.subway.startMoney, 500);
+  assert.equal(ZG.Sim.createGame({ mapId: 'subway', seed: 1 }).money, 500);
+  assert.equal(ZG.Sim.createGame({ mapId: 'suburban', seed: 1 }).money, 400);
+});
