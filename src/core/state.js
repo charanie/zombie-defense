@@ -17,7 +17,7 @@
       map,
       seed,
       round: 1,
-      money: ZG.Const.INITIAL_MONEY,
+      money: (map && map.startMoney) || ZG.Const.INITIAL_MONEY,
       tech: { ranks: {} },
       techMods: null,
       supports: { uses: { areaHeal: 0, missileBombardment: 0 } },

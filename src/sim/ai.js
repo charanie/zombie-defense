@@ -521,10 +521,18 @@
           z.burnFromY = h.y;
         }
         h.flameT = 0.16;
-        if (state.effects.length < 250) {
+        if (state.effects.length < 248) {
           state.effects.push({
             kind: 'flame', x1: h.x, y1: h.y, facing: h.facing,
             range: st.range, coneDeg: a.coneDeg || 50, life: 0.16, maxLife: 0.16
+          });
+          const bm = list[0] || {
+            x: h.x + Math.cos(h.facing) * st.range * 0.6,
+            y: h.y + Math.sin(h.facing) * st.range * 0.6
+          };
+          state.effects.push({
+            kind: 'burn_mark', x: bm.x, y: bm.y, radius: 26,
+            life: 1.5, maxLife: 1.5, color: '#2A1C14', seed: h.id
           });
         }
         return list.length > 0;
@@ -746,6 +754,7 @@
             life: 0.7, maxLife: 0.7, color: '#66BB6A'
           });
         }
+        state.bus.emit('fx:heal', { x: h.x, y: h.y });
         state.bus.emit('fx:ability', { kind: 'groupheal', x: h.x, y: h.y, text: '群体治疗' });
       } else {
         h.skillCd = 1;
@@ -1212,7 +1221,8 @@
     if (z.stompCd > 0) z.stompCd = tickDown(z.stompCd, dt);
 
     if (z.rockCd <= 0) {
-      const p = densestHumanPoint(state);
+      const hp = densestHumanPoint(state);
+      const p = ZG.MapZone.clamp(state.map, hp.x, hp.y, 0);
       ZG.Projectiles.spawn(state, {
         typeId: 'rock', x: p.x, y: p.y, tx: p.x, ty: p.y,
         radius: rock.radius, splash: rock.radius,
@@ -1518,6 +1528,7 @@
         if (!z.fuseArmed && (edge <= 35 || z.hp <= z.maxHp * 0.2)) {
           z.fuseArmed = true;
           z.fuseT = 0.8;
+          state.bus.emit('fx:fuse', { x: z.x, y: z.y });
         }
         if (z.fuseArmed) {
           z.fuseT -= dt;
@@ -1548,7 +1559,15 @@
             continue;
           }
         }
-        if (d > 20) moveZombie(state, z, p.x, p.y, speed, dt);
+        if (d > 20) {
+          // 有 zones 时远处也走流场：直线冲向隔断另一侧的人类会贴着设备带边滑动
+          if (ZG.MapZone.has(state.map) && d > 90) {
+            const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y, z.radius);
+            moveZombie(state, z, z.x + dir.x * 100, z.y + dir.y * 100, speed, dt);
+          } else {
+            moveZombie(state, z, p.x, p.y, speed, dt);
+          }
+        }
         continue;
       }
 
@@ -1577,10 +1596,13 @@
         z.facing = Math.atan2(ty - z.y, tx - z.x);
         if (tgt.target) attacking = zombieAttackTarget(state, z, tgt.target, dt);
       } else {
-        // 远处沿流场，近处直追
+        // 远处沿流场，近处直追。地铁类活动区地图被设备带隔断，直追会贴着边界滑行，
+        // 因此有 zones 时所有僵尸都在 90px 外走流场。
+        const zoned = ZG.MapZone.has(state.map);
+        const flowDist = zoned ? 90 : 340;
         let nx = tx, ny = ty;
-        if (usesFlowField(z) && dist > 340 && tgt.kind !== 'building') {
-          const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y);
+        if ((usesFlowField(z) || zoned) && dist > flowDist && tgt.kind !== 'building') {
+          const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y, z.radius);
           nx = z.x + dir.x * 100;
           ny = z.y + dir.y * 100;
         }
@@ -1594,10 +1616,11 @@
       } else if (!attacking) {
         z.stuckT += dt;
         if (z.stuckT >= ZG.Const.STUCK_SEC) {
-          const p = ZG.Pathing.nearestReachable(state.pathing, z.x, z.y);
+          const p = ZG.Pathing.nearestReachable(state.pathing, z.x, z.y,
+            ZG.MapZone.has(state.map) ? { advance: true } : undefined);
           let nx = p.x, ny = p.y;
           if (ZG.Geom.dist2(nx, ny, z.x, z.y) < 4) {
-            const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y);
+            const dir = ZG.Pathing.directionAt(state.pathing, z.x, z.y, z.radius);
             nx = Math.max(8, Math.min(ZG.Const.W - 8, p.x + dir.x * 64));
             ny = Math.max(8, Math.min(ZG.Const.H - 8, p.y + dir.y * 64));
           }

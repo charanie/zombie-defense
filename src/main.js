@@ -189,7 +189,7 @@
       if (isSkill && now - lastSkillFxAt < 1500) return;
       if (isSkill) lastSkillFxAt = now;
       if (p.text) { ZG.HUD.toast(p.text, 'hero'); log(p.text, 'hero'); }
-      const sound = p.kind === 'skill-officer' ? 'missile'
+      const sound = (p.kind === 'missiles' || p.kind === 'skill-officer') ? 'missile'
         : p.kind === 'skill-samurai' ? 'slash'
           : p.kind === 'skill-plague' || p.kind === 'skill-medic' ? 'heal'
             : 'horn';
@@ -595,8 +595,11 @@
     ZG.Renderer.resize();
     ZG.Input.init(canvas, () => state, callbacks);
     ZG.Audio.setMuted(!!state.settings.muted);
-    if (ZG.Particles && ZG.Particles.instance && ZG.Platform.quality.particleCap) {
-      ZG.Particles.instance.cap = ZG.Platform.quality.particleCap;
+    if (ZG.Particles && ZG.Particles.instance) {
+      if (ZG.Platform.quality.particleCap) {
+        ZG.Particles.instance.cap = ZG.Platform.quality.particleCap;
+      }
+      ZG.Particles.instance.setQuality(ZG.Platform.isMobile ? 'mobile' : 'desktop');
     }
 
     ZG.Game = {

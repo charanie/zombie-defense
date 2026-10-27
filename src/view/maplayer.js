@@ -9,7 +9,7 @@
 (function () {
   'use strict';
   const ZG = globalThis.ZG = globalThis.ZG || {};
-  const W = 1280, H = 720;
+  const W = ZG.Const.W, H = ZG.Const.H;
 
   const DECOR_KINDS = [
     'lane', 'doubleLine', 'zebra', 'shoulder', 'guardrail', 'lamp', 'cone',

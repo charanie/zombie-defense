@@ -71,7 +71,8 @@
   // 活动区地图：水平移动 10、垂直移动 12 的加权最短路（bucket Dijkstra）。
   // 通道内水平更便宜，父节点稳定沿通道轴，僵尸不会贴着通道边挤成一排。
   function fillWeighted(blocked, sources, dist, dirX, dirY) {
-    const HW = 10, VW = 12;
+    const HW = ZG.Const.PATH_H_WEIGHT || 10;
+    const VW = ZG.Const.PATH_V_WEIGHT || 12;
     const maxD = (COLS + ROWS) * VW + 8;
     const buckets = new Array(maxD + 1);
     for (let i = 0; i <= maxD; i++) buckets[i] = [];
@@ -165,6 +166,7 @@
     return {
       cols: COLS, rows: ROWS, cell: CELL, blocked, dist, dirX, dirY,
       centerX: centerPoint.x, centerY: centerPoint.y,
+      zoneMap: (map && map.zones) ? { zones: map.zones } : null,
       // 窄通道地图（有 zones）不混入指向中心的平滑分量：否则僵尸会被拉向通道边界、
       // 挤成一排互相推挤，推进速度跌到 2px/s 并把回合拖到硬上限。
       smoothing: ZG.MapZone.has(map) ? 0 : 0.25,
@@ -194,10 +196,57 @@
     return -1;
   }
 
-  function directionAt(pathing, x, y) {
+  // 贴边/跨格时的备选方向：在邻格里挑一个 dist 更低、且带半径能直线走到的格子。
+  // 返回单位向量或 null（没有合适邻格）。
+  function boundaryDirection(pathing, c, x, y, radius) {
+    if (pathing.smoothing !== 0) return null;
+    const rad = radius || 0;
+    const zm = pathing.zoneMap;
+    let bestI = -1, bestD = INF;
+    for (let r = 1; r <= 4; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const nx = c.cx + dx, ny = c.cy + dy;
+          if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+          const ni = idx(nx, ny);
+          if (pathing.dist[ni] === INF) continue;
+          if (pathing.dist[ni] >= bestD) continue;
+          if (zm) {
+            const bx = cellCX(nx), by = cellCY(ny);
+            let ok = true;
+            for (let s = 1; s <= 4 && ok; s++) {
+              const t = s / 4;
+              if (!ZG.MapZone.containsCircle(zm, x + (bx - x) * t, y + (by - y) * t, rad)) ok = false;
+            }
+            if (!ok) continue;
+          }
+          bestD = pathing.dist[ni];
+          bestI = ni;
+        }
+      }
+      if (bestI >= 0) break;
+    }
+    if (bestI < 0) return null;
+    const bx = cellCX(bestI % COLS), by = cellCY((bestI / COLS) | 0);
+    const bdx = bx - x, bdy = by - y;
+    const blen = Math.hypot(bdx, bdy) || 1;
+    return { x: bdx / blen, y: bdy / blen };
+  }
+
+  function directionAt(pathing, x, y, radius) {
     if (!pathing) return { x: 0, y: 0 };
     const c = cellOf(x, y);
-    if (pathing.dist[c.i] === INF || (pathing.dirX[c.i] === 0 && pathing.dirY[c.i] === 0)) {
+    if (pathing.dist[c.i] === INF) {
+      const alt = boundaryDirection(pathing, c, x, y, radius);
+      if (alt) return alt;
+      const dx = pathing.centerX - x, dy = pathing.centerY - y;
+      const len = Math.hypot(dx, dy) || 1;
+      return { x: dx / len, y: dy / len };
+    }
+    if (pathing.dirX[c.i] === 0 && pathing.dirY[c.i] === 0) {
+      const alt = boundaryDirection(pathing, c, x, y, radius);
+      if (alt) return alt;
       const dx = pathing.centerX - x, dy = pathing.centerY - y;
       const len = Math.hypot(dx, dy) || 1;
       return { x: dx / len, y: dy / len };
@@ -210,12 +259,42 @@
     dx += (vx / vlen) * smooth;
     dy += (vy / vlen) * smooth;
     const len = Math.hypot(dx, dy) || 1;
-    return { x: dx / len, y: dy / len };
+    const dir = { x: dx / len, y: dy / len };
+    // 格心落在接缝另一侧时，网格方向可能指向设备带拐角；探针越界就改用邻格引导。
+    if (radius && pathing.zoneMap) {
+      const px = x + dir.x * 16, py = y + dir.y * 16;
+      if (!ZG.MapZone.containsCircle(pathing.zoneMap, px, py, radius)) {
+        const alt = boundaryDirection(pathing, c, x, y, radius);
+        if (alt) return alt;
+      }
+    }
+    return dir;
   }
 
-  function nearestReachable(pathing, x, y) {
+  function nearestReachable(pathing, x, y, opts) {
     if (!pathing) return { x, y };
     const c = cellOf(x, y);
+    if (pathing.dist[c.i] !== INF && !(opts && opts.advance)) {
+      return { x: cellCX(c.cx), y: cellCY(c.cy) };
+    }
+    // 卡死救援：优先朝流场下坡方向前进几格，避免把僵尸原样送回原地
+    if (opts && opts.advance && pathing.dist[c.i] !== INF) {
+      let bestI = c.i, bestD = pathing.dist[c.i];
+      for (let r = 1; r <= 10; r++) {
+        for (let dy = -r; dy <= r; dy++) {
+          for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            const nx = c.cx + dx, ny = c.cy + dy;
+            if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+            const ni = idx(nx, ny);
+            if (pathing.dist[ni] === INF || pathing.dist[ni] >= bestD) continue;
+            bestD = pathing.dist[ni];
+            bestI = ni;
+          }
+        }
+        if (bestI !== c.i) return { x: cellCX(bestI % COLS), y: cellCY((bestI / COLS) | 0) };
+      }
+    }
     if (pathing.dist[c.i] !== INF) return { x: cellCX(c.cx), y: cellCY(c.cy) };
     for (let r = 1; r <= 20; r++) {
       for (let dy = -r; dy <= r; dy++) {

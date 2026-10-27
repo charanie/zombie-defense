@@ -26,18 +26,49 @@
     if (!contains(map, x, y)) return false;
     const rad = r || 0;
     if (rad <= 0) return true;
+    // 采样半径留 0.5px 容差：圆刚好与区域边界相切（闭包内）时不应被判为越界，
+    // 否则僵尸会卡在通道拐角反复被 clamp 推回。
+    const sr = Math.max(0, rad - 0.5);
     for (let i = 0; i < 8; i++) {
       const a = i * Math.PI / 4;
-      if (!contains(map, x + Math.cos(a) * rad, y + Math.sin(a) * rad)) return false;
+      if (!contains(map, x + Math.cos(a) * sr, y + Math.sin(a) * sr)) return false;
     }
     return true;
   }
 
   // 投影到最近矩形的内缩边界（不搜索路径）；调用方随后再查障碍。
+  // 圆跨相邻矩形（如通道 x=1000 接缝）时允许原样通过，否则按单个矩形内缩会在
+  // 接缝处留下 2r 的不可通行缝隙。
   function clamp(map, x, y, r) {
     const zs = zonesOf(map);
     if (!zs) return ZG.Geom.clampToWorld(x, y, r);
     const rad = r || 0;
+    if (containsCircle(map, x, y, rad)) return { x, y };
+
+    // 轴向滑动：优先只回退一个轴（通常是撞到通道边），避免在接缝处把单位
+    // 沿另一轴整段拉回、来回振荡。
+    let slide = null, slideD = Infinity;
+    for (let i = 0; i < zs.length; i++) {
+      const z = zs[i];
+      const minX = z.x + rad, maxX = z.x + z.w - rad;
+      const minY = z.y + rad, maxY = z.y + z.h - rad;
+      if (x >= minX && x <= maxX) {
+        const cy = minY > maxY ? z.y + z.h / 2 : Math.max(minY, Math.min(maxY, y));
+        if (cy !== y && containsCircle(map, x, cy, rad)) {
+          const d = Math.abs(cy - y);
+          if (d < slideD) { slideD = d; slide = { x, y: cy }; }
+        }
+      }
+      if (y >= minY && y <= maxY) {
+        const cx = minX > maxX ? z.x + z.w / 2 : Math.max(minX, Math.min(maxX, x));
+        if (cx !== x && containsCircle(map, cx, y, rad)) {
+          const d = Math.abs(cx - x);
+          if (d < slideD) { slideD = d; slide = { x: cx, y }; }
+        }
+      }
+    }
+    if (slide) return slide;
+
     let best = null, bestD = Infinity;
     for (let i = 0; i < zs.length; i++) {
       const z = zs[i];

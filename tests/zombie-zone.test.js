@@ -37,3 +37,29 @@ test('地铁图僵尸 8 秒内能推进过柱子不被卡死', () => {
   ZG.Sim.tick(s, 480);
   assert.ok(z.x > x0 + 100, `推进不足：x=${z.x}`);
 });
+
+test('地铁通道与末端大厅的接缝可通行', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 5 });
+  ZG.State.spawnHuman(s, 'shield', 1120, 480);
+  const z = ZG.State.spawnZombie(s, 'walker', 980, 481);
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 600);
+  assert.ok(z.x > 1050, `应穿过 x=1000 接缝进入大厅，实际 x=${z.x.toFixed(1)}`);
+});
+
+test('母体与母巢死亡幼体都在活动区内', () => {
+  for (const seed of [4, 5, 6]) {
+    const s = ZG.Sim.createGame({ mapId: 'subway', seed });
+    ZG.State.spawnHuman(s, 'shield', 1120, 360);
+    const m = ZG.State.spawnZombie(s, 'mother', 990, 552);
+    ZG.Combat.killZombie(s, m);
+    for (const z of s.zombies) {
+      assert.ok(ZG.MapZone.contains(s.map, z.x, z.y), `seed ${seed} mother baby at ${z.x},${z.y}`);
+    }
+    const b = ZG.State.spawnZombie(s, 'boss_brood', 990, 230);
+    ZG.Combat.killZombie(s, b);
+    for (const z of s.zombies) {
+      assert.ok(ZG.MapZone.contains(s.map, z.x, z.y), `seed ${seed} brood baby at ${z.x},${z.y}`);
+    }
+  }
+});

@@ -113,6 +113,7 @@
     name: '地铁站台',
     difficulty: 3,
     desc: '两条站台通道，僵尸只从西侧隧道涌入；柱子和长椅既是掩体也是陷阱。',
+    startMoney: 500,
     theme: {
       ground: '#121820', road: '#202932', accent: '#2B3742',
       obstacle: '#546E7A', zone: '#2B3540', line: '#E6C34A'

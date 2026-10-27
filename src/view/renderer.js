@@ -982,6 +982,9 @@
       R.bgSig = sig;
     }
 
+    state.cssW = R.cssW;
+    state.cssH = R.cssH;
+
     clearCanvas(ctx);
 
     const off = state.settings.shake === false ? { x: 0, y: 0 } : ZG.Particles.getOffset();

@@ -37,7 +37,7 @@
     if (x < m || y < m || x > ZG.Const.W - m || y > ZG.Const.H - m) {
       return { ok: false, reason: 'outside' };
     }
-    if (!ZG.MapZone.contains(state.map, x, y)) {
+    if (!ZG.MapZone.containsCircle(state.map, x, y, r)) {
       return { ok: false, reason: 'outside-zone' };
     }
     for (const h of state.humans) {

@@ -66,7 +66,7 @@
         const check = ZG.Economy.canPlace(s, h.x, h.y, h.radius, h.id);
         if (!check.ok) {
           h.x = drag.sx; h.y = drag.sy;
-          ZG.HUD.toast('不能放在这里', 'warn');
+          ZG.HUD.toast(reasonText(check.reason), 'warn');
         } else {
           h.homeX = h.x; h.homeY = h.y;
         }
@@ -103,8 +103,8 @@
         if (ev.buttons !== undefined && !(ev.buttons & 1)) { finishDrag(s); return; }
         const h = s.humans.find(u => u.id === drag.id && u.alive);
         if (h) {
-          const c = ZG.MapZone.clamp(s.map, p.x, p.y, h.radius);
-          h.x = c.x; h.y = c.y;
+          // 预览跟随光标；落点非法时在 finishDrag 明确拒绝并提示，而不是吸附到最近合法点
+          h.x = p.x; h.y = p.y;
         }
         return;
       }

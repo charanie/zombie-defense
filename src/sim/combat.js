@@ -194,14 +194,19 @@
     return { shieldDamage: 0, hpDamage: amount, killed: false };
   }
 
+  function babySpot(state, x, y) {
+    const br = (ZG.Data.zombies.baby && ZG.Data.zombies.baby.radius) || 7;
+    return ZG.MapZone.clamp(state.map, x, y, br);
+  }
+
   function spawnBabies(state, z, n, cap, minR, maxR) {
     let spawned = 0;
     for (let k = 0; k < n; k++) {
       if ((state.battle.babyCount || 0) >= cap) break;
       const a = state.rng.spawn.next() * Math.PI * 2;
       const rr = minR + state.rng.spawn.next() * (maxR - minR);
-      const bz = ZG.State.spawnZombie(state, 'baby',
-        z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+      const p = babySpot(state, z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+      const bz = ZG.State.spawnZombie(state, 'baby', p.x, p.y);
       bz.wave = z.wave;
       state.battle.babyCount = (state.battle.babyCount || 0) + 1;
       spawned++;
@@ -229,7 +234,8 @@
         if ((state.battle.babyCount || 0) >= cap) break;
         const a = state.rng.spawn.next() * Math.PI * 2;
         const rr = 10 + state.rng.spawn.next() * 24;
-        const bz = ZG.State.spawnZombie(state, 'baby', z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+        const p = babySpot(state, z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+        const bz = ZG.State.spawnZombie(state, 'baby', p.x, p.y);
         bz.wave = z.wave;
         state.battle.babyCount = (state.battle.babyCount || 0) + 1;
         spawned++;

@@ -119,6 +119,19 @@
       }
     }
     state.bus.emit('fx:explosion', { x, y, radius, color: o.color || '#FF7043', kind: o.kind || 'normal' });
+    if (o.kind === 'missile') {
+      if (state.effects.length < 246) {
+        state.effects.push({
+          kind: 'boom', x, y, radius: 110, life: 0.45, maxLife: 0.45,
+          color: '#FFD54F', seed: 1
+        });
+        state.effects.push({
+          kind: 'rock_impact', x, y, radius: 90, life: 0.6, maxLife: 0.6,
+          color: '#FF7043', seed: 2
+        });
+      }
+      state.bus.emit('fx:missile', { x, y });
+    }
   }
 
   // 腐吐者子弹到达结算：毒弹不走 explode（无爆炸音效/震屏）
@@ -260,8 +273,11 @@
       e.life -= dt;
       if (e.life <= 0) state.effects.splice(i, 1);
     }
-    if (state.effects.length > ZG.Const.MAX_EFFECTS) {
-      state.effects.splice(0, state.effects.length - ZG.Const.MAX_EFFECTS);
+    if (state.effects.length > (state.quality === 'mobile'
+      ? ZG.Const.MAX_EFFECTS_MOBILE : ZG.Const.MAX_EFFECTS)) {
+      const cap = state.quality === 'mobile'
+        ? ZG.Const.MAX_EFFECTS_MOBILE : ZG.Const.MAX_EFFECTS;
+      state.effects.splice(0, state.effects.length - cap);
     }
   }
 

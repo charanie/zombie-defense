@@ -53,6 +53,7 @@
     let cursor = 0;
     let dmgCursor = 0;
     let shakeT = 0, shakePower = 0, shakeX = 0, shakeY = 0;
+    let burstScale = 1;
 
     const api = {
       cap,
@@ -98,7 +99,7 @@
         }
       },
       burst(x, y, color, n) {
-        const count = n || 8;
+        const count = Math.max(1, Math.round((n || 8) * burstScale));
         for (let i = 0; i < count; i++) {
           const a = Math.random() * Math.PI * 2;
           const sp = 40 + Math.random() * 130;
@@ -186,6 +187,7 @@
         shakeT = Math.max(shakeT, 0.2);
         shakePower = Math.max(shakePower, power || 4);
       },
+      setQuality(q) { burstScale = q === 'mobile' ? 0.5 : 1; },
       getOffset() { return { x: shakeX, y: shakeY }; },
       activeCount() { return particles.length; },
       damageCount() { return damage.length; },
@@ -205,6 +207,7 @@
     step: () => defaultInstance.step(),
     draw: (...a) => defaultInstance.draw(...a),
     shake: (...a) => defaultInstance.shake(...a),
+    setQuality: (...a) => defaultInstance.setQuality(...a),
     getOffset: () => defaultInstance.getOffset(),
     activeCount: () => defaultInstance.activeCount(),
     damageCount: () => defaultInstance.damageCount(),

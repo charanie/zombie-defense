@@ -37,6 +37,17 @@ test('粒子新形态不突破上限', () => {
   assert.doesNotThrow(() => P.step());
 });
 
+test('移动端爆发粒子数量减半', () => {
+  const P = ZG.Particles.create({ cap: 100, damageCap: 10 });
+  P.setQuality('mobile');
+  P.burst(10, 10, '#FFFFFF', 10);
+  assert.equal(P.activeCount(), 5);
+  const Q = ZG.Particles.create({ cap: 100, damageCap: 10 });
+  Q.setQuality('desktop');
+  Q.burst(10, 10, '#FFFFFF', 10);
+  assert.equal(Q.activeCount(), 10);
+});
+
 test('移动端关闭屏幕层叠加', () => {
   const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1, quality: 'mobile' });
   s.effects = [{ kind: 'shockwave', x: 640, y: 360, radius: 120, life: 0.3, maxLife: 0.6, color: '#FF7043' }];

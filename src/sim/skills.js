@@ -300,6 +300,7 @@
         color: '#FFFFFF', life: 0.2, maxLife: 0.2
       });
     }
+    state.bus.emit('fx:slash', { x: h.x, y: h.y });
   }
 
   function onSamuraiAttack(state, h) {

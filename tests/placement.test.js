@@ -50,3 +50,10 @@ test('moveHuman 到区域外被拒绝且不改变位置', () => {
   assert.equal(r.reason, 'outside-zone');
   assert.equal(h.x, 1100); assert.equal(h.y, 360);
 });
+
+test('地铁图按单位半径检查，圆不能伸进设备带', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  s.money = 9999;
+  assert.equal(ZG.Economy.canPlace(s, 500, 295, 11).reason, 'outside-zone');
+  assert.equal(ZG.Economy.canPlace(s, 500, 240, 11).ok, true);
+});
