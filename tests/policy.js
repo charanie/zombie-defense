@@ -94,15 +94,16 @@ function prep(state, opts) {
   const R = state.round;
   const c = counts(state);
 
-  // 建筑顺序（围墙只用于郊区：地铁窄通道里自建横墙会把入口堵死）
-  if (!hasBuilding(state, 'barricade') && state.mapId === 'suburban') {
+  // 建筑顺序（围墙只用于郊区/医院：地铁窄通道里自建横墙会把入口堵死）
+  if (!hasBuilding(state, 'barricade') &&
+      (state.mapId === 'suburban' || (state.mapId === 'hospital' && R >= 4))) {
     tryBuild(state, 'barricade', 640, 430, { vertical: false }, 260);
   }
   if (R >= 2 && !hasBuilding(state, 'hospital')) tryBuild(state, 'hospital', 760, 560, null, 160);
   if (R >= 2 && !hasBuilding(state, 'turret')) tryBuild(state, 'turret', 520, 560, null, 160);
   if (R >= 4 && !hasBuilding(state, 'ammo')) tryBuild(state, 'ammo', 640, 600, null, 160);
   if (R >= 3 && !hasBuilding(state, 'tarpit')) tryBuild(state, 'tarpit', 640, 420, null, 100);
-  if (!hasBuilding(state, 'barricade') && state.mapId === 'suburban') {
+  if (!hasBuilding(state, 'barricade') && state.mapId !== 'subway') {
     tryBuild(state, 'barricade', 580, 430, { vertical: false }, 140);
   }
   if (R >= 6 && !hasBuilding(state, 'mine')) {
