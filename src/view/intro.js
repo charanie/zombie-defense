@@ -535,10 +535,8 @@
     I.root.style.setProperty('--veil', String(veilFor(t, tl, I.variant, I.built)));
     I.root.style.setProperty('--reveal', String(revealFor(t, tl, I.variant)));
 
-    const showSkip = t >= tl.skipAfter && tl.skipAfter !== Infinity &&
-      t < tl.total - 50 &&
-      (ph.id === 'windup' || ph.id === 'impact' || ph.id === 'spread' ||
-        ph.id === 'blackout' || ph.id === 'hold');
+    // 跳过按钮：0.35s 之后到收尾之前都可点（键盘/触控随时也能跳过）
+    const showSkip = tl.skipAfter !== Infinity && t >= tl.skipAfter && t < tl.total - 50;
     I.root.setAttribute('data-skip', showSkip ? '1' : '0');
 
     if (I.progressBar) {

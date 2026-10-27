@@ -524,6 +524,7 @@
     setPageInert('main', M.page !== 'main');
     setPageInert('maps', M.page !== 'maps');
     M.sceneT0 = null;
+    M.feedSwitchAt = 0;
     if (!M.w) resize();
     refreshRecords();
     refreshInstall();
