@@ -344,14 +344,53 @@
       const t = state.humans.find(u => u.id === h.healTargetId && u.alive);
       if (t) {
         ctx.save();
+        ctx.strokeStyle = 'rgba(102, 187, 106, 0.18)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(h.x, h.y);
+        ctx.lineTo(t.x, t.y);
+        ctx.stroke();
         ctx.strokeStyle = 'rgba(102, 187, 106, 0.7)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(h.x, h.y);
         ctx.lineTo(t.x, t.y);
         ctx.stroke();
+        // 光束上的十字
+        const pulse = (state.battle.time * 2) % 1;
+        const mx = h.x + (t.x - h.x) * pulse;
+        const my = h.y + (t.y - h.y) * pulse;
+        ctx.fillStyle = 'rgba(178, 255, 189, 0.85)';
+        ctx.fillRect(mx - 1, my - 5, 2, 10);
+        ctx.fillRect(mx - 5, my - 1, 10, 2);
         ctx.restore();
       }
+    }
+
+    // 头顶技能状态：鼓舞金环 / 盾墙蓝环 / 职业主动黄点
+    if (h.inspireT > 0 || h.guardT > 0 || h.skillT > 0) {
+      ctx.save();
+      if (h.inspireT > 0) {
+        ctx.strokeStyle = 'rgba(255, 213, 79, 0.8)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, r + 12, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (h.guardT > 0) {
+        ctx.strokeStyle = 'rgba(66, 165, 245, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, r + 9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (h.skillT > 0) {
+        ctx.fillStyle = 'rgba(255, 213, 79, 0.95)';
+        ctx.beginPath();
+        ctx.arc(h.x, h.y - r - 14, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     drawShieldArc(ctx, h, 'rgba(66, 165, 245, 0.95)', r);
@@ -753,6 +792,21 @@
       } else if (p.delay > 0) {
         continue;
       } else {
+        // 火箭/毒瓶/导弹拖尾：渐隐折线
+        if (p.trail && p.trail.length > 1) {
+          ctx.save();
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.typeId === 'missile' ? 3 : 2;
+          for (let i = 1; i < p.trail.length; i++) {
+            const t0 = p.trail[i - 1], t1 = p.trail[i];
+            ctx.globalAlpha = (i / p.trail.length) * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(t0.x, t0.y);
+            ctx.lineTo(t1.x, t1.y);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
         ctx.save();
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;

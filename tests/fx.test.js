@@ -44,3 +44,38 @@ test('移动端关闭屏幕层叠加', () => {
   ZG.Fx.drawScreen(ctx, s);
   assert.equal(ctx.calls.fillRect, 0, 'mobile 不画全屏叠加');
 });
+
+test('长官技能生成三个落点锁定圈', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  const h = ZG.State.spawnHuman(s, 'officer', 1100, 360, { heroId: 'officer' });
+  h.skillUses = 1; h.skillCd = 0;
+  // 9 只聚在 90px 半径内，且在长官 420px 内（北通道里）
+  for (let i = 0; i < 9; i++) {
+    ZG.State.spawnZombie(s, 'walker', 940 + (i % 3) * 15, 215 + Math.floor(i / 3) * 15);
+  }
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  ZG.Sim.tick(s, 2);
+  const locks = s.effects.filter(e => e.kind === 'missile_lock');
+  assert.equal(locks.length, 3);
+  for (const e of locks) assert.ok(ZG.MapZone.contains(s.map, e.x, e.y), '落点在活动区');
+});
+
+test('加特林鼓舞与疫医群疗各生成一个范围效果', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  const g = ZG.State.spawnHuman(s, 'gatling', 1100, 300, { heroId: 'gatling' });
+  for (let i = 0; i < 4; i++) {
+    ZG.State.spawnHuman(s, 'pistol', 1080 + i * 12, 320);
+  }
+  const plague = ZG.State.spawnHuman(s, 'plague', 1100, 420, { heroId: 'plague' });
+  for (let i = 0; i < 3; i++) {
+    const u = ZG.State.spawnHuman(s, 'pistol', 1060 + i * 10, 430);
+    u.hp = u.maxHp * 0.5;
+  }
+  ZG.Sim.startRound(s); s.spawner.batches = [];
+  // startRound 会重置技能计时，必须在开战后设置
+  g.skillCd = 0;
+  plague.skillCd = 0;
+  ZG.Sim.tick(s, 2);
+  assert.equal(s.effects.filter(e => e.kind === 'inspire').length, 1);
+  assert.equal(s.effects.filter(e => e.kind === 'groupheal').length, 1);
+});

@@ -330,16 +330,9 @@
     ctx.save();
     ctx.translate(e.x, e.y);
     ctx.rotate(e.facing || 0);
-    if (e.length) {
-      // 旧数据：渐变矩形剑气
-      const g = ctx.createLinearGradient(0, 0, e.length, 0);
-      g.addColorStop(0, 'rgba(255,255,255,0.9)');
-      g.addColorStop(1, 'rgba(255,138,101,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, -(e.width || 10) / 2, e.length, e.width || 10);
-    } else {
-      const r = e.radius || 90;
-      const arc = e.arc || 0.9;
+    if (e.arc) {
+      const r = e.radius || e.length || 90;
+      const arc = e.arc;
       ctx.globalAlpha = 1;
       for (let i = 0; i < 3; i++) {
         ctx.globalAlpha = (a - i * 0.18) * 0.9;
@@ -358,6 +351,13 @@
         ctx.arc(Math.cos(ang) * r, Math.sin(ang) * r, 2, 0, Math.PI * 2);
         ctx.fill();
       }
+    } else {
+      // 旧数据：渐变矩形剑气
+      const g = ctx.createLinearGradient(0, 0, e.length, 0);
+      g.addColorStop(0, 'rgba(255,255,255,0.9)');
+      g.addColorStop(1, 'rgba(255,138,101,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, -(e.width || 10) / 2, e.length, e.width || 10);
     }
     ctx.restore();
   }

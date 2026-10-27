@@ -677,10 +677,18 @@
           : c;
         const volley = m.hero.officerUses;
         for (let i = 0; i < volley; i++) {
+          const lock = ZG.MapZone.clamp(state.map,
+            target.x + (i - (volley - 1) / 2) * 40,
+            target.y + (i - (volley - 1) / 2) * 20, 0);
+          if (state.effects.length < 250) {
+            state.effects.push({
+              kind: 'missile_lock', x: lock.x, y: lock.y, radius: 140,
+              life: 0.9, maxLife: 0.9, delay: i * 0.4, color: '#FFD54F', seed: i
+            });
+          }
           ZG.Projectiles.spawn(state, {
             typeId: 'missile', x: h.x, y: h.y,
-            tx: target.x + (i - (volley - 1) / 2) * 40,
-            ty: target.y + (i - (volley - 1) / 2) * 20,
+            tx: lock.x, ty: lock.y,
             speed: 900, splash: m.hero.officerRange, damage: 400, delay: i * 0.4,
             damageKind: D.EXPLOSION, ownerId: h.id, color: '#FFD54F'
           });
@@ -709,6 +717,12 @@
           }
         }
         h.skillCd = m.hero.gatlingInterval * m.skillCdMul;
+        if (state.effects.length < 250) {
+          state.effects.push({
+            kind: 'inspire', x: h.x, y: h.y, radius: 200,
+            life: 0.8, maxLife: 0.8, color: '#FFD54F'
+          });
+        }
         state.bus.emit('fx:ability', { kind: 'inspire', x: h.x, y: h.y, text: '鼓舞！' });
       } else {
         h.skillCd = 1;
@@ -726,6 +740,12 @@
           ZG.Infection.dispel(state, u, 30);
         }
         h.skillCd = m.hero.plagueInterval * m.skillCdMul;
+        if (state.effects.length < 250) {
+          state.effects.push({
+            kind: 'groupheal', x: h.x, y: h.y, radius: 180,
+            life: 0.7, maxLife: 0.7, color: '#66BB6A'
+          });
+        }
         state.bus.emit('fx:ability', { kind: 'groupheal', x: h.x, y: h.y, text: '群体治疗' });
       } else {
         h.skillCd = 1;

@@ -34,7 +34,11 @@
       splash: opts.splash || opts.radius || 60,
       spitKind: opts.spitKind || null,
       poison: opts.poison || null,
-      ignoreShield: !!opts.ignoreShield
+      ignoreShield: !!opts.ignoreShield,
+      trailMax: opts.trailMax !== undefined ? opts.trailMax
+        : ((opts.typeId === 'rocket' || opts.typeId === 'vial' || opts.typeId === 'missile') ? 12 : 0),
+      trail: [],
+      trailT: 0
     };
     state.projectiles.push(p);
     if (opts.effect) state.effects.push(opts.effect);
@@ -224,6 +228,14 @@
       p.x += (dx / dist) * move;
       p.y += (dy / dist) * move;
       p.life -= dt;
+      if (p.trailMax > 0) {
+        p.trailT += dt;
+        if (p.trailT >= 2 * dt) {
+          p.trailT = 0;
+          p.trail.push({ x: p.x, y: p.y });
+          if (p.trail.length > p.trailMax) p.trail.shift();
+        }
+      }
     }
 
     // 淘汰
