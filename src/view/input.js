@@ -12,6 +12,12 @@
     return { x, y };
   }
 
+  // 菜单（showMenu）或过场（inputLocked）期间，所有游戏输入都要让路。
+  // 只读这两个标志：跳过/重开/回菜单不会互相污染。
+  function gameplayBlocked(s) {
+    return !s || !!(s.ui && (s.ui.showMenu || s.ui.inputLocked));
+  }
+
   function pickEntity(state, p, extra) {
     let best = null, bestD = 1e9;
     const pad = extra || 0;
@@ -87,7 +93,7 @@
 
     canvas.addEventListener('pointermove', ev => {
       const s = state();
-      if (!s || s.ui.showMenu) return;
+      if (gameplayBlocked(s)) return;
       const p = toWorld(canvas, ev);
       s.ui.mouse = p;
       if (!p) { s.ui.hover = null; return; }
@@ -127,7 +133,7 @@
     canvas.addEventListener('pointerdown', ev => {
       if (ev.button === 2) return;
       const s = state();
-      if (!s || s.ui.showMenu) return;
+      if (gameplayBlocked(s)) return;
       const p = toWorld(canvas, ev);
       if (!p) {
         if (s.ui.pendingSupport) ZG.HUD.toast('请在地图内选点', 'warn');
@@ -254,10 +260,20 @@
       const tag = (ev.target && ev.target.tagName) || '';
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
+      // 菜单里打开的图鉴/设置弹窗：Esc 先关弹窗，不受 showMenu 拦截
+      if (ev.key === 'Escape' && (s.ui.showHelp || s.ui.showSettings)) {
+        ev.preventDefault();
+        cb.onCloseModal && cb.onCloseModal();
+        return;
+      }
+
       if (s.ui.showTech) {
         if (ev.key === 'Escape') cb.onTechClose && cb.onTechClose();
         return;
       }
+
+      // 菜单 / 过场期间，其余游戏快捷键一律失效（Tab 也保持浏览器原生焦点顺序）
+      if (gameplayBlocked(s)) return;
 
       if (ev.code === 'Space') {
         ev.preventDefault();

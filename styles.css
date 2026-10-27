@@ -77,7 +77,7 @@ html, body {
   font-size: clamp(11px, 0.92vw, 15px);
 }
 
-#hud button, #hud .unit-card, #hud .map-card, #hud .overlay, #hud .tech-row {
+#hud button, #hud .unit-card, #hud .overlay, #hud .tech-row {
   pointer-events: auto;
 }
 
@@ -376,6 +376,10 @@ html, body {
 
 /* ---------------- 覆盖层 ---------------- */
 
+/* 层级表（与 docs/architectural-decisions/0003-menu-and-intro.md 一致）：
+ * 游戏背景 1 / 游戏动态 2 / HUD 3 / 结算·失败 40 / 菜单 50 / 弹窗 60 / Toast 70 / Tooltip 80 / 开场 90
+ * 菜单与开场在 menu.css 中定义（.menu-root / .intro-root）。 */
+
 .overlay {
   position: absolute;
   inset: 0;
@@ -391,65 +395,8 @@ html, body {
   box-sizing: border-box;
 }
 
-.menu {
-  z-index: 60;
-  background:
-    radial-gradient(ellipse at 50% 18%, rgba(30, 60, 100, 0.5), transparent 60%),
-    linear-gradient(180deg, rgba(7, 11, 18, 0.97), rgba(9, 15, 25, 0.99));
-  overflow: auto;
-}
-.menu-box {
-  width: min(1080px, 94%);
-  text-align: center;
-  padding: 18px 10px;
-}
-.game-title {
-  font-size: clamp(34px, 4.3vw, 62px);
-  font-weight: 900;
-  letter-spacing: 10px;
-  background: linear-gradient(180deg, #EAF6FF, #7FC7FF 45%, #2E7DBB);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 4px 18px rgba(79, 195, 247, 0.35));
-}
-.game-sub { font-size: 13px; color: var(--dim); letter-spacing: 3px; margin-top: 2px; }
-.menu-how { font-size: 12px; color: #A9C0DC; margin: 14px 0 16px; }
-
-.map-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin: 0 auto;
-  max-width: 980px;
-}
-.map-card {
-  background: linear-gradient(180deg, rgba(28, 42, 64, 0.8), rgba(15, 23, 37, 0.95));
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px;
-  cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.map-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(79, 195, 247, 0.7);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(79, 195, 247, 0.15);
-}
-.map-card canvas {
-  width: 100%;
-  height: auto;
-  border-radius: 7px;
-  border: 1px solid rgba(0, 0, 0, 0.5);
-  background: #0b1220;
-}
-.map-name { font-size: 17px; font-weight: 800; margin-top: 9px; }
-.map-stars { color: var(--gold); font-size: 12px; letter-spacing: 2px; margin: 2px 0; }
-.map-desc { font-size: 11px; color: var(--dim); line-height: 1.4; min-height: 30px; }
-.map-best { font-size: 11px; color: #90CAF9; margin-top: 5px; }
-
-.menu-actions { display: flex; justify-content: center; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
-.version { font-size: 11px; color: #566a85; margin-top: 16px; }
+/* 图鉴 / 设置等弹窗必须高于菜单（50），否则从主菜单打开会被盖住 */
+.overlay.modal { z-index: 60; }
 
 .modal-box {
   background: linear-gradient(180deg, rgba(22, 34, 52, 0.98), rgba(12, 19, 31, 0.99));
@@ -628,7 +575,6 @@ html, body {
   .stat-alive { display: none; }
   .card-grid { overflow-x: auto; overflow-y: hidden; }
   .tech-grid { grid-template-columns: 1fr 1fr; overflow-y: auto; }
-  .map-grid { grid-template-columns: 1fr; max-height: 60dvh; overflow-y: auto; }
   .settings-box { max-height: calc(100% - 24px); overflow-y: auto; }
   .hud-bottom { overflow-y: auto; }
 }
@@ -663,10 +609,6 @@ html, body {
   .stat-alive { display: none; }
   .battle-log { display: none; }
   .codex-grid { grid-template-columns: 1fr; }
-  .map-grid { grid-template-columns: 1fr; max-width: 420px; }
-  .menu { align-items: flex-start; }
-  .menu-box { padding-top: 28px; }
-  .game-title { letter-spacing: 5px; }
   .tutorial { bottom: calc(var(--panel-h) + 10px); }
   .tutorial { padding: 6px 8px; font-size: 10px; gap: 6px; }
   .tutorial .btn { font-size: 9px; padding: 3px 6px; }
@@ -674,7 +616,6 @@ html, body {
 
 @media (max-width: 640px) {
   .card-cost::before { content: ""; }
-  .map-card canvas { max-height: 110px; object-fit: cover; }
 }
 
 /* 触屏优先级最高：所有交互按钮至少 44px */
@@ -704,7 +645,7 @@ html, body {
 .tech-modal {
   position: absolute;
   inset: 0;
-  z-index: 50;
+  z-index: 60;
   display: flex;
   align-items: center;
   justify-content: center;

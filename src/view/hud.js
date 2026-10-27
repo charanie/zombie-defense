@@ -62,7 +62,6 @@
     buildBossBar();
     buildTooltip();
     buildToasts();
-    buildMenu();
     buildSettlement();
     buildGameOver();
     buildModals();
@@ -282,51 +281,6 @@
     H.root.appendChild(H.refs.toasts);
   }
 
-  function buildMenu() {
-    const menu = el('div', 'overlay menu hidden');
-    H.refs.menu = menu;
-    const box = el('div', 'menu-box');
-    const title = el('div', 'game-title', '尸潮防线');
-    const sub = el('div', 'game-sub', '2D 圆形单位 · 人类 vs 僵尸 · 无尽防守');
-    const how = el('div', 'menu-how', '选一张地图：布阵、招募、建建筑、升科技，然后开战。战斗全自动。');
-    const maps = el('div', 'map-grid');
-    H.refs.mapCards = {};
-    for (const id of ZG.Data.mapOrder) {
-      const m = ZG.Data.maps[id];
-      const card = el('div', 'map-card');
-      const canvas = document.createElement('canvas');
-      canvas.width = 220; canvas.height = 110;
-      drawMapThumb(canvas, m);
-      const name = el('div', 'map-name', m.name);
-      const stars = el('div', 'map-stars', '★'.repeat(m.difficulty) + '☆'.repeat(3 - m.difficulty));
-      const desc = el('div', 'map-desc', m.desc);
-      const best = el('div', 'map-best', '最佳：0 回合');
-      card.append(canvas, name, stars, desc, best);
-      card.onclick = () => { H.cb.onSelectMap && H.cb.onSelectMap(id); };
-      maps.appendChild(card);
-      H.refs.mapCards[id] = { card, best };
-    }
-    const actions = el('div', 'menu-actions');
-    const helpBtn = el('button', 'btn', '图鉴 / 操作');
-    helpBtn.onclick = () => { H.cb.onHelp && H.cb.onHelp(); };
-    const settingsBtn = el('button', 'btn', '设置');
-    settingsBtn.onclick = () => { H.cb.onSettings && H.cb.onSettings(); };
-    H.refs.installBtn = el('button', 'btn hidden', '安装到桌面');
-    H.refs.installBtn.onclick = () => { H.cb.onInstall && H.cb.onInstall(); };
-    H.refs.shareBtn = el('button', 'btn', '分享');
-    H.refs.shareBtn.onclick = () => { H.cb.onShare && H.cb.onShare(); };
-    actions.append(helpBtn, settingsBtn, H.refs.installBtn, H.refs.shareBtn);
-    const ver = el('div', 'version', '尸潮防线 ' + ZG.Const.VERSION);
-    box.append(title, sub, how, maps, actions, ver);
-    menu.appendChild(box);
-    H.root.appendChild(menu);
-  }
-
-  function drawMapThumb(canvas, map) {
-    const ctx = canvas.getContext('2d');
-    ZG.MapLayer.drawMinimap(ctx, map, canvas.width, canvas.height);
-  }
-
   function buildSettlement() {
     const ov = el('div', 'overlay settlement hidden');
     H.refs.settlement = ov;
@@ -446,6 +400,7 @@
     const options = [
       ['damageNumbers', '显示伤害数字'],
       ['shake', '屏幕震动'],
+      ['intro', '开场动画'],
       ['muted', '静音']
     ];
     for (const [key, label] of options) {
@@ -510,18 +465,6 @@
       const show = ZG.Platform.isMobile && portrait &&
         !state.settings.orientationHintDismissed;
       H.refs.orientation.classList.toggle('hidden', !show);
-    }
-
-    // 菜单
-    if (H.refs.menu) H.refs.menu.classList.toggle('hidden', !ui.showMenu);
-    if (ui.showMenu) {
-      const best = ZG.Platform.loadAllBest ? ZG.Platform.loadAllBest() : {};
-      for (const id of ZG.Data.mapOrder) {
-        const mc = H.refs.mapCards[id];
-        if (mc) mc.best.textContent = '最佳：' + (best[id] || 0) + ' 回合';
-      }
-      if (H.refs.installBtn) H.refs.installBtn.classList.toggle('hidden', !ZG.__installPrompt);
-      return;
     }
 
     // 顶栏
@@ -596,11 +539,12 @@
     H.refs.wallBtn.classList.toggle('hidden', !showWall);
     if (showWall) H.refs.wallBtn.textContent = ui.wallVertical ? '竖墙' : '横墙';
 
-    // 结算 / 失败
-    H.refs.settlement.classList.toggle('hidden', !ui.showSettlement || state.status === 'over');
+    // 结算 / 失败（菜单打开时收起，避免盖住菜单）
+    H.refs.settlement.classList.toggle('hidden',
+      !ui.showSettlement || state.status === 'over' || ui.showMenu);
     if (ui.showSettlement && state.lastSettlement) renderSettlement(state);
-    H.refs.gameover.classList.toggle('hidden', state.status !== 'over');
-    if (state.status === 'over') renderGameOver(state);
+    H.refs.gameover.classList.toggle('hidden', state.status !== 'over' || ui.showMenu);
+    if (state.status === 'over' && !ui.showMenu) renderGameOver(state);
 
     // 帮助 / 设置
     H.refs.help.classList.toggle('hidden', !ui.showHelp);
@@ -614,8 +558,9 @@
       }
     }
 
-    // 新手引导
-    const showTut = ui.tutorialStep >= 0 && !ui.showMenu && state.status === 'prep';
+    // 新手引导（菜单/过场期间不出现）
+    const showTut = ui.tutorialStep >= 0 && !ui.showMenu && !ui.inputLocked &&
+      state.status === 'prep';
     H.refs.tutorial.classList.toggle('hidden', !showTut);
     if (showTut) {
       const steps = ZG.Model.tutorialSteps();

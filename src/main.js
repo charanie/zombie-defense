@@ -210,23 +210,94 @@
     bus.on('fx:shieldbreak', p => ZG.Particles.burst(p.x, p.y, '#42A5F5', 8));
   }
 
-  function startGame(mapId) {
+  /* ---------------- 开始流程编排 ---------------- */
+
+  // 只建局：不改 showMenu / inputLocked，由调用方决定（过场建局时仍要保持输入锁）
+  function createRun(mapId) {
     state = newState(mapId);
-    state.ui.showMenu = false;
     state.ui.showSettlement = false;
     state.ui.tutorialStep = (mapId === 'suburban' && !state.settings.tutorialSeen) ? 0 : -1;
+    state.ui.hover = null;
+    state.ui.mouse = null;
+    state.ui.drag = null;
+    state.ui.selectedCard = null;
+    state.ui.selectedBuilding = null;
+    state.ui.selectedHumanId = null;
+    state.ui.selectedBuildingId = null;
+    state.ui.pendingSupport = null;
+    state.ui.supportAim = null;
+    state.ui.paused = false;
+    ZG.Particles.reset();
     ZG.HUD.hideTip();
-    ZG.Audio.init();
-    ZG.Audio.play('click');
+    return state;
   }
 
-  function restartGame() {
-    const mapId = state ? state.mapId : 'suburban';
-    state = newState(mapId);
-    state.ui.showMenu = false;
-    state.ui.showSettlement = false;
-    state.ui.tutorialStep = -1;
+  // 选图 → 冻结菜单 → 4.2s 开场 → 黑场建局 → 曝光解锁
+  function selectMap(mapId) {
+    if (!state || ZG.Intro.active()) return;
+    state.ui.inputLocked = true;
+    ZG.Menu.freeze();
     ZG.Audio.init();
+    ZG.Audio.play('click');
+    ZG.Intro.play(mapId, {
+      variant: 'full',
+      settings: state.settings,
+      onBuild() {
+        createRun(mapId);
+        state.ui.showMenu = false;
+        state.ui.inputLocked = true; // 黑幕下不解锁，避免看到 HUD 闪现
+        ZG.Menu.hide();
+      },
+      onDone() {
+        state.ui.inputLocked = false;
+      }
+    });
+  }
+
+  // 重开同一张图：1.0s 短版开场；设置关闭开场动画时走 off（0.25s 淡入）
+  function restartGame() {
+    if (!state || ZG.Intro.active()) return;
+    const mapId = state.mapId || 'suburban';
+    createRun(mapId);
+    state.ui.showMenu = false;
+    state.ui.inputLocked = true;
+    state.ui.tutorialStep = -1;
+    ZG.Menu.hide();
+    ZG.Audio.init();
+    ZG.Audio.play('click');
+    ZG.Intro.play(mapId, {
+      variant: 'quick',
+      settings: state.settings,
+      onDone() {
+        state.ui.inputLocked = false;
+      }
+    });
+  }
+
+  // 回选图页（不是主菜单）：清掉所有游戏内弹窗与选中态
+  function openMenu(page) {
+    if (!state) return;
+    state.ui.showMenu = true;
+    state.ui.inputLocked = true;
+    state.ui.showSettlement = false;
+    state.ui.showHelp = false;
+    state.ui.showSettings = false;
+    state.ui.showTech = false;
+    state.ui.paused = false;
+    state.ui.selectedCard = null;
+    state.ui.selectedBuilding = null;
+    state.ui.selectedHumanId = null;
+    state.ui.selectedBuildingId = null;
+    state.ui.pendingSupport = null;
+    state.ui.supportAim = null;
+    state.ui.hover = null;
+    state.ui.mouse = null;
+    state.ui.drag = null;
+    state.ui.tutorialStep = -1;
+    ZG.HUD.hideTip();
+    if (ZG.TechPanel) ZG.TechPanel.close(state);
+    ZG.Menu.show(page || 'maps');
+    ZG.Menu.refreshRecords();
   }
 
   function nextPanel() {
@@ -299,7 +370,7 @@
   }
 
   const callbacks = {
-    onSelectMap(id) { startGame(id); },
+    onSelectMap(id) { selectMap(id); },
     onRecruit(id) {
       if (!state || state.status !== 'prep') return;
       state.ui.selectedCard = state.ui.selectedCard === id ? null : id;
@@ -427,21 +498,7 @@
       ZG.Audio.play('click');
     },
     onRestart: restartGame,
-    onMenu() {
-      if (!state) return;
-      state.ui.showMenu = true;
-      state.ui.showSettlement = false;
-      state.ui.showHelp = false;
-      state.ui.showSettings = false;
-      state.ui.paused = false;
-      state.ui.selectedCard = null;
-      state.ui.selectedBuilding = null;
-      state.ui.selectedHumanId = null;
-      state.ui.pendingSupport = null;
-      state.ui.supportAim = null;
-      state.ui.tutorialStep = -1;
-      ZG.Audio.play('click');
-    },
+    onMenu() { openMenu('maps'); },
     onHelp() { toggleOverlay('help'); },
     onSettings() { toggleOverlay('settings'); },
     onCloseModal() { closeOverlay(); },
@@ -508,7 +565,10 @@
       if (prompt) {
         prompt.prompt();
         if (prompt.userChoice) {
-          prompt.userChoice.then(() => { ZG.__installPrompt = null; });
+          prompt.userChoice.then(() => {
+            ZG.__installPrompt = null;
+            if (ZG.Menu) ZG.Menu.refreshInstall();
+          });
         }
       }
     }
@@ -543,9 +603,13 @@
       acc = 0;
     }
 
+    ZG.Menu.tick(now);
+    ZG.Intro.tick(now);
+
     ZG.Particles.step();
     if (state) {
-      ZG.Renderer.draw(state);
+      // 菜单盖住战场时不画游戏 canvas（省 CPU）；HUD 仍更新弹窗/Toast
+      if (!ZG.Menu.isVisible()) ZG.Renderer.draw(state);
       ZG.HUD.render(state);
     }
     requestAnimationFrame(loop);
@@ -578,12 +642,20 @@
       window.addEventListener('beforeinstallprompt', ev => {
         ev.preventDefault();
         ZG.__installPrompt = ev;
+        if (ZG.Menu) ZG.Menu.refreshInstall();
       });
       window.addEventListener('appinstalled', () => {
         ZG.__installPrompt = null;
         ZG.HUD.toast('已安装到桌面', 'ok');
+        if (ZG.Menu) ZG.Menu.refreshInstall();
       });
     } catch (e) { /* 忽略 */ }
+  }
+
+  function rendererResize() {
+    ZG.Renderer.resize();
+    if (ZG.Menu) ZG.Menu.resize();
+    if (ZG.Intro) ZG.Intro.resize();
   }
 
   function init() {
@@ -591,9 +663,16 @@
     const bg = document.getElementById('game-bg');
     state = newState('suburban', 20261018);
     state.ui.showMenu = true;
+    state.ui.inputLocked = true;
 
     ZG.Renderer.init(canvas, bg, state);
     ZG.HUD.init(state, callbacks);
+    ZG.Menu.init(Object.assign({}, callbacks, {
+      isOverlayOpen: () => !!(state && (state.ui.showHelp || state.ui.showSettings)),
+      isBusy: () => ZG.Intro.active()
+    }));
+    ZG.Menu.resize();
+    ZG.Menu.show('main');
     ZG.Renderer.resize();
     ZG.Input.init(canvas, () => state, callbacks);
     ZG.Audio.setMuted(!!state.settings.muted);
@@ -611,10 +690,10 @@
       setLoopStopped(v) { loopStopped = !!v; }
     };
 
-    window.addEventListener('resize', () => ZG.Renderer.resize());
-    window.addEventListener('orientationchange', () => ZG.Renderer.resize());
+    window.addEventListener('resize', rendererResize);
+    window.addEventListener('orientationchange', rendererResize);
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', () => ZG.Renderer.resize());
+      window.visualViewport.addEventListener('resize', rendererResize);
     }
     window.addEventListener('pointerdown', () => {
       ZG.Audio.init();
