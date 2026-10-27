@@ -38,12 +38,16 @@
 | # | 状态 | 尺寸 | 文件 |
 |---|---|---|---|
 | 1 | 主菜单 | 1440×900 | `shots/menu.png` |
-| 2 | 主菜单 | 390×844 | `shots/menu-mobile.png` |
-| 3 | 选图 + 简报 | 1440×900 | `shots/menu-maps.png` |
-| 4 | 剧情 teaser | 1440×900 | `shots/menu-story.png` |
-| 5 | 开场 0.4s 破口 | 1440×900 | `shots/intro-crack.png` |
-| 6 | 开场 2.6s 地图名 | 1440×900 | `shots/intro.png` |
-| 7 | 整备（菜单已隐藏、输入可用） | 1440×900 | `shots/prep.png` |
+| 2 | 主菜单 | 1366×768 | `shots/menu-1366-768.png` |
+| 3 | 主菜单 | 1024×768 | `shots/menu-1024-768.png` |
+| 4 | 主菜单 | 844×390 | `shots/menu-844-390.png` |
+| 5 | 主菜单 | 390×844 | `shots/menu-390-844.png` |
+| 6 | 选图 + 简报 | 1440×900 | `shots/menu-maps.png` |
+| 7 | 选图（横滑单卡） | 390×844 | `shots/menu-maps-390x844.png` |
+| 8 | 剧情 teaser | 1440×900 | `shots/menu-story.png` |
+| 9 | 开场 0.4s 破口 | 1440×900 | `shots/intro-crack.png` |
+| 10 | 开场 2.6s 地图名 | 1440×900 | `shots/intro.png` |
+| 11 | 整备（菜单已隐藏、输入可用） | 1440×900 | `shots/prep.png` |
 
 ## 桌面
 

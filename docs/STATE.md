@@ -1,4 +1,4 @@
-# 项目状态（SESSION HANDOFF）
+﻿# 项目状态（SESSION HANDOFF）
 
 > 更新：2026-10-27
 
@@ -39,7 +39,7 @@
 - `node tests/bot.js --rounds 42 --seed 1`：跑满 R44、`over=false`，与 v1.5 基线输出逐行一致（模拟层未被开始流程改动影响）。
 - 确定性：`state.rng` 未被菜单/过场触碰；`State.hash` 不包含 `ui/settings`；同种子回放测试仍绿。
 - **v1.6 浏览器 QA（Edge headless + DevTools 协议，`tools/qa-shot.js`，本地 `file://`）**：
-  - 主菜单 1440×900 / 1366×768 / 1024×768 / 844×390 / 390×844 五档构图正常，无溢出；截图为 `shots/menu.png`、`shots/menu-mobile.png`、`shots/menu-maps.png`、`shots/menu-story.png`。
+  - 主菜单 1440×900 / 1366×768 / 1024×768 / 844×390 / 390×844 五档构图正常，无溢出；截图为 `shots/menu.png`、`shots/menu-390-844.png`、`shots/menu-maps.png`、`shots/menu-story.png`。
   - 键盘：`↑↓` 移动导航、`Enter` 进入选图、`←→` 切卡、`Esc` 逐层返回；菜单内 `Tab` 的 `defaultPrevented=false`。
   - 全流程：主菜单 → 选图 → 点“地铁站台” → 开场（`onBuild` 1.90s 建局、`onDone` 解锁）→ 整备；过场中按 `2` 无效，结束后恢复。
   - 跳过：0.5s 触发，584ms 内结束且 `onBuild`/`onDone` 各一次；`onBuild` 后菜单隐藏、输入仍锁。
