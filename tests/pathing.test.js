@@ -26,10 +26,31 @@ test('矩形墙阻挡流场', () => {
   assert.equal(s.pathing.blocked[i], 1);
 });
 
-test('地图边缘可达中心', () => {
+test('三张地图可达性校验', () => {
   for (const id of ['suburban', 'hospital', 'subway']) {
     const r = ZG.Pathing.validate(ZG.Data.maps[id]);
     assert.equal(r.ok, true, id + ': ' + JSON.stringify(r));
+  }
+});
+
+test('地铁图流场只覆盖活动区', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  ZG.State.spawnHuman(s, 'shield', 1120, 360);
+  s.pathing = ZG.Pathing.build(s);
+  const outside = 11 * ZG.Const.GRID_COLS + 15; // (496, 368) 中央设备带
+  const inside = 7 * ZG.Const.GRID_COLS + 15;  // (496, 240) 北通道
+  assert.equal(s.pathing.blocked[outside], 1);
+  assert.equal(s.pathing.blocked[inside], 0);
+  assert.notEqual(s.pathing.dist[inside], 65535);
+});
+
+test('地铁图两个入口都能走向大厅', () => {
+  const s = ZG.Sim.createGame({ mapId: 'subway', seed: 1 });
+  ZG.State.spawnHuman(s, 'shield', 1120, 360);
+  s.pathing = ZG.Pathing.build(s);
+  for (const p of [{ x: -20, y: 230 }, { x: -20, y: 490 }]) {
+    const d = ZG.Pathing.directionAt(s.pathing, p.x + 40, p.y);
+    assert.ok(d.x > 0, JSON.stringify(d));
   }
 });
 

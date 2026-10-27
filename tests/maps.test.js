@@ -37,3 +37,23 @@ test('郊区与医院暂无活动区与出生口（Task 4 后 subway 才有 spaw
     assert.equal(m.spawns, undefined, id);
   }
 });
+
+test('地铁图 zones 是首尾相接的 U 形并集', () => {
+  const m = ZG.Data.maps.subway;
+  assert.equal(m.zones.length, 3);
+  const [n, s, hall] = m.zones;
+  assert.equal(n.x + n.w, hall.x);
+  assert.equal(s.x + s.w, hall.x);
+  assert.equal(hall.y, 160);
+  assert.equal(hall.y + hall.h, 560);
+});
+
+test('地铁出生口在屏幕外且落在通道带内', () => {
+  const m = ZG.Data.maps.subway;
+  assert.equal(m.spawns.length, 2);
+  for (const sp of m.spawns) {
+    assert.equal(sp.edge, 'left');
+    assert.ok(sp.x <= -10 && sp.x >= -60);
+    assert.ok((sp.y > 160 && sp.y < 300) || (sp.y > 420 && sp.y < 560), JSON.stringify(sp));
+  }
+});

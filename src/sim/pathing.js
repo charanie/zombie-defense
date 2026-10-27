@@ -64,6 +64,14 @@
       }
     }
 
+    // 活动区遮罩：区域外的格子一律不可走（地铁图的设备带与轨道）
+    if (ZG.MapZone.has(map)) {
+      const zmask = ZG.MapZone.mask(state);
+      for (let i = 0; i < blocked.length; i++) {
+        if (!zmask[i]) blocked[i] = 1;
+      }
+    }
+
     const dist = new Uint16Array(COLS * ROWS).fill(INF);
     const dirX = new Int8Array(COLS * ROWS);
     const dirY = new Int8Array(COLS * ROWS);
@@ -191,15 +199,27 @@
   function validate(map) {
     const fake = {
       map,
-      humans: [{ id: 0, alive: true, x: ZG.Const.W / 2, y: ZG.Const.H / 2, radius: 8 }],
+      humans: [],
       buildings: []
     };
     const p = build(fake);
     let ok = true, maxDetour = 0;
     const problems = [];
+    const zoned = !!(map.zones && map.validationPoints);
     const check = (x, y) => {
+      if (zoned && !ZG.MapZone.contains(map, x, y)) {
+        ok = false;
+        problems.push('outside-zone ' + x + ',' + y);
+        return;
+      }
       const c = cellOf(x, y);
-      if (p.blocked[c.i]) return;
+      if (p.blocked[c.i]) {
+        if (zoned) {
+          ok = false;
+          problems.push('blocked ' + x + ',' + y);
+        }
+        return;
+      }
       if (p.dist[c.i] === INF) {
         ok = false;
         problems.push('unreachable ' + x + ',' + y);
@@ -208,8 +228,12 @@
       const straight = Math.max(1, ZG.Geom.dist(x, y, p.centerX, p.centerY));
       maxDetour = Math.max(maxDetour, (p.dist[c.i] * CELL) / straight);
     };
-    for (let cx = 0; cx < COLS; cx++) { check(cellCX(cx), cellCY(0)); check(cellCX(cx), cellCY(ROWS - 1)); }
-    for (let cy = 0; cy < ROWS; cy++) { check(cellCX(0), cellCY(cy)); check(cellCX(COLS - 1), cellCY(cy)); }
+    if (zoned) {
+      for (const pt of map.validationPoints) check(pt.x, pt.y);
+    } else {
+      for (let cx = 0; cx < COLS; cx++) { check(cellCX(cx), cellCY(0)); check(cellCX(cx), cellCY(ROWS - 1)); }
+      for (let cy = 0; cy < ROWS; cy++) { check(cellCX(0), cellCY(cy)); check(cellCX(COLS - 1), cellCY(cy)); }
+    }
     check(p.centerX, p.centerY);
     return { ok, maxDetour, problems, detourOk: true };
   }
