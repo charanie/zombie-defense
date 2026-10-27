@@ -48,7 +48,7 @@
   };
 
   ZG.Const = Object.freeze({
-    VERSION: 'v1.5.0',
+    VERSION: 'v1.6.0',
     W: 1280,
     H: 720,
     STEP_MS: 1000 / 60,

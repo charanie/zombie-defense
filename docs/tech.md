@@ -1,6 +1,6 @@
 # 技术栈与工程约束
 
-> 与 ADR-0001 / ADR-0002 一致。最后更新：2026-10-19。
+> 与 ADR-0001 / ADR-0002 / ADR-0003 一致。最后更新：2026-10-27。
 
 ## 运行时
 
@@ -25,8 +25,9 @@ core/   常量、随机、事件、几何、状态、平台        ← 无依赖
 data/   人类、僵尸、英雄、建筑、地图、波次、公式  ← 只依赖 core
 sim/    空间哈希、属性、寻路、小队、感染、战斗、
         投射物、经济、出生、AI、队长、英雄、模拟  ← 依赖 core + data，禁止 DOM
-view/   视图模型、Canvas 渲染、粒子、音效、HUD、输入
-main.js 组装、主循环、输入回调、PWA
+view/   视图模型、Canvas 渲染、粒子、音效、HUD、输入、
+        开始流程（MenuScene 绘制 / Menu DOM / Intro 开场，三者互不反向依赖）
+main.js 组装、开始流程编排、主循环、输入回调、PWA
 ```
 
 ## 加载顺序
@@ -36,7 +37,7 @@ main.js 组装、主循环、输入回调、PWA
 ## 性能预算
 
 - 300 僵尸 + 99 人类 + 100 投射物：模拟 ≤2.5ms/步，渲染 ≤6ms/帧。
-- 当前实测：Node `avgStepMs ≈1.39`；浏览器模拟/渲染待 Task 12 复测。
+- 当前实测：Node `avgStepMs ≈1.81`（v1.5 基线 1.73）；菜单场景按固定种子缓存装饰数组，隐藏即停。
 - 粒子上限 250（移动 120），伤害数字上限 50，同屏僵尸上限 300（移动 200）。
 - 索敌缓存 1 步、密度评估只看最近 24 个目标、`Stats.range` 无对象分配。
 
@@ -55,7 +56,19 @@ main.js 组装、主循环、输入回调、PWA
 index.html styles.css manifest.webmanifest sw.js icons/ src/
 ```
 
-Service Worker 版本号在 `sw.js` 的 `CACHE` 常量（当前 `zd-v1.4.0`）；发版时递增并清理旧缓存。部署使用 SSH 推送到 GitHub Pages（本机 `github.com:443` 被阻断）。
+Service Worker 版本号在 `sw.js` 的 `CACHE` 常量（当前 `zd-v1.6.0`）；发版时递增并清理旧缓存。部署使用 SSH 推送到 GitHub Pages（本机 `github.com:443` 被阻断）。
+
+## v1.6 新增模块
+
+- `src/data/menu.js`：模式/动作、地图简报（`mix` 恒为 100）、剧情占位章节、开始流程文案；纯数据，不碰 DOM。
+- `src/view/menuScene.js`：`ZG.MenuScene.draw / drawFeed / drawThumb / drawFallbackThumb`；背景场景、战区监视、缩略图（优先 `ZG.MapLayer.drawMinimap`，缺失时回退）；固定种子 LCG，按 `${w}x${h}` 缓存装饰数组。
+- `src/view/menu.js`：`ZG.Menu` 主菜单与选图页的 DOM/页面切换/键盘焦点/卡片/行动简报/剧情弹窗；纯函数 `menuLayout / navItems / mapCardModel / acceptsSelect` 可单测；不引用 `ZG.Intro`。
+- `src/view/intro.js`：`ZG.Intro` 开场演出；纯函数 `timeline / crackPaths / variantFor / skipDecision / copyFor`；DOM 只在 `play()/tick()/resize()` 内创建。
+- `menu.css`：菜单、剧情弹窗、开场演出、HUD 错峰入场的全部样式；断点只认 `.menu-root[data-layout]`（唯一例外 `prefers-reduced-motion`）。
+- 状态新增 `ui.showMenu / ui.inputLocked / settings.intro`；`Platform.saveLast / loadLast / loadAllLast`；`input.js` 统一 `gameplayBlocked(s)`。
+- 层级表：游戏 1/2、HUD 3、结算 40、菜单 50、弹窗 60（`.overlay.modal`、`.menu-modal`、`.tech-modal`）、Toast 70、Tooltip 80、开场 90；菜单与弹窗必须是 `#hud` 直接子元素。
+- `Menu` / `Intro` 不各自起 RAF：只暴露 `tick(nowMs)`，由 `main.loop` 驱动；菜单隐藏或过场冻结时停止绘制。
+- 测试辅助：`tools/qa-shot.js`（Edge headless + DevTools 协议，零依赖）用于截图与脚本化走查。
 
 ## v1.4 新增模块
 

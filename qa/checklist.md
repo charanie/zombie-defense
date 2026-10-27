@@ -1,21 +1,53 @@
 # QA 验收清单
 
-> 2026-10-22 · v1.4.0 · 自动化已完成；浏览器矩阵已走查，真机待测
+> 2026-10-27 · v1.6.0 · 自动化已完成；浏览器矩阵（五档 + 键盘 + reduced motion）已走查，真机待测
 
 ## 自动化
 
-- [x] `npm test`：231/231 通过。
-- [x] `node tests/bench.js`：300/99/100 实体，`avgStepMs≈1.5`（预算 2.5）。
-- [x] `node tests/bot.js --rounds 42 --seed 1`：跑满 R44（`over=false`），6 BOSS；seed 2–4 同样跑满 R44。
+- [x] `npm test`：292/292 通过。
+- [x] `node tests/bench.js`：300/99/100 实体，`avgStepMs≈1.81`（预算 2.5）。
+- [x] `node tests/bot.js --rounds 42 --seed 1`：跑满 R44（`over=false`），输出与 v1.5 基线逐行一致。
 - [x] `node tests/bot.js --rounds 42 --seed 1 --rocket-only`：R6 失败。
-- [x] 同种子 + 同命令哈希一致（回放测试，含购买节点与施放援助）。
+- [x] 同种子 + 同命令哈希一致（回放测试，含购买节点与施放援助）；`State.hash` 不含 `ui/settings`。
 - [x] 三张地图边缘格可达中心。
-- [x] `tests/shell.test.js`：`index.html` 全部脚本都在 `sw.js` SHELL；版本号 1.4.0 三处一致。
+- [x] `tests/shell.test.js`：`index.html` 全部脚本与样式表都在 `sw.js` SHELL；版本号 1.6.0 三处一致。
+
+## v1.6 开始流程
+
+- [x] 主菜单 4 项：无尽模式 → 选图；剧情模式 → 封存档案；战地图鉴 → HUD 帮助；系统设置 → HUD 设置。
+- [x] 主菜单 1440×900 / 1366×768 / 1024×768 / 844×390 / 390×844 五档构图正常，无横向滚动条、无遮挡。
+- [x] 战区监视：CAM-03/THERMAL/LIVE、四格遥测、UPLINK；每 7s 换图（280ms 故障切换）。
+- [x] 选图页：AO-01/02/03、威胁条 = difficulty、标签、描述、最佳/上次（空显示 `—`）。
+- [x] 行动简报：悬停/聚焦切换地图；威胁构成 62/22/16 等三项合计 100；`aria-live="polite"`。
+- [x] 点卡 120ms 闪白、400ms 防抖（连点只触发一次）、触控横滑 >8px 不触发点击。
+- [x] 剧情 teaser：z 60 高于菜单 50；三章 `disabled` + `待解锁`；`Esc` / 遮罩 / 返回均可关闭，焦点回到“剧情模式”。
+- [x] 开场 full：0.4s 左上破口 + 碎片；1.2s 裂纹蔓延 + 压暗；2.6s 黑场地图名（字距收紧）；4.1s 曝光 + HUD 入场。
+- [x] 开场时长：full 4.2s、skip 0.55s、quick 1.0s、reduced 1.4s、off 0.25s；0.35s 前跳过被忽略。
+- [x] 建局固定在全黑 1.90s；`onBuild` 后菜单隐藏、输入仍锁，`onDone` 才解锁。
+- [x] 输入锁：过场/菜单中 `Space / 1 / 2 / 3 / T / H` 不触发游戏；结束后恢复。
+- [x] 菜单内 `Tab` 不被拦截（`defaultPrevented=false`），走浏览器原生焦点顺序。
+- [x] 菜单 → 设置：z 60 可开、可切“开场动画”、`Esc` 只关弹窗；刷新后保留。
+- [x] 菜单 → 图鉴：可开、`Esc` 关闭。
+- [x] 游戏结束 →“返回选图”回到 maps（不是 main）；“再来一局”走 quick 1.0s。
+- [x] `prefers-reduced-motion`：场景静帧、开场 1.4s、无裂纹/闪屏/震屏、流程可完成。
+- [x] 触控尺寸：导航 58/48、工具与返回 44、跳过 44、弹窗关闭 ≥44、卡片整卡可点。
+- [x] console 0 error；`file://` 双击可玩。
+
+## v1.6 截图清单
+
+| # | 状态 | 尺寸 | 文件 |
+|---|---|---|---|
+| 1 | 主菜单 | 1440×900 | `shots/menu.png` |
+| 2 | 主菜单 | 390×844 | `shots/menu-mobile.png` |
+| 3 | 选图 + 简报 | 1440×900 | `shots/menu-maps.png` |
+| 4 | 剧情 teaser | 1440×900 | `shots/menu-story.png` |
+| 5 | 开场 0.4s 破口 | 1440×900 | `shots/intro-crack.png` |
+| 6 | 开场 2.6s 地图名 | 1440×900 | `shots/intro.png` |
+| 7 | 整备（菜单已隐藏、输入可用） | 1440×900 | `shots/prep.png` |
 
 ## 桌面
 
-- [x] 菜单：三张地图缩略图、难度、最佳回合、版本号。
-- [x] 选图 → 整备；顶部回合/金钱/人口/存活/僵尸。
+- [x] 选图页 → 整备；顶部回合/金钱/人口/存活/僵尸。
 - [x] 招募：点卡片 → 地图任意合法位置放置扣钱；越界/障碍/重叠给出提示。
 - [x] 拖拽已有单位；越界自动钳回世界，重叠回退。
 - [x] 出售选中单位，返还 50%；最后一名人类不能出售。
@@ -64,20 +96,19 @@
 
 ## 性能
 
-- [x] 300 僵尸 + 99 人类 + 100 投射物：`avgStepMs≈1.5`、`maxStepMs≈15`。
+- [x] 300 僵尸 + 99 人类 + 100 投射物：`avgStepMs≈1.81`、`maxStepMs≈15.9`。
 - [x] 粒子上限 250/120、伤害数字上限 50。
 - [x] 血条仅受伤单位显示；静态背景仅在地图/建筑变化时重绘。
 
 ## PWA / 离线
 
 - [x] Service Worker 注册并 activated。
-- [x] 缓存名 `zd-v1.4.0`，SHELL 包含 `src/data/tech.js`、`src/sim/tech.js`、`src/sim/skills.js`、`src/view/techLayout.js`、`src/view/techPanel.js`。
-- [x] Service Worker 已注册并 active，缓存 `zd-v1.4.0`；断网刷新未在 headless 中单独跑。
+- [x] 缓存名 `zd-v1.6.0`，SHELL 包含 `menu.css`、`src/data/menu.js`、`src/view/menuScene.js`、`src/view/menu.js`、`src/view/intro.js`，以及 v1.5 的 `src/view/maplayer.js`、`src/view/fx.js`、`src/sim/mapzone.js`。
 - [x] manifest 字段（name/display/orientation/icons）正确。
 - [x] `file://` 下不请求 manifest，无 CORS 报错。
-- [x] 线上部署新版本：`charanie.github.io/zombie-defense` 返回 v1.4.0，缓存 `zd-v1.4.0`。
+- [x] 线上部署 v1.5：`charanie.github.io/zombie-defense` 返回 v1.5.0，缓存 `zd-v1.5.0`（v1.6 待发布后复测）。
 - [ ] 安装到主屏（需 HTTPS + 真机/Chromium 手动确认）。
-- [x] 新版本更新提示：`zd-v1.4.0` 激活后旧缓存被清理（本轮从 v1.2/v1.3 缓存升级验证）。
+- [x] 新版本更新提示：`zd-v1.4.0` 激活后旧缓存被清理（上一轮从 v1.2/v1.3 缓存升级验证）。
 
 ## 手机 / 触控
 
@@ -96,8 +127,10 @@
 
 ## 已知问题
 
-- bot 对种子较敏感；v1.4 四 seed 均清完测试上限 R44，强于 R42 目标线。
+- bot 对种子较敏感；v1.6 单 seed 停在 R42 但跑到 R44 上限，强于 R42 目标线。
 - 科技树在 1024 宽度下节点文案会截断，靠详情条补全说明。
 - 援助瞄准在低端真机上的触控落点待复测。
 - 极窄竖屏视野较小；宽屏左右为背景装饰区。
+- 开场演出只在无头 Edge 中按 4 帧截图验收，真机掉帧与音频延迟待测。
+- 桌面 Electron 版未随 v1.6 重打包。
 - 首版无中途存档、排行榜、成就。

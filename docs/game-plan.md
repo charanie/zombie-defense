@@ -1658,6 +1658,8 @@ SEARCH / ADVANCE → ENGAGE / HOLD → (CARE / DODGE) → 归队
 ```
 games/zombie-defense/
   index.html            // 唯一加载顺序真相：所有脚本按依赖顺序声明
+  styles.css            // 游戏内 HUD / 面板 / 弹窗 / 响应式
+  menu.css              // v1.6 主菜单 / 选图 / 剧情弹窗 / 开场演出 / HUD 入场
   src/
     core/
       constants.js      // 颜色、尺寸、速度、层、版本号
@@ -1672,6 +1674,7 @@ games/zombie-defense/
       heroes.js         // 4 英雄
       buildings.js      // 6 建筑
       maps.js           // 3 地图：theme/roads/obstacles/zones/spawns/decor/terrain
+      menu.js           // v1.6 开始流程纯数据：模式/动作、地图简报、剧情占位、文案
       waves.js          // 数量/构成/解锁/出生点
       balance.js        // 数值公式、经济
       tech.js           // v1.4 科技树数据
@@ -1696,14 +1699,17 @@ games/zombie-defense/
       model.js          // 视图模型与坐标变换
       maplayer.js       // v1.5 静态地图背景/装饰/区域压暗/缩略图（renderer 之前）
       fx.js             // v1.5 技能特效样式表 + 地面/空中/屏幕三层绘制（renderer 之前）
+      menuScene.js      // v1.6 菜单背景场景 / 战区监视 / 缩略图（只读 Data 与 MapLayer）
+      menu.js           // v1.6 主菜单与选图页：DOM、页面切换、键盘焦点、卡片、简报、剧情弹窗
+      intro.js          // v1.6 开场演出：时间轴、裂纹几何、黑幕、标题层、跳过
       renderer.js       // Canvas 渲染（背景委托 MapLayer，特效委托 Fx）
-      hud.js            // DOM HUD/商店/科技/缩略图
-      input.js          // 鼠标/触控/拖拽
+      hud.js            // DOM HUD/商店/科技/图鉴/设置
+      input.js          // 鼠标/触控/拖拽（统一 gameplayBlocked 拦截）
       particles.js      // 粒子/伤害数字/震屏
       techPanel.js      // v1.4 科技面板
       techLayout.js     // v1.4 科技面板布局
       audio.js          // Web Audio 程序合成音效
-    main.js             // 启动、主循环、输入、事件→音效/震屏映射
+    main.js             // 启动、开始流程编排（createRun/selectMap/restartGame/openMenu）、主循环、事件→音效/震屏映射
     test-hooks.js       // window.__game
   docs/
     game-plan.md        // 本文件
@@ -1713,13 +1719,13 @@ games/zombie-defense/
     architectural-decisions/
     superpowers/plans/
   tests/                // node --test；load-sim.js 解析 index.html 的加载顺序
-  tools/                // 图标生成等离线工具
+  tools/                // 图标生成、qa-shot（Edge headless 截图/走查）等离线工具
   icons/                // PWA 图标
   shots/                // 验证截图
   README.md
 ```
 
-> 分层依赖：`src/core` ← `src/data` ← `src/sim` ← `src/view` / `src/main.js`。`mapzone.js` 只读 `Const/Geom/Data`，被 `sim` 与 `view` 共用；`maplayer.js`/`fx.js` 只读数据与状态，不反向依赖 `renderer.js`。
+> 分层依赖：`src/core` ← `src/data` ← `src/sim` ← `src/view` / `src/main.js`。`mapzone.js` 只读 `Const/Geom/Data`，被 `sim` 与 `view` 共用；`maplayer.js`/`fx.js` 只读数据与状态，不反向依赖 `renderer.js`。`menuScene.js` 只读 `Data` 与可选 `MapLayer`；`menu.js` 不引用 `intro.js`，`intro.js` 不引用 `menu.js`，开始流程的编排只在 `main.js`。
 
 ### 12.3 主循环与时间步
 
@@ -2426,6 +2432,10 @@ BOSS 奖励 = 400 + 50R
 | v1.0 | 2026-10-18 | 初版设计定稿：完整规则、数值、地图、技术方案、里程碑 |
 | v1.1 | 2026-10-18 | 按用户反馈调整疫医：HP 800、群体治疗、转化兵 3 回合寿命/不占人口/上限 15 |
 | v1.2 | 2026-10-18 | 新增第 13 章《发布与包装》：PWA/手机适配、Electron/Tauri 桌面壳、Capacitor、Steam 路线与发布验收；原 13–16 章顺延为 14–17 章 |
+| v1.3 | 2026-10-22 | BOSS 池轮换（坦克/裂爪/腐吐者/母巢）与特殊攻击表现清单 |
+| v1.4 | 2026-10-22 | 科技树 4 分支 × 6 层 × 47 节点、职业主动技、场外援助、生命分支 |
+| v1.5 | 2026-10-27 | 地图数据分层（zones/spawns/decor/terrain）、地铁双通道活动区、区域感知寻路、技能与 BOSS 特效 |
+| v1.6 | 2026-10-27 | 主菜单 / 无尽选图 / 4.2s 开场演出、剧情模式入口占位、层级表与输入锁、上次抵达记录 |
 
 ---
 
