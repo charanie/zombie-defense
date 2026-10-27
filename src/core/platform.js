@@ -83,6 +83,29 @@
         for (const id of maps) out[id] = api.loadBest(id);
         return out;
       },
+      saveLast(mapId, round) {
+        try {
+          const key = 'zd_last_' + mapId;
+          const prev = parseInt(storage.getItem(key) || '0', 10) || 0;
+          if (round > prev) {
+            storage.setItem(key, String(round));
+            return true;
+          }
+          return false;
+        } catch (e) { return false; }
+      },
+      loadLast(mapId) {
+        try {
+          const v = parseInt(storage.getItem('zd_last_' + mapId) || '0', 10);
+          return isNaN(v) ? 0 : v;
+        } catch (e) { return 0; }
+      },
+      loadAllLast() {
+        const out = {};
+        const maps = (ZG.Data.maps && ZG.Data.mapOrder) || [];
+        for (const id of maps) out[id] = api.loadLast(id);
+        return out;
+      },
       exportSave() {
         const payload = {
           version: SAVE_VERSION,

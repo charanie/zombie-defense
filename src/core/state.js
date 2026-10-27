@@ -50,11 +50,13 @@
         mapHover: null, showCodex: false, showHelp: false, showSettings: false,
         showTech: false, techBranch: 'fire', techNodeId: null,
         pendingSupport: null, supportAim: null,
-        tutorialStep: -1
+        tutorialStep: -1,
+        // 开始流程：showMenu 管菜单，inputLocked 管过场；两者分离，互不污染
+        showMenu: false, inputLocked: false
       },
       settings: {
         damageNumbers: true, shake: true, muted: false, tutorialSeen: false,
-        orientationHintDismissed: false
+        orientationHintDismissed: false, intro: true
       },
       log: [],
       uid: 1,

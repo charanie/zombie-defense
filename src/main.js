@@ -70,9 +70,11 @@
       if (s.ui.tutorialStep === 2) s.ui.tutorialStep = 3;
       log('第 ' + p.round + ' 回合结算：+' + p.total + ' 金', 'econ');
       ZG.Platform.saveBest(s.mapId, p.round);
+      ZG.Platform.saveLast(s.mapId, p.round);
     });
     bus.on(ZG.Events.GAME_OVER, () => {
       ZG.Platform.saveBest(s.mapId, s.round);
+      ZG.Platform.saveLast(s.mapId, s.round);
       log('防线失守：第 ' + s.round + ' 回合', 'danger');
     });
     bus.on(ZG.Events.BOSS_SPAWNED, p => {
