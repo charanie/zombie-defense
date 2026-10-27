@@ -149,6 +149,7 @@
 
   function blockedAt(state, x, y, radius) {
     if (x < 8 || y < 8 || x > ZG.Const.W - 8 || y > ZG.Const.H - 8) return true;
+    if (!ZG.MapZone.contains(state.map, x, y)) return true;
     const map = state.map;
     if (map && map.obstacles) {
       for (const ob of map.obstacles) {
@@ -173,8 +174,9 @@
       const ca = Math.cos(a), sa = Math.sin(a);
       const vx = dx * ca - dy * sa;
       const vy = dx * sa + dy * ca;
-      const nx = Math.max(8, Math.min(ZG.Const.W - 8, h.x + vx * step));
-      const ny = Math.max(8, Math.min(ZG.Const.H - 8, h.y + vy * step));
+      const p = ZG.MapZone.clamp(state.map, h.x + vx * step, h.y + vy * step, h.radius);
+      const nx = Math.max(8, Math.min(ZG.Const.W - 8, p.x));
+      const ny = Math.max(8, Math.min(ZG.Const.H - 8, p.y));
       if (!blockedAt(state, nx, ny, h.radius)) {
         h.x = nx; h.y = ny;
         h.moveX = vx; h.moveY = vy;
@@ -914,6 +916,14 @@
 
         const bx = b.x + ux * push, by = b.y + uy * push;
         if (!blockedAt(state, bx, by, b.radius)) { b.x = bx; b.y = by; }
+      }
+    }
+    // 推挤仍可能把边缘单位挤到活动区外，最后统一投影回最近合法点
+    if (ZG.MapZone.has(state.map)) {
+      for (const u of list) {
+        if (!u.alive) continue;
+        const p = ZG.MapZone.clamp(state.map, u.x, u.y, u.radius);
+        u.x = p.x; u.y = p.y;
       }
     }
   }

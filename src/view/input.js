@@ -103,7 +103,7 @@
         if (ev.buttons !== undefined && !(ev.buttons & 1)) { finishDrag(s); return; }
         const h = s.humans.find(u => u.id === drag.id && u.alive);
         if (h) {
-          const c = ZG.Geom.clampToWorld(p.x, p.y, h.radius);
+          const c = ZG.MapZone.clamp(s.map, p.x, p.y, h.radius);
           h.x = c.x; h.y = c.y;
         }
         return;

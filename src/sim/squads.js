@@ -226,14 +226,15 @@
       const ca = Math.cos(t), sa = Math.sin(t);
       const vx = dirX * ca - dirY * sa;
       const vy = dirX * sa + dirY * ca;
-      const p = ZG.Geom.clampToWorld(s.frontX + vx * step, s.frontY + vy * step, 16);
+      const p = ZG.MapZone.clamp(state.map, s.frontX + vx * step, s.frontY + vy * step, 16);
       if (!ZG.Geom.isBlockedAt(state, p.x, p.y, 16)) {
         s.frontX = p.x; s.frontY = p.y;
         return true;
       }
     }
     for (const k of [1, -1, 2, -2]) {
-      const p = ZG.Geom.clampToWorld(
+      const p = ZG.MapZone.clamp(
+        state.map,
         s.frontX + perpX * cfg().shieldSpacing * k,
         s.frontY + perpY * cfg().shieldSpacing * k, 16);
       if (!ZG.Geom.isBlockedAt(state, p.x, p.y, 16)) {
@@ -318,7 +319,7 @@
         const lateral = (col - (nInRow - 1) / 2) * c.shieldSpacing + (row ? c.shieldSpacing / 2 : 0);
         const depth = row * 26;
         const p = slot(lateral, depth);
-        const q = ZG.Geom.clampToWorld(p.x, p.y, shields[i].radius);
+        const q = ZG.MapZone.clamp(state.map, p.x, p.y, shields[i].radius);
         shields[i].formationX = q.x;
         shields[i].formationY = q.y;
       }
@@ -351,7 +352,7 @@
           const depth = Math.max(0, bucket.depth - (s.depthOffset || 0)) +
             (h.squadTier || 0) * c.overflowTierDepth + row * c.rowSpacing;
           const p = slot(lateral, depth);
-          const q = ZG.Geom.clampToWorld(p.x, p.y, h.radius);
+          const q = ZG.MapZone.clamp(state.map, p.x, p.y, h.radius);
           h.formationX = q.x;
           h.formationY = q.y;
         }
@@ -369,7 +370,7 @@
           (h.squadTier || 0) * c.overflowTierDepth +
           row * c.rowSpacing + c.civilianExtraDepth;
         const p = slot(lateral, depth);
-        const q = ZG.Geom.clampToWorld(p.x, p.y, h.radius);
+        const q = ZG.MapZone.clamp(state.map, p.x, p.y, h.radius);
         h.formationX = q.x;
         h.formationY = q.y;
       }
