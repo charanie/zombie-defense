@@ -1134,9 +1134,14 @@
         }
       }
     }
-    const M = ZG.Const.SPAWN_WORLD_MARGIN;
-    z.x = Math.max(-M, Math.min(ZG.Const.W + M, nx));
-    z.y = Math.max(-M, Math.min(ZG.Const.H + M, ny));
+    if (ZG.MapZone.has(state.map)) {
+      const p = ZG.MapZone.clamp(state.map, nx, ny, z.radius);
+      z.x = p.x; z.y = p.y;
+    } else {
+      const M = ZG.Const.SPAWN_WORLD_MARGIN;
+      z.x = Math.max(-M, Math.min(ZG.Const.W + M, nx));
+      z.y = Math.max(-M, Math.min(ZG.Const.H + M, ny));
+    }
     z.facing = Math.atan2(dy, dx);
   }
 
@@ -1267,12 +1272,13 @@
     if (z.dashCd <= 0 && t) {
       const dist = ZG.Geom.dist(z.x, z.y, t.x, t.y);
       if (dist >= d.minRange && dist <= d.maxRange) {
+        const dest = ZG.MapZone.clamp(state.map, t.x, t.y, z.radius);
         z.dashWindupT = d.windup;
-        z.dashToX = t.x;
-        z.dashToY = t.y;
-        z.facing = Math.atan2(t.y - z.y, t.x - z.x);
+        z.dashToX = dest.x;
+        z.dashToY = dest.y;
+        z.facing = Math.atan2(dest.y - z.y, dest.x - z.x);
         state.effects.push({
-          kind: 'dash_warn', x1: z.x, y1: z.y, x2: t.x, y2: t.y,
+          kind: 'dash_warn', x1: z.x, y1: z.y, x2: dest.x, y2: dest.y,
           life: d.windup, maxLife: d.windup
         });
         return true;
@@ -1345,8 +1351,12 @@
         for (let i = 0; i < n; i++) {
           const a = state.rng.spawn.next() * Math.PI * 2;
           const rr = s.radiusMin + state.rng.spawn.next() * (s.radiusMax - s.radiusMin);
-          const b = ZG.State.spawnZombie(state, s.type,
-            z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr);
+          const bx = z.x + Math.cos(a) * rr;
+          const by = z.y + Math.sin(a) * rr;
+          const bd2 = ZG.Data.zombies[s.type] || {};
+          const br = bd2.radius || 7;
+          const p = ZG.MapZone.clamp(state.map, bx, by, br);
+          const b = ZG.State.spawnZombie(state, s.type, p.x, p.y);
           b.wave = z.wave;
           state.battle.babyCount = (state.battle.babyCount || 0) + 1;
         }
@@ -1565,9 +1575,14 @@
         z.x += (dx / d) * push;
         z.y += (dy / d) * push;
       }
-      const M = ZG.Const.SPAWN_WORLD_MARGIN;
-      z.x = Math.max(-M, Math.min(ZG.Const.W + M, z.x));
-      z.y = Math.max(-M, Math.min(ZG.Const.H + M, z.y));
+      if (ZG.MapZone.has(state.map)) {
+        const p = ZG.MapZone.clamp(state.map, z.x, z.y, z.radius);
+        z.x = p.x; z.y = p.y;
+      } else {
+        const M = ZG.Const.SPAWN_WORLD_MARGIN;
+        z.x = Math.max(-M, Math.min(ZG.Const.W + M, z.x));
+        z.y = Math.max(-M, Math.min(ZG.Const.H + M, z.y));
+      }
     }
   }
 
