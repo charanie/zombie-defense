@@ -2,6 +2,7 @@ node_modules/
 bench/
 .playwright-mcp/
 .superpowers/
+.app-profile/
 shots/*.tmp
 *.log
 .DS_Store

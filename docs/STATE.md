@@ -8,7 +8,7 @@
 - **阶段**：开发完成；自动化验证全绿，浏览器 QA 已走查（桌面五档 + 键盘 + reduced motion），**待真机/线上缓存复测**。
 - **在线地址**：<https://charanie.github.io/zombie-defense/>（需发布 v1.6 构建后更新）。
 - **可运行**：双击 `index.html`；或 `python -m http.server 8765` 后访问 `http://127.0.0.1:8765/`。
-- **测试**：`npm test` → **292 项全部通过**。
+- **测试**：`npm test` → **293 项全部通过**。
 - **性能**：300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 1.81`（预算 2.5）、`maxStepMs ≈ 15.9`。
 - **Bot**：`--rounds 42 --seed 1` 跑满 R44（`over=false`），与 v1.5 基线逐行一致。
 
@@ -34,7 +34,7 @@
 
 ## 验证记录
 
-- `npm test`：292/292 通过（2026-10-27，含 v1.6 的 menu/intro/shell/smoke 测试）。
+- `npm test`：293/293 通过（2026-10-27，含 v1.6 的 menu/intro/shell/smoke 测试）。
 - `node tests/bench.js`：`avgStepMs≈1.807 maxStepMs≈15.9`（v1.5 基线 1.727/17.3）。
 - `node tests/bot.js --rounds 42 --seed 1`：跑满 R44、`over=false`，与 v1.5 基线输出逐行一致（模拟层未被开始流程改动影响）。
 - 确定性：`state.rng` 未被菜单/过场触碰；`State.hash` 不包含 `ui/settings`；同种子回放测试仍绿。
@@ -51,6 +51,11 @@
   - 记录回填：`saveBest/saveLast` 后卡片与简报显示 `最佳 12 回合 / 上次抵达 9 回合`，`aria-label` 同步。
   - 开场四帧截图为 `shots/intro-crack.png`（0.4s 破口）与 `shots/intro.png`（2.6s 地图名）。
   - console 0 error，`file://` 双击可玩。
+- v1.5 补充验收（无头 Edge + CDP，桌面 1366×768）：
+  - v1.5 阶段 `node --test "tests/*.test.js"` 为 272 项；新增 `maps / zones / zombie-zone / fx` 四组测试，覆盖地图数据、活动区、放置拒绝、双方越界、出生口、接缝通行、死亡幼体、特效 KINDS/describe/stub 绘制/移动端降级。
+  - 三图整备期截图 `shots/map-suburban.png` / `shots/map-hospital.png` / `shots/map-subway.png`；英雄与 BOSS 特效 `shots/fx-hero.png` / `shots/fx-boss.png`。
+  - 手机 390×844（触控模拟）：无横向滚动（`scrollWidth=390`）；BOSS 战 600 帧 `avg 16.6ms / p95 16.8ms / max 33.3ms / >50ms 帧 0`；截图 `shots/mobile-subway.png`、`shots/mobile-boss.png`。
+  - 分图 bot：医院 seed 1 到 R7（v1.4 R6）；地铁 seed 1 到 R6（v1.4 旧图 R7）；开局资金 500 作为补偿。
 - 旧记录（v1.4）：231/231、`avgStepMs≈1.5`、线上 `zd-v1.4.0` 缓存验证通过。
 
 ## 下一步（建议顺序）
