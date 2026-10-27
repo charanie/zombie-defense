@@ -85,3 +85,32 @@ test('缩略图优先 MapLayer，缺失时回退', () => {
   if (savedLayer) ZG.MapLayer = savedLayer;
   if (savedZone) ZG.MapZone = savedZone;
 });
+
+test('导航项顺序与锁定态', () => {
+  const nav = ZG.Menu.navItems();
+  assert.deepEqual(nav.map(n => n.id), ['endless', 'story', 'codex', 'settings']);
+  assert.deepEqual(nav.map(n => n.index), ['01', '02', '03', '04']);
+  assert.equal(nav[1].locked, true);
+  assert.equal(nav[2].action, 'help');
+  assert.equal(nav[3].action, 'settings');
+});
+
+test('布局断点：宽屏显示监视，窄屏横滑', () => {
+  assert.deepEqual(ZG.Menu.menuLayout(1440, 900, false),
+    { mode: 'wide', showFeed: true, cardFlow: 'grid' });
+  assert.deepEqual(ZG.Menu.menuLayout(1366, 768, false),
+    { mode: 'compact', showFeed: true, cardFlow: 'grid' });
+  assert.equal(ZG.Menu.menuLayout(1024, 768, false).mode, 'mid');
+  assert.equal(ZG.Menu.menuLayout(1024, 768, false).showFeed, false);
+  assert.equal(ZG.Menu.menuLayout(1024, 768, false).cardFlow, 'snap');
+  assert.equal(ZG.Menu.menuLayout(390, 844, true).cardFlow, 'snap');
+  assert.equal(ZG.Menu.menuLayout(844, 390, true).mode, 'short');
+  assert.equal(ZG.Menu.menuLayout(700, 800, false).mode, 'narrow');
+});
+
+test('选卡防抖与过场互斥', () => {
+  assert.equal(ZG.Menu.acceptsSelect(1000, 0, false), true);
+  assert.equal(ZG.Menu.acceptsSelect(1200, 1000, false), false);
+  assert.equal(ZG.Menu.acceptsSelect(1500, 1000, false), true);
+  assert.equal(ZG.Menu.acceptsSelect(1500, 1000, true), false);
+});
