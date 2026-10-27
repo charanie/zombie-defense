@@ -8,7 +8,7 @@
 - **阶段**：开发完成；自动化验证全绿，桌面与移动端视觉/性能已用无头 Edge 验收，**待真人试玩**。
 - **在线地址**：<https://charanie.github.io/zombie-defense/>（需发布 v1.5 构建后更新）。
 - **可运行**：双击 `index.html`；或 `python -m http.server 8765` 后访问 `http://127.0.0.1:8765/`。
-- **测试**：`npm test` → **267 项全部通过**。
+- **测试**：`npm test` → **272 项全部通过**。
 - **性能**：300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 1.76`（预算 1.8）、`maxStepMs ≈ 18.5`。
 - **Bot**：郊区 seed 1 跑满 R42；地铁 seed 1 到 R6（v1.4 旧图 R7，无回归）；医院 seed 1 到 R7（v1.4 R6）。
 
@@ -27,7 +27,7 @@
 
 ## 验证记录（v1.5.0，2026-10-27）
 
-- `node --test "tests/*.test.js"`：**271/271 通过**。新增 `maps / zones / zombie-zone / fx` 四组测试，覆盖地图数据、活动区、放置拒绝、双方越界、出生口、接缝通行、死亡幼体、特效 KINDS/describe/stub 绘制/移动端降级。
+- `node --test "tests/*.test.js"`：**272/272 通过**。新增 `maps / zones / zombie-zone / fx` 四组测试，覆盖地图数据、活动区、放置拒绝、双方越界、出生口、接缝通行、死亡幼体、特效 KINDS/describe/stub 绘制/移动端降级。
 - `node tests/bench.js`：`avgStepMs≈1.76 maxStepMs≈18.5`（预算 1.8）。
 - `node tests/bot.js --rounds 40 --seed 1`：郊区 **R42**（与 v1.4 一致），6 BOSS、4 英雄。
 - `bot --map hospital`：R7（v1.4 R6）；`bot --map subway`：R6（v1.4 旧图 R7）。地铁图 3 星难度对无头策略偏高，真人可手动堵口；开局资金 500 已作为补偿。
