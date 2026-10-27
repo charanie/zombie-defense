@@ -313,6 +313,7 @@
 
     const cards = el('div', 'menu-cards');
     M.cardsWrap = cards;
+    buildCards(cards);
     page.appendChild(cards);
 
     const brief = el('section', 'menu-brief');
@@ -328,15 +329,172 @@
     return page;
   }
 
-  // Task 5 填充；这里先建骨架，保证 aria-live 容器存在
-  function buildBrief(container) {
-    const cells = [];
-    for (let i = 0; i < 4; i++) {
-      const cell = el('div', 'brief-cell');
-      container.appendChild(cell);
-      cells.push(cell);
+  // ---------- 地图卡 ----------
+  function buildCards(container) {
+    M.cardEls = [];
+    M.thumbs = [];
+    const order = ZG.Data.mapOrder;
+    for (let i = 0; i < order.length; i++) {
+      const id = order[i];
+      const model = mapCardModel(id, 0, 0);
+      const card = button('map-card');
+      card.setAttribute('data-id', id);
+      card.style.setProperty('--accent', model.accent);
+
+      const thumb = el('div', 'map-thumb');
+      const canvas = el('canvas', '');
+      thumb.appendChild(canvas);
+      thumb.appendChild(el('span', 'mc-ao', model.code));
+      const threat = el('span', 'mc-threat');
+      for (let k = 1; k <= 3; k++) {
+        const bar = el('i', k <= model.stars ? 'on' : '');
+        bar.style.height = (5 + k * 3) + 'px';
+        threat.appendChild(bar);
+      }
+      thumb.appendChild(threat);
+      const tags = el('span', 'mc-tags');
+      for (let k = 0; k < model.tags.length; k++) tags.appendChild(el('span', '', model.tags[k]));
+      thumb.appendChild(tags);
+      card.appendChild(thumb);
+
+      const body = el('div', 'mc-body');
+      body.appendChild(el('div', 'mc-name', model.name));
+      body.appendChild(el('div', 'mc-en', model.codename));
+      body.appendChild(el('div', 'mc-desc', model.desc));
+      body.appendChild(el('div', 'mc-loadout', '推荐开局：' + model.loadout));
+      const foot = el('div', 'mc-foot');
+      const best = el('span', 'mc-best', model.bestText);
+      foot.appendChild(best);
+      foot.appendChild(el('span', 'mc-go', ZG.Data.menu.copy.enter));
+      body.appendChild(foot);
+      card.appendChild(body);
+
+      card.setAttribute('aria-label', model.ariaLabel);
+      card.addEventListener('click', () => onCardActivate(card));
+      card.addEventListener('mouseenter', () => {
+        card.classList.add('hover');
+        updateBrief(id);
+      });
+      card.addEventListener('mouseleave', () => card.classList.remove('hover'));
+      card.addEventListener('focus', () => updateBrief(id));
+
+      container.appendChild(card);
+      M.cardEls.push(card);
+      M.thumbs.push({ id, canvas });
     }
-    return { cells };
+
+    // 触控横滑：位移超过 8px 时抑制随后的 click，避免滑动误进图
+    let swipe = null;
+    container.addEventListener('pointerdown', ev => {
+      swipe = { x: ev.clientX, y: ev.clientY };
+    });
+    container.addEventListener('click', ev => {
+      if (!swipe) return;
+      const dx = ev.clientX - swipe.x;
+      const dy = ev.clientY - swipe.y;
+      swipe = null;
+      if (Math.sqrt(dx * dx + dy * dy) > 8) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+    }, true);
+  }
+
+  function onCardActivate(card) {
+    if (M.frozen) return;
+    const id = card.getAttribute('data-id');
+    const busy = M.cb.isBusy ? !!M.cb.isBusy() : false;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!acceptsSelect(now, M.lastSelectAt, busy)) return;
+    M.lastSelectAt = now;
+    card.classList.add('flash');
+    setTimeout(() => card.classList.remove('flash'), 120);
+    ZG.Audio.play('click');
+    if (M.cb.onSelectMap) M.cb.onSelectMap(id);
+  }
+
+  // ---------- 行动简报 ----------
+  function buildBrief(container) {
+    const refs = {};
+
+    // 1. 行动简报
+    const c1 = el('div', 'brief-cell');
+    const k1 = el('div', 'brief-k', '行动简报 / OPERATION BRIEF · ');
+    refs.name = el('span', '', '');
+    k1.appendChild(refs.name);
+    c1.appendChild(k1);
+    refs.loadout = el('div', 'brief-v', '—');
+    c1.appendChild(refs.loadout);
+    refs.note = el('div', 'brief-note', '—');
+    c1.appendChild(refs.note);
+    container.appendChild(c1);
+
+    // 2. 威胁构成（估计）
+    const c2 = el('div', 'brief-cell');
+    c2.appendChild(el('div', 'brief-k', '威胁构成（估计） / HOSTILE MIX'));
+    const bars = el('div', 'brief-bars');
+    const labels = ['普通', '冲刺', '特殊'];
+    const colors = ['', '#C0CA33', '#EF5350'];
+    refs.bars = [];
+    for (let i = 0; i < 3; i++) {
+      const row = el('div', 'brief-bar');
+      row.appendChild(el('span', '', labels[i]));
+      const track = el('i', '');
+      if (colors[i]) track.style.setProperty('--c', colors[i]);
+      row.appendChild(track);
+      const num = el('b', '', '0%');
+      row.appendChild(num);
+      bars.appendChild(row);
+      refs.bars.push({ track, num });
+    }
+    c2.appendChild(bars);
+    container.appendChild(c2);
+
+    // 3. 个人记录
+    const c3 = el('div', 'brief-cell');
+    c3.appendChild(el('div', 'brief-k', '个人记录 / PERSONAL BEST'));
+    const record = el('div', 'brief-record');
+    refs.best = el('b', '', '—');
+    record.appendChild(refs.best);
+    record.appendChild(el('span', '', '回合'));
+    c3.appendChild(record);
+    refs.last = el('div', 'brief-note', '上次抵达 — 回合 · 记录自动保存');
+    c3.appendChild(refs.last);
+    container.appendChild(c3);
+
+    // 4. 行动提示
+    const c4 = el('div', 'brief-cell');
+    c4.appendChild(el('div', 'brief-k', '行动提示 / FIELD NOTE'));
+    refs.tip = el('div', 'brief-v', '—');
+    refs.tip.style.fontSize = '11px';
+    refs.tip.style.lineHeight = '1.65';
+    c4.appendChild(refs.tip);
+    const hint = el('div', 'brief-note', '开场动画可按任意键跳过');
+    hint.style.color = '#526A87';
+    c4.appendChild(hint);
+    container.appendChild(c4);
+
+    return refs;
+  }
+
+  function updateBrief(mapId) {
+    if (!M.briefEls.name) return;
+    const best = bestOf(mapId);
+    const last = lastOf(mapId);
+    if (M.briefMapId === mapId) return;
+    M.briefMapId = mapId;
+    const m = mapCardModel(mapId, best, last);
+    M.briefEls.name.textContent = m.name;
+    M.briefEls.loadout.textContent = m.loadout;
+    M.briefEls.note.textContent = m.note;
+    M.briefEls.tip.textContent = m.tip;
+    M.briefEls.best.textContent = best > 0 ? String(best) : '—';
+    M.briefEls.last.textContent = '上次抵达 ' + (last > 0 ? last + ' 回合' : '—') + ' · 记录自动保存';
+    for (let i = 0; i < M.briefEls.bars.length; i++) {
+      const p = (m.mix && m.mix[i]) || 0;
+      M.briefEls.bars[i].track.style.setProperty('--p', p + '%');
+      M.briefEls.bars[i].num.textContent = p + '%';
+    }
   }
 
   // ---------- 页面 ----------
@@ -377,6 +535,7 @@
     if (!M.w) resize();
     refreshRecords();
     refreshInstall();
+    redrawThumbs();
     if (M.page === 'main') safeFocus(M.navEls[0]);
     else if (M.cardEls.length) safeFocus(M.cardEls[0]);
     drawFeed(true);
@@ -464,7 +623,22 @@
   }
 
   function redrawThumbs() {
-    // Task 5 填充具体卡片缩略图
+    if (!M.thumbs.length) return;
+    const dpr = Math.min((typeof window !== 'undefined' && window.devicePixelRatio) || 1, 2);
+    for (let i = 0; i < M.thumbs.length; i++) {
+      const t = M.thumbs[i];
+      const host = t.canvas.parentNode;
+      const cssW = Math.round((host ? host.clientWidth : 0) || 0);
+      if (cssW <= 0) continue;
+      const cssH = Math.round((host ? host.clientHeight : 0) || Math.round(cssW * 9 / 16));
+      if (t.canvas.width !== Math.round(cssW * dpr) || t.canvas.height !== Math.round(cssH * dpr)) {
+        t.canvas.width = Math.round(cssW * dpr);
+        t.canvas.height = Math.round(cssH * dpr);
+      }
+      const ctx = t.canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ZG.MenuScene.drawThumb(ctx, ZG.Data.maps[t.id], cssW, cssH);
+    }
   }
 
   function tick(nowMs) {
@@ -520,8 +694,15 @@
   function refreshRecords() {
     if (!M.root) return;
     updateFeedMeta();
-    // Task 5 刷新卡片上的 best/last 与简报
+    for (let i = 0; i < M.cardEls.length; i++) {
+      const id = M.cardEls[i].getAttribute('data-id');
+      const m = mapCardModel(id, bestOf(id), lastOf(id));
+      const bestEl = M.cardEls[i].querySelector('.mc-best');
+      if (bestEl) bestEl.textContent = m.bestText;
+      M.cardEls[i].setAttribute('aria-label', m.ariaLabel);
+    }
     M.briefMapId = null;
+    if (M.page === 'maps' && ZG.Data.mapOrder.length) updateBrief(ZG.Data.mapOrder[0]);
   }
 
   function refreshInstall() {

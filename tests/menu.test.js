@@ -114,3 +114,24 @@ test('选卡防抖与过场互斥', () => {
   assert.equal(ZG.Menu.acceptsSelect(1500, 1000, false), true);
   assert.equal(ZG.Menu.acceptsSelect(1500, 1000, true), false);
 });
+
+test('地图卡：AO 编号、最佳/上次为空显示破折号', () => {
+  const a = ZG.Menu.mapCardModel('suburban', 23, 12);
+  assert.equal(a.code, 'AO-01');
+  assert.equal(a.name, '郊区公路');
+  assert.equal(a.codename, 'SUBURBAN HIGHWAY');
+  assert.equal(a.bestText, '最佳 23 回合');
+  assert.equal(a.lastText, '上次抵达 12 回合');
+  assert.equal(a.stars, 1);
+  assert.ok(a.ariaLabel.includes('最佳 23 回合'));
+
+  const b = ZG.Menu.mapCardModel('hospital', 0, 0);
+  assert.equal(b.code, 'AO-02');
+  assert.equal(b.bestText, '最佳 —');
+  assert.equal(b.lastText, '上次抵达 —');
+});
+
+test('卡片顺序来自 mapOrder', () => {
+  const ids = ZG.Data.mapOrder.map(id => ZG.Menu.mapCardModel(id, 0, 0).code);
+  assert.deepEqual(ids, ['AO-01', 'AO-02', 'AO-03']);
+});
