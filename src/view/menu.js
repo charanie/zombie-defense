@@ -754,15 +754,78 @@
     }
   }
 
-  // Task 6 填充内容；这里先留空实现，保证 click 不报错
-  function openTeaser() { /* Task 6 */ }
-  function closeTeaser() { M.teaserOpen = false; }
+  // ---------- 剧情“封存档案”弹窗 ----------
+  function buildModalBody(modal) {
+    const d = ZG.Data.menu;
+    const story = d.story;
+    const box = el('div', 'teaser-box');
+
+    const head = el('div', 'teaser-head');
+    const titleWrap = el('div', '');
+    titleWrap.appendChild(el('div', 'teaser-title', d.copy.teaserTitle));
+    titleWrap.appendChild(el('div', 'teaser-en', d.copy.teaserEn));
+    head.appendChild(titleWrap);
+    head.appendChild(el('span', 'teaser-stamp', d.copy.teaserEn));
+    box.appendChild(head);
+
+    box.appendChild(el('div', 'teaser-sub', d.copy.teaserSub));
+    box.appendChild(el('div', 'teaser-chapter', story.chapterTitle));
+    box.appendChild(el('div', 'teaser-blurb', story.blurb));
+
+    const list = el('div', 'teaser-list');
+    for (let i = 0; i < story.chapters.length; i++) {
+      const c = story.chapters[i];
+      const row = el('button', 'teaser-chapter-row');
+      row.type = 'button';
+      row.disabled = true;
+      row.setAttribute('aria-disabled', 'true');
+      row.setAttribute('aria-label', '第 ' + pad2(i + 1) + ' 章 ' + c.name + '，待解锁');
+      row.appendChild(el('span', 'chapter-num', pad2(i + 1)));
+      row.appendChild(el('span', 'chapter-name', c.name));
+      row.appendChild(el('span', 'chapter-state', d.copy.locked + ' 🔒'));
+      list.appendChild(row);
+    }
+    box.appendChild(list);
+
+    const foot = el('div', 'teaser-foot');
+    foot.appendChild(el('span', 'teaser-note', d.copy.teaserFoot));
+    const back = button('menu-util teaser-close', d.copy.back);
+    back.addEventListener('click', () => { ZG.Audio.play('click'); closeTeaser(); });
+    foot.appendChild(back);
+    box.appendChild(foot);
+
+    modal.appendChild(box);
+    M.teaserCloseBtn = back;
+    M.teaserStoryBtn = null;
+    modal.addEventListener('click', ev => {
+      if (ev.target === modal) closeTeaser();
+    });
+    box.addEventListener('click', ev => ev.stopPropagation());
+  }
+
+  function openTeaser() {
+    if (!M.modal) return;
+    M.teaserOpen = true;
+    M.modal.classList.remove('hidden');
+    for (let i = 0; i < M.navEls.length; i++) {
+      if (M.navEls[i].getAttribute('data-action') === 'story') M.teaserStoryBtn = M.navEls[i];
+    }
+    safeFocus(M.teaserCloseBtn);
+  }
+
+  function closeTeaser() {
+    const wasOpen = M.teaserOpen;
+    M.teaserOpen = false;
+    if (M.modal) M.modal.classList.add('hidden');
+    if (wasOpen && M.teaserStoryBtn && M.visible) safeFocus(M.teaserStoryBtn);
+  }
 
   function buildModal() {
     const modal = el('div', 'menu-modal hidden');
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-label', '档案封存');
+    buildModalBody(modal);
     M.modal = modal;
     return modal;
   }

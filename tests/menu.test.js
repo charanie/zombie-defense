@@ -135,3 +135,11 @@ test('卡片顺序来自 mapOrder', () => {
   const ids = ZG.Data.mapOrder.map(id => ZG.Menu.mapCardModel(id, 0, 0).code);
   assert.deepEqual(ids, ['AO-01', 'AO-02', 'AO-03']);
 });
+
+test('剧情弹窗内容完整且不承诺后端能力', () => {
+  const s = ZG.Data.menu.story;
+  const text = [s.title, s.chapterTitle, s.blurb, ...s.chapters.map(c => c.name)].join(' ');
+  assert.ok(text.includes('撤离命令'));
+  assert.ok(!/预约|购买|登录|通知/.test(text));
+  assert.deepEqual(s.chapters.map(c => c.mapId), ['suburban', 'hospital', 'subway']);
+});
