@@ -52,6 +52,7 @@ const SHELL = [
   './src/view/audio.js',
   './src/view/menuScene.js',
   './src/view/menu.js',
+  './src/view/intro.js',
   './src/view/hud.js',
   './src/view/input.js',
   './src/main.js',

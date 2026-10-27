@@ -7,7 +7,8 @@
     'pistol', 'shotgun', 'mg', 'flame', 'rocket', 'explosion',
     'heal', 'infect', 'bossRoar', 'click', 'horn', 'coin',
     'dash', 'spit', 'summon',
-    'missile', 'slash', 'stomp', 'rockBreak', 'fuse'
+    'missile', 'slash', 'stomp', 'rockBreak', 'fuse',
+    'glass', 'bite', 'impact', 'stinger', 'heartbeat', 'reveal', 'whoosh'
   ];
 
   function create(opts) {
@@ -82,6 +83,13 @@
           else if (name === 'click') tone(880, 0.04, 'square', 0.05);
           else if (name === 'horn') horn();
           else if (name === 'coin') coin();
+          else if (name === 'glass') { noise(0.25, 3000, 0.12, 'highpass'); tone(2400, 0.08, 'sine', 0.06); }
+          else if (name === 'bite') { noise(0.35, 500, 0.18, 'lowpass'); sweep(90, 55, 0.3, 'sawtooth', 0.12); }
+          else if (name === 'impact') { sweep(55, 38, 0.5, 'sine', 0.2); noise(0.2, 120, 0.14, 'lowpass'); }
+          else if (name === 'stinger') stinger();
+          else if (name === 'heartbeat') heartbeat();
+          else if (name === 'reveal') { sweep(180, 720, 0.8, 'sine', 0.1); noise(0.5, 800, 0.06); }
+          else if (name === 'whoosh') noise(0.5, 200, 0.06, 'lowpass');
         } catch (e) { /* 忽略音频错误 */ }
       }
     };
@@ -114,12 +122,12 @@
       src.stop(ctx.currentTime + dur + 0.02);
     }
 
-    function noise(dur, cutoff, gain) {
+    function noise(dur, cutoff, gain, type) {
       if (!ctx || !noiseBuf) return;
       const src = ctx.createBufferSource();
       src.buffer = noiseBuf;
       const f = ctx.createBiquadFilter();
-      f.type = 'bandpass';
+      f.type = type || 'bandpass';
       f.frequency.value = cutoff;
       const g = ctx.createGain();
       g.gain.setValueAtTime(gain, ctx.currentTime);
@@ -166,6 +174,30 @@
         osc.connect(g); g.connect(master);
         osc.start(); osc.stop(ctx.currentTime + 0.95);
       }
+    }
+
+    // 开场：地图名出现时的低频 stinger（三锯齿 + lowpass 1.2kHz，2s）
+    function stinger() {
+      if (!ctx) return;
+      for (const f of [55, 58, 110]) {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1200;
+        osc.type = 'sawtooth';
+        osc.frequency.value = f;
+        g.gain.setValueAtTime(0.06, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 2);
+        osc.connect(filter); filter.connect(g); g.connect(master);
+        osc.start(); osc.stop(ctx.currentTime + 2.02);
+      }
+    }
+
+    // 开场：黑场里的两下心跳
+    function heartbeat() {
+      tone(50, 0.18, 'sine', 0.22);
+      setTimeout(() => tone(50, 0.16, 'sine', 0.16), 220);
     }
 
     return api;
