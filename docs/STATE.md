@@ -7,7 +7,7 @@
 - **版本**：v1.6.0。v1.5（三地图细化 / 地铁双通道 / 技能特效）已并入 `main`，v1.6 在其上重做开始流程。
 - **阶段**：开发完成；自动化验证全绿，浏览器 QA 已走查（桌面五档 + 键盘 + reduced motion），**待真机/线上缓存复测**。
 - **在线地址**：<https://charanie.github.io/zombie-defense/>（`main` 已推送到 v1.6.0）。
-- **安卓包**：`dist/zombie-defense-v1.6.0.apk`（0.36 MB，minSdk 24，自签名 v2+v3，零权限），构建脚本 `tools/android-build/build_apk.py`。
+- **安卓包**：`dist/zombie-defense-v1.6.0.apk`（0.36 MB，minSdk 24，自签名 v2+v3，零权限），线上直链 <https://charanie.github.io/zombie-defense/dist/zombie-defense-v1.6.0.apk>；构建脚本 `tools/android-build/build_apk.py`。
 - **可运行**：双击 `index.html`；或 `python -m http.server 8765` 后访问 `http://127.0.0.1:8765/`。
 - **测试**：`npm test` → **293 项全部通过**。
 - **性能**：300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 1.81`（预算 2.5）、`maxStepMs ≈ 15.9`。

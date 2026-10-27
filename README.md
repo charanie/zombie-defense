@@ -28,9 +28,10 @@ python -m http.server 8765
 
 ## 安卓 APK（手机安装）
 
-`dist/zombie-defense-v1.6.0.apk`（约 0.36 MB）是打包好的安卓安装包：单 Activity + WebView，
+[`dist/zombie-defense-v1.6.0.apk`](dist/zombie-defense-v1.6.0.apk)（约 0.36 MB）是打包好的安卓安装包：单 Activity + WebView，
 游戏资源全部内置，**不需要网络、不申请任何权限**。
 
+- 直接下载：<https://charanie.github.io/zombie-defense/dist/zombie-defense-v1.6.0.apk>
 - 安装：把 APK 传到手机（数据线 / 微信文件传输 / 网盘均可）→ 点开安装 → 允许“安装未知来源应用”。
 - 要求：Android 7.0（API 24）及以上；横屏锁定；包名 `com.charanie.zombiedefense`。
 - 说明：自签名（v2 + v3），可直接侧载，不是应用商店包；图标暂用系统默认图标。
