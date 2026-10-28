@@ -14,13 +14,17 @@
 
 ## v1.6 安卓 APK
 
-- [x] `python tools/android-build/build_apk.py` 一条命令产出 `dist/zombie-defense-v1.6.0.apk`（0.36 MB）。
-- [x] `aapt2 dump badging`：package / versionCode 10600 / 1.6.0 / minSdk 24 / targetSdk 34 / launchable-activity / label 全部正确。
-- [x] `aapt2 dump xmltree`：手写 AXML 的属性 ID 与取值（label、icon、theme、configChanges 8096、screenOrientation 6、launchMode 2）全部被官方解析器读出。
-- [x] `apksigner verify -v`：v2 + v3 签名通过；`dexdump`：MainActivity 等 3 个类可解析。
+- [x] `python tools/android-build/build_apk.py` 一条命令产出 `dist/zombie-defense-v1.6.0.apk`（0.57 MB，自定义图标）。
+- [x] `aapt2 dump badging`：package / versionCode 10600 / 1.6.0 / minSdk 24 / targetSdk 34 / launchable-activity / application-label 尸潮防线 / icon mipmap 全部正确。
+- [x] `apksigner verify -v`：v2 + v3 签名通过。
 - [x] APK 内含 `assets/www/**` 56 个游戏文件（`index.html`、`src/**`、`icons/**` 等），无网络依赖、无权限申请。
-- [ ] 真机安装 / 启动 / 横竖屏切换（本机无设备，待测）。
-- [ ] 应用内 localStorage 存档、音频、开场演出真机表现（待测）。
+- [x] **真机安装**：Xiaomi（Android 16 / arm64-v8a / 1280×2772 @520dpi）`adb install` 成功。
+- [x] **真机启动**：冷启动 380–420ms，横屏全屏，主菜单渲染正常。
+- [x] **真机完整流程**：无尽模式 → 选图 → 开场（可点击跳过）→ 整备 → 招募 → 开始回合，僵尸正常出怪。
+- [x] **虚拟源与存档**：DevTools 探活显示 `https://appassets.local/index.html`，`localStorage` 读写正常，`zg_best` 记录跨重启保留。
+- [x] WebView 控制台 0 error、logcat 无崩溃。
+- [ ] 横竖屏切换时 `configChanges` 不重建 Activity（本机锁定横屏，未单独验证）。
+- [ ] 真机音频音量/延迟（未逐项验证）。
 
 ## v1.6 开始流程
 

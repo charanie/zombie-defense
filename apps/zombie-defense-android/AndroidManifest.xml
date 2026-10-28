@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 尸潮防线 Android 壳：单 Activity + 本地资源 WebView（不需要 INTERNET 权限）。
-     图标与主题都引用系统框架资源，因此 APK 里不需要 resources.arsc；
-     versionCode / versionName 由 tools/android-build/build_apk.py 注入。 -->
+     versionCode / versionName 由 tools/android-build/build_apk.py 在 aapt2 link 时注入。 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.charanie.zombiedefense">
 
@@ -12,8 +11,8 @@
     <application
         android:allowBackup="true"
         android:hardwareAccelerated="true"
-        android:icon="@android:drawable/sym_def_app_icon"
-        android:label="尸潮防线"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
         android:usesCleartextTraffic="false">
         <activity

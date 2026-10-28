@@ -7,7 +7,7 @@
 - **版本**：v1.6.0。v1.5（三地图细化 / 地铁双通道 / 技能特效）已并入 `main`，v1.6 在其上重做开始流程。
 - **阶段**：开发完成；自动化验证全绿，浏览器 QA 已走查（桌面五档 + 键盘 + reduced motion），**待真机/线上缓存复测**。
 - **在线地址**：<https://charanie.github.io/zombie-defense/>（`main` 已推送到 v1.6.0）。
-- **安卓包**：`dist/zombie-defense-v1.6.0.apk`（0.36 MB，minSdk 24，自签名 v2+v3，零权限），线上直链 <https://charanie.github.io/zombie-defense/dist/zombie-defense-v1.6.0.apk>；构建脚本 `tools/android-build/build_apk.py`。
+- **安卓包**：`dist/zombie-defense-v1.6.0.apk`（0.57 MB，minSdk 24，自签名 v2+v3，零权限，自定义图标），线上直链 <https://charanie.github.io/zombie-defense/dist/zombie-defense-v1.6.0.apk>；构建脚本 `tools/android-build/build_apk.py`（aapt2 标准流程）。**真机已验证**：Xiaomi / Android 16 / arm64-v8a 安装、启动、完整开始流程、招募开战、localStorage 存档均正常。
 - **可运行**：双击 `index.html`；或 `python -m http.server 8765` 后访问 `http://127.0.0.1:8765/`。
 - **测试**：`npm test` → **293 项全部通过**。
 - **性能**：300 僵尸 + 99 人类 + 100 投射物 → `avgStepMs ≈ 1.81`（预算 2.5）、`maxStepMs ≈ 15.9`。
@@ -24,7 +24,7 @@
 - **修掉的旧 bug**：菜单里“图鉴/设置”死按钮；弹窗被菜单盖住；菜单中 `Space/H/T/Tab` 触发游戏操作。
 - **记录**：新增 `zd_last_<id>`（上次抵达，只增不减）；选图页与简报显示 `最佳 / 上次抵达`，为空显示 `—`。
 - **设置**：新增“开场动画”开关（关闭后 0.25s 淡入）；`prefers-reduced-motion` 运行时优先。
-- **安卓 APK**：`apps/zombie-defense-android/`（单 Activity + WebView，`https://appassets.local/` 虚拟源拦截 `assets/www`）；`tools/android-build/build_apk.py` 用“python 内嵌 JVM + 手写 AXML + 纯 Python 组包”绕过 Gradle/aapt2 构建，产物 `dist/zombie-defense-v1.6.0.apk`。
+- **安卓 APK**：`apps/zombie-defense-android/`（单 Activity + WebView，`https://appassets.local/` 虚拟源拦截 `assets/www`，5 档 mipmap 图标）；`tools/android-build/build_apk.py` 用 aapt2 + javac + d8 + zipalign + apksigner 的零 Gradle 流程构建，产物 `dist/zombie-defense-v1.6.0.apk`；WebView 调试只在 `--debug` 构建开启。
 
 ## v1.5.0 已完成（并入本版）
 

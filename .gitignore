@@ -13,3 +13,4 @@ apps/zombie-defense-android/assets/
 apps/zombie-defense-android/keystore/
 # dist/ 里的 APK 需要提交，方便直接从仓库下载
 dist/*.idsig
+dist/*-debug.apk

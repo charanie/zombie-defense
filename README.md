@@ -28,19 +28,25 @@ python -m http.server 8765
 
 ## 安卓 APK（手机安装）
 
-[`dist/zombie-defense-v1.6.0.apk`](dist/zombie-defense-v1.6.0.apk)（约 0.36 MB）是打包好的安卓安装包：单 Activity + WebView，
+[`dist/zombie-defense-v1.6.0.apk`](dist/zombie-defense-v1.6.0.apk)（约 0.57 MB）是打包好的安卓安装包：单 Activity + WebView，
 游戏资源全部内置，**不需要网络、不申请任何权限**。
 
 - 直接下载：<https://charanie.github.io/zombie-defense/dist/zombie-defense-v1.6.0.apk>
 - 安装：把 APK 传到手机（数据线 / 微信文件传输 / 网盘均可）→ 点开安装 → 允许“安装未知来源应用”。
 - 要求：Android 7.0（API 24）及以上；横屏锁定；包名 `com.charanie.zombiedefense`。
-- 说明：自签名（v2 + v3），可直接侧载，不是应用商店包；图标暂用系统默认图标。
+- 说明：自签名（v2 + v3），可直接侧载，不是应用商店包；已在 Xiaomi Android 16 真机验证安装、启动、选图、开场、整备、招募、开战与存档。
 
-重新打包（需要 JDK 17 + Android SDK build-tools 34 + python 的 `jpype1`）：
+重新打包（需要 JDK 17 + Android SDK build-tools 34；aapt2 标准流程，不用 Gradle）：
 
 ```powershell
-python tools\android-build\build_apk.py     # 或双击 apps\zombie-defense-android\build-apk.cmd
+python tools/android-build/build_apk.py            # 或双击 apps/zombie-defense-android/build-apk.cmd
+python tools/android-build/build_apk.py --debug     # debuggable 包（WebView 远程调试）
 ```
+
+真机截图：
+
+![安卓主菜单](shots/android-menu.png)
+![安卓战斗](shots/android-battle.png)
 
 细节与取舍见 [`apps/zombie-defense-android/README.md`](apps/zombie-defense-android/README.md)。
 
